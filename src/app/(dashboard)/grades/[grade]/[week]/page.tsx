@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, CheckCircle, Send, Edit, FileDown, FileText, FileType, FileSpreadsheet, Download, Printer, Pencil } from "lucide-react"
+import { marked } from "marked"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -31,6 +32,16 @@ export default function PackageDetailPage() {
   const [editContent, setEditContent] = useState<string>("")
   const [editTitle, setEditTitle] = useState<string>("")
   const todayStr = new Date().toISOString().split("T")[0]
+
+  function MarkdownRender({ content }: { content: string }) {
+    if (!content) return null
+    try {
+      const html = marked.parse(content, { breaks: true }) as string
+      return <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: html }} />
+    } catch {
+      return <pre className="whitespace-pre-wrap text-sm">{content}</pre>
+    }
+  }
   const exportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -412,6 +423,8 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[300px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : lessonPlan.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No lesson plan yet.</p>
+              ) : lessonPlan.length === 1 && lessonPlan[0].phase === "Custom Content" ? (
+                <MarkdownRender content={lessonPlan[0].activity} />
               ) : (
                 <div className="space-y-4">
                   {lessonPlan.map((phase, i) => (
@@ -449,6 +462,8 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[300px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : worksheet.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No worksheet yet.</p>
+              ) : worksheet.length === 1 && worksheet[0].level === "Custom" ? (
+                <MarkdownRender content={worksheet[0].questions[0]?.question ?? ""} />
               ) : (
                 <div className="space-y-6">
                   {worksheet.map((level, i) => (
@@ -493,17 +508,21 @@ export default function PackageDetailPage() {
               {editingSection === "pre-class" ? (
                 <textarea className="w-full min-h-[300px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : (
-                <>{preClass.video && (
-                  <div>
-                    <h3 className="text-sm font-semibold">Video</h3>
-                    <p className="text-sm text-muted-foreground">{preClass.video}</p>
-                  </div>
-                )}
-                {preClass.simulation && (
-                  <div>
-                    <h3 className="text-sm font-semibold">Simulation</h3>
-                    <p className="text-sm text-muted-foreground">{preClass.simulation}</p>
-                  </div>
+                <>{preClass.video && !preClass.simulation && !preClass.quiz?.length ? (
+                  <MarkdownRender content={preClass.video} />
+                ) : (
+                  <>{preClass.video && (
+                    <div>
+                      <h3 className="text-sm font-semibold">Video</h3>
+                      <p className="text-sm text-muted-foreground">{preClass.video}</p>
+                    </div>
+                  )}
+                  {preClass.simulation && (
+                    <div>
+                      <h3 className="text-sm font-semibold">Simulation</h3>
+                      <p className="text-sm text-muted-foreground">{preClass.simulation}</p>
+                    </div>
+                  )}</>
                 )}
                 {preClass.quiz && preClass.quiz.length > 0 && (
                   <div>
@@ -557,6 +576,8 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[200px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : labLogistics.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No lab logistics yet.</p>
+              ) : labLogistics.length === 1 && labLogistics[0].quantity === 0 ? (
+                <MarkdownRender content={labLogistics[0].item} />
               ) : (
                 <div className="space-y-2">
                   {labLogistics.map((item, i) => (
@@ -625,6 +646,8 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[200px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : answerKeys.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No answer keys yet.</p>
+              ) : answerKeys.length === 1 && answerKeys[0].question === "Custom Content" ? (
+                <MarkdownRender content={answerKeys[0].answer} />
               ) : (
                 <div className="space-y-4">
                   {answerKeys.map((ak, i) => (

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Wand2, FileDown, FileText, FileType, Eye, EyeOff, Loader2, Save, FolderOpen, Trash2, List } from "lucide-react"
+import { Wand2, FileDown, FileText, FileType, Eye, EyeOff, Loader2, Save, FolderOpen, Trash2, List, RotateCcw } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
 import { Separator } from "@/components/ui/separator"
@@ -108,7 +108,27 @@ export default function LessonPlanPage() {
     toast.success(`Auto-filled for Grade ${grade}, Week ${week}: ${topic}`)
   }
 
+  // Auto-save to localStorage whenever form changes
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      try {
+        localStorage.setItem("lesson-plan-draft", JSON.stringify(form))
+      } catch {}
+    }, 1000)
+    return () => clearTimeout(timeout)
+  }, [form])
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lesson-plan-draft")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed && parsed.grade) {
+          setForm((prev) => ({ ...prev, ...parsed }))
+        }
+      }
+    } catch {}
     autoFillFromGrade(form.grade, form.week)
   }, [])
 
@@ -221,12 +241,28 @@ export default function LessonPlanPage() {
           {step === "form" && (
             <>
               <div className="flex items-center gap-1">
-                <Input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Plan name..." className="w-40 h-8 text-xs" />
-                <Button variant="outline" size="sm" onClick={handleSavePlan} disabled={savingPlan}><Save className="h-3 w-3" /></Button>
+                <Button variant="outline" size="sm" onClick={async () => {
+                  setSaveName(`G${form.grade}-W${form.week} Draft`)
+                  await new Promise(r => setTimeout(r, 50))
+                  await handleSavePlan()
+                }} disabled={savingPlan}>
+                  <Save className="mr-1 h-3 w-3" />Quick Save
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  localStorage.removeItem("lesson-plan-draft")
+                  setForm(getDefaultForm())
+                  toast.success("Draft cleared")
+                }} title="Clear draft">
+                  <RotateCcw className="h-3 w-3" />
+                </Button>
               </div>
               <Button variant="outline" size="sm" onClick={() => { setShowSaved(!showSaved); if (!showSaved) fetchSavedPlans() }}>
-                <FolderOpen className="mr-1 h-3 w-3" />Saved
+                <FolderOpen className="mr-1 h-3 w-3" />Drafts
               </Button>
+              <div className="flex items-center gap-1">
+                <Input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Name..." className="w-32 h-8 text-xs" />
+                <Button variant="outline" size="sm" onClick={handleSavePlan} disabled={savingPlan} title="Save as named plan"><Save className="h-3 w-3" /></Button>
+              </div>
             </>
           )}
         </div>

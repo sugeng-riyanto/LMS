@@ -35,7 +35,7 @@ export default function GradingPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<string | null>(null)
 
-  useEffect(() => { if (canView) fetchData() }, [grade])
+  useEffect(() => { if (canView) { fetchData() } }, [grade, canView])
 
   async function fetchData() {
     setLoading(true)
@@ -48,7 +48,7 @@ export default function GradingPage() {
       const allStudents = (Array.isArray(profiles) ? profiles : [])
         .filter((p: any) => p.role === "student" && p.grade_assigned === grade)
       setStudents(allStudents)
-    } catch {} finally { setLoading(false) }
+    } catch (e) { console.error("Grading fetch error:", e) } finally { setLoading(false) }
   }
 
   function getStudentWork(studentId: string) {
@@ -77,8 +77,8 @@ export default function GradingPage() {
         }),
       })
       if (res.ok) { toast.success("Saved!"); fetchData() }
-      else toast.error("Failed")
-    } catch { toast.error("Failed") }
+      else { const err = await res.json().catch(() => ({ error: "Unknown" })); toast.error(err.error || "Failed") }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
     finally { setSaving(null) }
   }
 
@@ -87,8 +87,8 @@ export default function GradingPage() {
     try {
       const res = await fetch(`/api/teacher/grading/${workId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
       if (res.ok) { toast.success("Auto-graded!"); fetchData() }
-      else toast.error("Failed")
-    } catch { toast.error("Failed") }
+      else { const err = await res.json().catch(() => ({ error: "Unknown" })); toast.error(err.error || "Failed") }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
     finally { setSaving(null) }
   }
 
