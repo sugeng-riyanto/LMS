@@ -266,7 +266,15 @@ export default function SyllabusPlannerPage() {
     }
 
     try {
-      const { error } = await (supabase.from("syllabus_planning") as any).upsert({
+      // Check if record exists
+      const { data: existing } = await (supabase.from("syllabus_planning") as any)
+        .select("id")
+        .eq("academic_year", "2026-2027")
+        .eq("grade", selectedGrade)
+        .eq("week_number", selectedWeek)
+        .maybeSingle()
+
+      const payload = {
         grade: selectedGrade,
         week_number: selectedWeek,
         academic_year: "2026-2027",
@@ -278,9 +286,18 @@ export default function SyllabusPlannerPage() {
         calendar_status: (events ?? []).find(e => e.event_type !== "holiday")?.event_type ?? "normal",
         effective_days: (events ?? [])[0]?.effective_days ?? 5,
         status: "planned",
-      })
+      }
 
-      if (error) { console.error("Save error:", error); throw new Error(error.message || "Database error") }
+      let error: any = null
+      if (existing) {
+        const { error: e } = await (supabase.from("syllabus_planning") as any).update(payload).eq("id", existing.id)
+        error = e
+      } else {
+        const { error: e } = await (supabase.from("syllabus_planning") as any).insert(payload)
+        error = e
+      }
+
+      if (error) { console.error("Save error:", JSON.stringify(error)); throw new Error(error.message || "Database error") }
       if (!silent) toast.success("Syllabus plan saved!")
       setPlan(prev => ({ ...prev, status: "planned" }))
       return true
@@ -419,63 +436,162 @@ export default function SyllabusPlannerPage() {
   function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
 
   function getShareHtml(): string {
-    const date = new Date().toLocaleDateString("en-GB")
+    const today = new Date()
+    const dateStr = today.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    const dateCode = today.toISOString().split("T")[0].replace(/-/g, "")
     const hooks = plan.opening_ideas?.split("\n").filter(Boolean) || []
     const questions = plan.activity_questions || []
     const problems = plan.problems || []
     const openingSources = mediaSources.filter(s => s.section === "opening")
     const questionSources = mediaSources.filter(s => s.section === "questions")
+    const allQs = [...hooks.map(h => ({ text: h, section: "opening" })), ...questions.map(q => ({ text: q.question, section: "question" })), ...problems.map(p => ({ text: p.problem, section: "problem" }))]
 
-    function renderSource(src: { url: string; type: string; title: string }) {
-      const embed = getEmbedUrl(src.url, src.type)
-      if (src.type === "youtube" && embed) return `<div class="mt-3 aspect-video rounded-lg overflow-hidden"><iframe src="${embed}" class="w-full h-full" allowfullscreen></iframe></div>`
-      if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio></div>`
-      return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
-    }
+    const selectedTopics = topics.filter(t => selectedTopicIds.has(t.unit_id))
+    const objectivesHtml = selectedTopics.length > 0
+      ? `<div class="mb-6"><h2 class="text-lg font-semibold text-gray-800 mb-2">Learning Objectives</h2><ul class="space-y-1">${selectedTopics.map(t => `<li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#x2713;</span><div><p class="font-medium text-gray-800">${esc(t.topic)}</p><p class="text-xs text-gray-500">${esc(t.syllabus_ref)} · ${esc(t.curriculum)}</p></div></li>`).join("")}</ul></div>`
+      : ""
 
-    const hookHtml = hooks.map(h => `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-2"><p class="text-gray-800">${esc(h)}</p></div>`).join("")
-    const openingSrcHtml = openingSources.map(s => renderSource(s)).join("")
-    const qHtml = questions.map((q, i) => `<div class="bg-green-50 border rounded-lg p-4"><p class="font-medium">${i + 1}. ${esc(q.question)}</p><p class="text-xs text-gray-500 mt-1">Bloom: ${q.bloom} · Time: ${q.timing || "20 min"}</p></div>`).join("")
-    const qSrcHtml = questionSources.map(s => renderSource(s)).join("")
-    const pHtml = problems.map((p, i) => `<div class="bg-purple-50 border rounded-lg p-4"><p class="font-medium">${i + 1}. ${esc(p.problem)}</p><p class="text-xs text-gray-500 mt-1">Level: ${p.level}</p></div>`).join("")
+    const shareUrl = typeof window !== "undefined" ? window.location.href : ""
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(shareUrl)}`
+
+    // Student names for dropdown (sample — in production these come from API)
+    const sampleStudents = ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"]
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Syllabus - Grade ${selectedGrade} Week ${selectedWeek}</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<style>body{font-family:'Segoe UI',system-ui,sans-serif}</style>
+<style>
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+@media print{body{background:#fff;padding:0}.no-print{display:none!important}.print-break{page-break-before:always}canvas{border:1px solid #ccc!important}}
+.q-item{border-left:4px solid #3b82f6;background:#f0f7ff;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:8px}
+canvas{touch-action:none;cursor:crosshair;border-radius:8px;max-width:100%}
+.signature-box{border:2px dashed #ccc;border-radius:12px;min-height:120px;cursor:crosshair}
+@media(max-width:640px){body{padding:8px}}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-900 p-4 md:p-8">
-<div class="max-w-4xl mx-auto">
+<body class="bg-gray-50 text-gray-900 p-4 md:p-8 min-h-screen">
+<div class="max-w-5xl mx-auto" id="syllabus-content">
 <div class="bg-white rounded-2xl shadow-sm border p-6 md:p-10 space-y-8">
-<div class="border-b pb-6">
+<div class="border-b pb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+<div>
 <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Syllabus Plan</h1>
-<p class="text-gray-500 mt-1">Grade ${selectedGrade} · Week ${selectedWeek} · ${date}</p>
-<p class="text-gray-700 mt-2 font-medium">Topic: ${plan.topic}</p>
+<p class="text-gray-500 mt-1">Grade ${selectedGrade} · Week ${selectedWeek} · ${dateStr}</p>
+<p class="text-gray-700 mt-2 font-medium text-lg">Topic: ${esc(plan.topic)}</p>
 </div>
-<div class="space-y-6">
-<div>
-<h2 class="text-lg font-semibold text-blue-700 mb-3">Opening Ideas (Hook / MythBuster)</h2>
-${hookHtml}
-${openingSrcHtml}
+${shareUrl ? `<div class="shrink-0 text-center no-print"><img src="${qrUrl}" alt="QR" class="w-24 h-24 mx-auto rounded border" /><p class="text-[10px] text-gray-400 mt-1">Scan</p></div>` : ""}
 </div>
-<div>
-<h2 class="text-lg font-semibold text-green-700 mb-3">Activity Questions (Productive Struggle)</h2>
-<div class="space-y-2">${qHtml}</div>
-${qSrcHtml}
+
+${objectivesHtml}
+
+<!-- STUDENT INFO -->
+<div class="bg-gray-50 rounded-xl p-4 md:p-6 space-y-4 border no-print">
+<h3 class="font-semibold text-gray-700">Student Information</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div><label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+<select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+<option value="">Select student...</option>
+${sampleStudents.map(n => `<option value="${n}">${n}</option>`).join("")}
+</select></div>
+<div><label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+<input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" /></div>
 </div>
-<div>
-<h2 class="text-lg font-semibold text-purple-700 mb-3">Problems (CER / HOTS)</h2>
-<div class="space-y-2">${pHtml}</div>
+</div>
+
+<!-- ANSWER SECTIONS -->
+<div class="space-y-8 mt-6">
+${allQs.map((item, idx) => {
+  const sectionLabel = item.section === "opening" ? "Opening Ideas" : item.section === "question" ? "Activity Question" : "Problem"
+  const sectionColor = item.section === "opening" ? "blue" : item.section === "question" ? "green" : "purple"
+  const bgColor = item.section === "opening" ? "bg-blue-50" : item.section === "question" ? "bg-green-50" : "bg-purple-50"
+  const borderColor = item.section === "opening" ? "border-blue-500" : item.section === "question" ? "border-green-500" : "border-purple-500"
+  return `
+<div class="rounded-xl border p-5 space-y-4">
+<div class="flex items-start gap-3">
+<div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${bgColor} text-xs font-bold text-gray-700">${idx + 1}</div>
+<div class="flex-1">
+<p class="text-xs text-gray-500 mb-1">${sectionLabel}</p>
+<p class="font-medium text-gray-800">${esc(item.text)}</p>
 </div>
 </div>
+<div class="space-y-3">
+<textarea id="ans-text-${idx}" rows="3" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here (paste disabled)" onpaste="event.preventDefault();alert('Paste is disabled. Please type your answer manually.')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
+<canvas id="ans-canvas-${idx}" width="700" height="300" class="w-full rounded-lg border"></canvas>
+</div>
+</div>`
+}).join("")}
+</div>
+
+<!-- SIGNATURE -->
+<div class="rounded-xl border-2 border-dashed border-gray-400 p-6 space-y-3 mt-8">
+<h3 class="font-semibold text-gray-700">Signature</h3>
+<p class="text-xs text-gray-500">Draw your signature below</p>
+<canvas id="signature-canvas" width="700" height="150" class="w-full signature-box"></canvas>
+<div class="flex gap-2 no-print">
+<button onclick="clearCanvas('signature-canvas')" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-100">Clear</button>
+</div>
+</div>
+
+<div class="flex flex-wrap gap-3 pt-4 no-print">
+<button onclick="printPDF()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
+<button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All</button>
+</div>
+
 <div class="border-t pt-6 text-center text-sm text-gray-400">
 <p>Generated by Physics Command Center - SHB Modernhill</p>
-<p class="mt-1">${date}</p>
+<p class="mt-1">${dateStr}</p>
 </div>
 </div>
 </div>
+
+<script>
+// Canvas drawing utility
+const canvases = {}
+function initCanvas(id) {
+  const c = document.getElementById(id)
+  if (!c) return
+  const ctx = c.getContext("2d")
+  ctx.fillStyle = "#fff"
+  ctx.fillRect(0, 0, c.width, c.height)
+  ctx.strokeStyle = "#1a1a2e"
+  ctx.lineWidth = 2.5
+  ctx.lineCap = "round"
+  ctx.lineJoin = "round"
+  let drawing = false, last = null
+  function getPos(e) {
+    const r = c.getBoundingClientRect()
+    const sx = c.width / r.width, sy = c.height / r.height
+    const t = e.touches ? e.touches[0] : e
+    return { x: (t.clientX - r.left) * sx, y: (t.clientY - r.top) * sy }
+  }
+  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); last = p; ctx.beginPath(); ctx.moveTo(p.x, p.y) }
+  function move(e) { if (!drawing) return; e.preventDefault(); const p = getPos(e); if (last) { ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke() } last = p }
+  function stop() { drawing = false; last = null }
+  c.addEventListener("mousedown", start); c.addEventListener("mousemove", move); c.addEventListener("mouseup", stop); c.addEventListener("mouseleave", stop)
+  c.addEventListener("touchstart", start, {passive:false}); c.addEventListener("touchmove", move, {passive:false}); c.addEventListener("touchend", stop)
+  canvases[id] = c
+}
+function clearCanvas(id) {
+  const c = document.getElementById(id)
+  if (!c) return
+  const ctx = c.getContext("2d")
+  ctx.fillStyle = "#fff"
+  ctx.fillRect(0, 0, c.width, c.height)
+}
+function printPDF() {
+  const name = document.getElementById("student-name")?.value || "Unnamed"
+  document.title = "Syllabus-" + name.replace(/\\s+/g,"-") + "-${dateCode}"
+  window.print()
+}
+function clearAll() {
+  document.querySelectorAll("textarea").forEach(t => t.value = "")
+  document.querySelectorAll("canvas").forEach(c => clearCanvas(c.id))
+}
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll("canvas[id^=ans-canvas], #signature-canvas").forEach(c => initCanvas(c.id))
+})
+</script>
 </body></html>`
   }
 
