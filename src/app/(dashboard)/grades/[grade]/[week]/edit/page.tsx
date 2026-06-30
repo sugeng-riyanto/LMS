@@ -390,7 +390,7 @@ export default function EditPackagePage() {
                     </div>
                     <div className="space-y-1">
                       <Label>Activity</Label>
-                      <Input value={phase.activity} onChange={(e) => updateLessonPlan(i, "activity", e.target.value)} placeholder="Activity description" />
+                      <Textarea value={phase.activity} onChange={(e) => updateLessonPlan(i, "activity", e.target.value)} placeholder="Activity description (supports markdown)" rows={3} className="text-xs font-mono" />
                     </div>
                   </div>
                 </div>
@@ -463,12 +463,13 @@ export default function EditPackagePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1">
-                <Label>Video Link</Label>
-                <Input value={content.pre_class.video} onChange={(e) => setContent((prev) => ({ ...prev, pre_class: { ...prev.pre_class, video: e.target.value } }))} placeholder="URL or description" />
+                <Label>Pre-Class Content (supports Markdown)</Label>
+                <Textarea value={content.pre_class.video} onChange={(e) => setContent((prev) => ({ ...prev, pre_class: { ...prev.pre_class, video: e.target.value } }))} placeholder="Video URL, markdown content, or paste from template..." rows={6} className="font-mono text-xs" />
+                <p className="text-[10px] text-muted-foreground">Supports markdown: ## headings, **bold**, - lists, [links](url). Renders formatted on detail page.</p>
               </div>
               <div className="space-y-1">
-                <Label>Simulation Link</Label>
-                <Input value={content.pre_class.simulation} onChange={(e) => setContent((prev) => ({ ...prev, pre_class: { ...prev.pre_class, simulation: e.target.value } }))} placeholder="URL or description" />
+                <Label>Simulation / Additional Content</Label>
+                <Textarea value={content.pre_class.simulation} onChange={(e) => setContent((prev) => ({ ...prev, pre_class: { ...prev.pre_class, simulation: e.target.value } }))} placeholder="Simulation URL or additional markdown..." rows={3} className="font-mono text-xs" />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
