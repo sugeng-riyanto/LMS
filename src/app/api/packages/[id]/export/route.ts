@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
 import type { WeeklyPackage } from "@/types/package"
-import { generateMD, generateQMD, generateDOCX } from "@/lib/export"
+import { generateMD, generateQMD, generateDOCX, generatePDF } from "@/lib/export"
 
 export async function GET(
   request: NextRequest,
@@ -37,6 +37,13 @@ export async function GET(
 
     const pkg: WeeklyPackage = { ...data, title: data.topic ?? "", week: data.week_number }
 
+    // Get school name for branding
+    let schoolName = ""
+    try {
+      const { data: school } = await (supabase.from("school_settings") as any).select("school_name").eq("id", 1).single()
+      schoolName = school?.school_name ?? ""
+    } catch {}
+
     if (section !== "all") {
       const sectionKeys = ["lesson-plan", "worksheet", "pre-class", "lab-logistics", "wa-blast", "answer-keys"] as const
       if (!sectionKeys.includes(section as any)) {
@@ -50,25 +57,25 @@ export async function GET(
 
     switch (format) {
       case "md": {
-        content = generateMD(pkg)
+        content = generateMD(pkg, schoolName)
         contentType = "text/markdown; charset=utf-8"
         filename = `grade-${pkg.grade}-week-${pkg.week_number}.md`
         break
       }
       case "qmd": {
-        content = generateQMD(pkg)
+        content = generateQMD(pkg, schoolName)
         contentType = "text/markdown; charset=utf-8"
         filename = `grade-${pkg.grade}-week-${pkg.week_number}.qmd`
         break
       }
       case "docx": {
-        content = await generateDOCX(pkg)
+        content = await generateDOCX(pkg, schoolName)
         contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         filename = `grade-${pkg.grade}-week-${pkg.week_number}.docx`
         break
       }
       case "pdf": {
-        content = generateMD(pkg)
+        content = await generatePDF(pkg, schoolName)
         contentType = "application/pdf"
         filename = `grade-${pkg.grade}-week-${pkg.week_number}.pdf`
         break

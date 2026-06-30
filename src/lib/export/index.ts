@@ -3,20 +3,23 @@ import { jsPDF } from "jspdf"
 
 // ========== PROFESSIONAL EXPORT TEMPLATES ==========
 
-function coverPage(pkg: Partial<WeeklyPackage>): string {
+function coverPage(pkg: Partial<WeeklyPackage>, schoolName?: string): string {
   const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+  const name = schoolName || "Sekolah Harapan Bangsa - Modernhill"
   return [
     `---`,
     `title: "Weekly Teaching Package"`,
     `subtitle: "Grade ${pkg.grade} — Week ${pkg.week_number}"`,
     `date: "${date}"`,
     `topic: "${pkg.topic ?? ""}"`,
-    `status: "${pkg.status}"`,
+    `school: "${name}"`,
     `---`,
     ``,
-    `# Weekly Teaching Package`,
+    `# ${name}`,
     ``,
-    `**Grade:** ${pkg.grade}  |  **Week:** ${pkg.week_number}  |  **Date:** ${date}`,
+    `## Weekly Teaching Package`,
+    ``,
+    `**Grade:** ${pkg.grade}  |  **Week:** ${pkg.week_number}  |  **Date:** ${date}  |  **Topic:** ${pkg.topic ?? ""}`,
     ``,
     `---`,
     ``,
@@ -154,14 +157,15 @@ function footer(): string {
 
 // ========== PUBLIC EXPORT FUNCTIONS ==========
 
-export function generateMD(pkg: Partial<WeeklyPackage>): string {
-  return coverPage(pkg) + fullContent(pkg) + footer()
+export function generateMD(pkg: Partial<WeeklyPackage>, schoolName?: string): string {
+  return coverPage(pkg, schoolName) + fullContent(pkg) + footer()
 }
 
-export function generateQMD(pkg: Partial<WeeklyPackage>): string {
+export function generateQMD(pkg: Partial<WeeklyPackage>, schoolName?: string): string {
   const meta = [
     "---",
     `title: "Weekly Teaching Package — Grade ${pkg.grade} Week ${pkg.week_number}"`,
+    ...(schoolName ? [`school: "${schoolName}"`] : []),
     `topic: "${pkg.topic ?? ""}"`,
     "format: pdf",
     "toc: true",
@@ -247,12 +251,13 @@ function parseInlineMarkdown(text: string): Array<{ text: string; bold: boolean 
   return parts.length ? parts : [{ text, bold: false }]
 }
 
-export async function generateDOCX(pkg: Partial<WeeklyPackage>): Promise<Buffer> {
+export async function generateDOCX(pkg: Partial<WeeklyPackage>, schoolName?: string): Promise<Buffer> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import("docx")
 
   const md = fullContent(pkg)
   const children: any[] = [
-    new Paragraph({ text: `Weekly Teaching Package — Grade ${pkg.grade} Week ${pkg.week_number}`, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+    ...(schoolName ? [new Paragraph({ text: schoolName, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 100 } })] : []),
+    new Paragraph({ text: `Weekly Teaching Package — Grade ${pkg.grade} Week ${pkg.week_number}`, heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
   ]
 
   function mkPara(text: string, opts?: { bullet?: boolean; spacing?: number }): any {
@@ -280,8 +285,8 @@ export async function generateDOCX(pkg: Partial<WeeklyPackage>): Promise<Buffer>
   return Buffer.from(await Packer.toBuffer(doc))
 }
 
-export async function generatePDF(pkg: Partial<WeeklyPackage>): Promise<Buffer> {
-  const md = generateMD(pkg)
+export async function generatePDF(pkg: Partial<WeeklyPackage>, schoolName?: string): Promise<Buffer> {
+  const md = generateMD(pkg, schoolName)
   const doc = new jsPDF({ unit: "mm", format: "a4" })
   const pw = 180, ml = 15
   let y = 25, pageNum = 1
@@ -289,6 +294,8 @@ export async function generatePDF(pkg: Partial<WeeklyPackage>): Promise<Buffer> 
   function addPage() { doc.addPage(); y = 25; pageNum++ }
   function checkPage(h: number) { if (y + h > 280) { addPage() } }
 
+  // School header
+  if (schoolName) { doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text(schoolName, ml, y); y += 7 }
   // Title
   doc.setFontSize(18); doc.setFont("helvetica", "bold")
   doc.text(`Weekly Teaching Package`, ml, y); y += 8
