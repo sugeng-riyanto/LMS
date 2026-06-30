@@ -85,6 +85,7 @@ export default function SyllabusPlannerPage() {
   const [selectedWeek, setSelectedWeek] = useState<number>(getCurrentWeek())
   const [topics, setTopics] = useState<SyllabusTopic[]>([])
   const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [objectives, setObjectives] = useState<Array<{ id: string; topic: string; objectives: string[] }>>([])
   const [plan, setPlan] = useState<SyllabusPlan>(defaultPlan)
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set())
   const [mediaSources, setMediaSources] = useState<Array<{ section: string; type: string; title: string; url: string }>>([])
@@ -464,8 +465,11 @@ export default function SyllabusPlannerPage() {
       ? `<div class="mb-6"><h2 class="text-lg font-semibold text-gray-800 mb-2">Learning Objectives</h2><ul class="space-y-1">${selectedTopics.map(t => `<li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#x2713;</span><div><p class="font-medium text-gray-800">${esc(t.topic)}</p><p class="text-xs text-gray-500">${esc(t.syllabus_ref)} · ${esc(t.curriculum)}</p></div></li>`).join("")}</ul></div>`
       : ""
 
-    const shareUrl = typeof window !== "undefined" ? window.location.href : ""
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(shareUrl)}`
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://yourdomain.com"
+    const planId = plan.id || ""
+    // QR code links to the public syllabus page (anyone can view, no login required)
+    const publicUrl = planId ? `${origin}/syllabus/public/${planId}` : origin
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(publicUrl)}`
 
     // Student names from profiles (fetched on share)
     const gradeStudents = typeof window !== "undefined"
@@ -498,7 +502,7 @@ canvas{touch-action:none;cursor:crosshair;border-radius:8px;max-width:100%}
 <p class="text-gray-500 mt-1">Grade ${selectedGrade} · Week ${selectedWeek} · ${dateStr}</p>
 <p class="text-gray-700 mt-2 font-medium text-lg">Topic: ${esc(plan.topic)}</p>
 </div>
-${shareUrl ? `<div class="shrink-0 text-center no-print"><img src="${qrUrl}" alt="QR" class="w-24 h-24 mx-auto rounded border" /><p class="text-[10px] text-gray-400 mt-1">Scan</p></div>` : ""}
+${plan.id ? `<div class="shrink-0 text-center"><img src="${qrUrl}" alt="QR" class="w-24 h-24 mx-auto rounded border" /><p class="text-[10px] text-gray-400 mt-1">Scan to view online</p></div>` : ""}
 </div>
 
 ${objectivesHtml}
