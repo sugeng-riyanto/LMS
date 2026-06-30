@@ -16,6 +16,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/settings": ["super_admin"],
   "/lab": ["super_admin", "teacher", "lab_assistant", "student"],
   "/syllabus": ["super_admin", "teacher"],
+  "/syllabus-manager": ["super_admin", "teacher"],
   "/calendar": ["super_admin", "teacher", "lab_assistant"],
   "/my-week": ["student"],
   "/my-work": ["student"],
