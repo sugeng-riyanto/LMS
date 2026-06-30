@@ -226,36 +226,47 @@ export function generateSyllabusMD(
   return md
 }
 
+function parseInlineMarkdown(text: string): Array<{ text: string; bold: boolean }> {
+  const parts: Array<{ text: string; bold: boolean }> = []
+  const regex = /\*\*(.+?)\*\*/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push({ text: text.slice(lastIndex, match.index), bold: false })
+    parts.push({ text: match[1], bold: true })
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex), bold: false })
+  return parts.length ? parts : [{ text, bold: false }]
+}
+
 export async function generateDOCX(pkg: Partial<WeeklyPackage>): Promise<Buffer> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import("docx")
 
+  const md = fullContent(pkg)
   const children: any[] = [
     new Paragraph({ text: `Weekly Teaching Package — Grade ${pkg.grade} Week ${pkg.week_number}`, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
-    new Paragraph({ children: [new TextRun({ text: `Topic: `, bold: true }), new TextRun(pkg.topic ?? "")], spacing: { after: 100 } }),
-    new Paragraph({ children: [new TextRun({ text: `Status: `, bold: true }), new TextRun(pkg.status ?? "")] }),
-    new Paragraph({ children: [new TextRun({ text: `Calendar: `, bold: true }), new TextRun(pkg.calendar_status ?? "normal")] }),
-    new Paragraph({ spacing: { after: 400 } }),
   ]
 
-  const addHeading = (text: string) => children.push(new Paragraph({ text, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }))
-  const addSub = (text: string) => children.push(new Paragraph({ text, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }))
-  const addSub3 = (text: string) => children.push(new Paragraph({ text, heading: HeadingLevel.HEADING_3, spacing: { before: 150, after: 80 } }))
-  const addPara = (text: string) => children.push(new Paragraph({ text, spacing: { after: 100 } }))
-  const addBold = (text: string) => children.push(new Paragraph({ children: [new TextRun({ text, bold: true })], spacing: { after: 60 } }))
-  const addBullet = (text: string) => children.push(new Paragraph({ text, spacing: { after: 40 }, bullet: { level: 0 } }))
-  const addSpace = () => children.push(new Paragraph({ spacing: { after: 200 } }))
+  function mkPara(text: string, opts?: { bullet?: boolean; spacing?: number }): any {
+    const parts = parseInlineMarkdown(text)
+    const runs = parts.map((p) => new TextRun({ text: p.text, bold: p.bold }))
+    return new Paragraph({ children: runs, spacing: { after: opts?.spacing ?? 100 }, ...(opts?.bullet ? { bullet: { level: 0 } } : {}) })
+  }
 
-  const md = fullContent(pkg)
   const lines = md.split("\n")
   for (const line of lines) {
     const t = line.trim()
-    if (!t) continue
-    if (t.startsWith("### ")) addSub3(t.slice(4))
-    else if (t.startsWith("## ")) addSub(t.slice(3))
+    if (!t || t.startsWith("---")) continue
+    if (t.startsWith("### ")) children.push(new Paragraph({ text: t.slice(4), heading: HeadingLevel.HEADING_3, spacing: { before: 150, after: 80 } }))
+    else if (t.startsWith("## ")) children.push(new Paragraph({ text: t.slice(3), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }))
     else if (t.startsWith("# ")) continue
-    else if (/^\*\*.+\*\*$/.test(t)) addBold(t.replace(/^\*\*|\*\*$/g, ""))
-    else if (t.startsWith("- ") || /^\d+\./.test(t)) addBullet(t)
-    else addPara(t)
+    else if (t.startsWith("- ") || /^\d+\.\s/.test(t)) children.push(mkPara(t, { bullet: true, spacing: 60 }))
+    else if (t.startsWith("|") && t.includes("|---")) continue
+    else if (t.startsWith("|")) {
+      const cells = t.split("|").filter(Boolean).map((c) => c.trim())
+      if (cells.length >= 2) children.push(mkPara(cells.slice(0, 4).join("  |  "), { spacing: 50 }))
+    } else children.push(mkPara(t))
   }
 
   const doc = new Document({ sections: [{ children }] })
@@ -293,18 +304,13 @@ export async function generatePDF(pkg: Partial<WeeklyPackage>): Promise<Buffer> 
     } else if (t.startsWith("## ")) {
       doc.setFontSize(15); doc.setFont("helvetica", "bold")
       doc.text(t.slice(3), ml, y); y += 8
-    } else if (t.includes("**") && t.match(/\*\*/g)?.length === 2) {
-      doc.setFontSize(10); doc.setFont("helvetica", "bold")
-      const clean = t.replace(/\*\*/g, "")
-      const wrapped = doc.splitTextToSize(clean, pw)
-      wrapped.forEach((w: string) => { checkPage(5); doc.text(w, ml, y); y += 5 })
-    } else if (t.startsWith("- ") || /^\d+\./.test(t)) {
+    } else if (t.startsWith("- ") || /^\d+\.\s/.test(t)) {
       doc.setFontSize(10); doc.setFont("helvetica", "normal")
-      const wrapped = doc.splitTextToSize(t, pw - 5)
+      const wrapped = doc.splitTextToSize(t.replace(/\*\*/g, ""), pw - 5)
       wrapped.forEach((w: string) => { checkPage(5); doc.text(w, ml + 3, y); y += 4.5 })
     } else {
       doc.setFontSize(10); doc.setFont("helvetica", "normal")
-      const wrapped = doc.splitTextToSize(t, pw)
+      const wrapped = doc.splitTextToSize(t.replace(/\*\*/g, ""), pw)
       wrapped.forEach((w: string) => { checkPage(5); doc.text(w, ml, y); y += 5 })
     }
   }
