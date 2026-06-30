@@ -42,8 +42,8 @@ export default function ProfilePage() {
         body: JSON.stringify({ full_name: fullName.trim() }),
       })
       if (res.ok) { toast.success("Profile updated"); refreshProfile?.() }
-      else toast.error("Failed")
-    } catch { toast.error("Failed") }
+      else { const err = await res.json().catch(() => ({ error: "Unknown" })); toast.error(err.error || "Update failed") }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Update failed") }
     finally { setSaving(false) }
   }
 

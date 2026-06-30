@@ -14,12 +14,9 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
     "/generate": "/dashboard",
     "/grading": "/dashboard",
     "/lesson-plan": "/dashboard",
-    "/memory": "/dashboard",
     "/analytics": "/dashboard",
     "/settings": "/dashboard",
     "/lab": "/dashboard",
-    "/calendar": "/dashboard",
-    "/syllabus": "/dashboard",
   },
   teacher: {
     "/settings": "/dashboard",

@@ -26,6 +26,8 @@ function coverPage(pkg: Partial<WeeklyPackage>): string {
 function lpSection(pkg: Partial<WeeklyPackage>): string {
   const lp = pkg.lesson_plan as Record<string, unknown> | undefined
   if (!lp) return ""
+  // Custom markdown content
+  if (lp._md) return `## Lesson Plan\n\n${lp._md}\n\n`
   const phases = (lp.phases as Array<Record<string, unknown>>) ?? []
   let out = `## Lesson Plan\n\n`
   if (lp.title) out += `**${lp.title}**  \n`
@@ -46,6 +48,7 @@ function lpSection(pkg: Partial<WeeklyPackage>): string {
 function wsSection(pkg: Partial<WeeklyPackage>): string {
   const ws = pkg.worksheet as Record<string, unknown> | undefined
   if (!ws) return ""
+  if (ws._md) return `## Worksheet\n\n${ws._md}\n\n`
   const levels = (ws.levels as Array<Record<string, unknown>>) ?? []
   let out = `## Worksheet\n\n`
   if (ws.title) out += `**${ws.title}**\n\n`
@@ -71,6 +74,7 @@ function wsSection(pkg: Partial<WeeklyPackage>): string {
 function pcSection(pkg: Partial<WeeklyPackage>): string {
   const pc = pkg.pre_class as Record<string, unknown> | undefined
   if (!pc) return ""
+  if (pc._md) return `## Pre-Class Materials\n\n${pc._md}\n\n`
   const vr = pc.video_resource as Record<string, unknown> | undefined
   const sim = pc.interactive_simulation as Record<string, unknown> | undefined
   const quiz = pc.entry_ticket_quiz as Record<string, unknown> | undefined
@@ -102,6 +106,7 @@ function pcSection(pkg: Partial<WeeklyPackage>): string {
 function llSection(pkg: Partial<WeeklyPackage>): string {
   const ll = pkg.lab_logistics as Record<string, unknown> | undefined
   if (!ll) return ""
+  if (ll._md) return `## Lab Logistics\n\n${ll._md}\n\n`
   const equip = (ll.equipment_list as Array<Record<string, unknown>>) ?? []
   let out = `## Lab Logistics\n\n`
   out += `**Lab Required:** ${ll.lab_required ? "Yes" : "No"}\n\n`
@@ -126,8 +131,10 @@ function waSection(pkg: Partial<WeeklyPackage>): string {
 }
 
 function akSection(pkg: Partial<WeeklyPackage>): string {
-  const ak = pkg.answer_keys as Array<Record<string, unknown>> | undefined
-  if (!ak?.length) return ""
+  const ak = pkg.answer_keys as unknown
+  if (!ak) return ""
+  if (typeof ak === "object" && !Array.isArray(ak) && (ak as Record<string, unknown>)._md) return `## Answer Keys\n\n${(ak as Record<string, unknown>)._md}\n\n`
+  if (!Array.isArray(ak) || !ak.length) return ""
   let out = `## Answer Keys\n\n`
   ak.forEach((k, i) => {
     out += `### ${i + 1}. ${k.question}\n\n**Answer:** ${k.answer}\n\n`

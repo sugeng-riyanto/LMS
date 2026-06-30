@@ -135,15 +135,37 @@ export async function fillDOCX(vars: LessonPlanVars): Promise<Buffer> {
   return zip.toBuffer()
 }
 
+function filterResourcesByGrade(md: string, grade: number): string {
+  // Determine which columns to keep based on grade
+  const columns: number[] = grade <= 8 ? [0, 4] : grade <= 10 ? [1, 3, 4] : grade === 11 ? [2, 3] : [2]
+  const lines = md.split("\n")
+  return lines.map((line) => {
+    if (!line.trim().startsWith("|")) return line
+    const cells = line.split("|")
+    if (cells.length <= 2) return line
+    // Keep header row + separator row + selected columns
+    const isHeader = cells.some((c) => /^[\s:\-]+$/.test(c.trim()) || c.trim() === "Resources" || c.trim() === "")
+    if (isHeader) {
+      const kept = columns.map((i) => cells[i] ?? "")
+      return "| " + kept.join(" | ") + " |"
+    }
+    // Data rows: keep only selected columns
+    const kept = columns.map((i) => cells[i] ?? "")
+    // Skip if all kept cells are empty
+    if (kept.every((c) => !c.trim())) return ""
+    return "| " + kept.join(" | ") + " |"
+  }).filter(Boolean).join("\n")
+}
+
 export function generateLessonPlanMD(vars: LessonPlanVars): string {
   const template = loadMDTemplate(vars.grade)
   const resources = loadResources()
   let md = replaceVars(template, vars)
-  // Strip base64 image references — they clutter text output
   md = md.replace(/^\[image\d+\]:\s*<data:image\/[^>]+>\s*$/gm, "")
-  // Strip base64 from resources too
-  const resourcesClean = replaceVars(resources, vars).replace(/^\[image\d+\]:\s*<data:image\/[^>]+>\s*$/gm, "")
-  md += "\n\n---\n\n## Resources\n\n" + resourcesClean
+  const resourcesClean = replaceVars(resources, vars)
+    .replace(/^\[image\d+\]:\s*<data:image\/[^>]+>\s*$/gm, "")
+  const filteredResources = filterResourcesByGrade(resourcesClean, vars.grade)
+  md += "\n\n---\n\n## Resources\n\n" + filteredResources
   return md
 }
 

@@ -40,14 +40,20 @@ export default function GradingPage() {
   async function fetchData() {
     setLoading(true)
     try {
-      const [profiles, submissions] = await Promise.all([
-        fetch("/api/profiles").then(r => r.json()).catch(() => []),
+      const [submissions, profiles] = await Promise.all([
         fetch(`/api/teacher/grading?grade=${grade}&status=all`).then(r => r.json()).catch(() => []),
+        fetch("/api/profiles").then(r => r.json()).catch(() => []),
       ])
       setWorks(submissions)
-      const allStudents = (Array.isArray(profiles) ? profiles : [])
-        .filter((p: any) => p.role === "student" && p.grade_assigned === grade)
-      setStudents(allStudents)
+      // Extract unique students from submission data first
+      const seen = new Set<string>()
+      const fromSubs = (Array.isArray(submissions) ? submissions : [])
+        .filter((w: any) => { if (!w.student) return false; if (seen.has(w.student_id)) return false; seen.add(w.student_id); return true })
+        .map((w: any) => w.student)
+      // Fallback: get students from profiles if no submissions yet
+      const fromProfiles = (Array.isArray(profiles) ? profiles : [])
+        .filter((p: any) => p.role === "student" && p.grade_assigned === grade && !seen.has(p.id))
+      setStudents([...fromSubs, ...fromProfiles])
     } catch (e) { console.error("Grading fetch error:", e) } finally { setLoading(false) }
   }
 
@@ -150,7 +156,7 @@ export default function GradingPage() {
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />))}</div>
       ) : filtered.length === 0 ? (
         <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">
-          {search ? "No students match your search." : `No students found for Grade ${grade}. Make sure students have submitted work.`}
+          {search ? "No students match your search." : `No submissions for Grade ${grade}. Students need to submit work first.`}
         </CardContent></Card>
       ) : (
         <div className="space-y-4">
