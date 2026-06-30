@@ -1,0 +1,110 @@
+import { NextRequest, NextResponse } from "next/server"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { requireRole } from "@/lib/supabase/require-role"
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { id } = await params
+    const isOwn = user.id === id
+
+    if (!isOwn) {
+      const result = await requireRole(["super_admin", "teacher"])
+      if (result.error) return result.error
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, role, grade_assigned, avatar_url, is_active, last_login_at, created_at")
+      .eq("id", id)
+      .single()
+
+    if (error) {
+      if (error.code === "PGRST116") return NextResponse.json({ error: "Profile not found" }, { status: 404 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    if (authError) return authError
+
+    const { id } = await params
+    const body = await request.json()
+    const isOwn = user.id === id
+
+    if (user.role !== "super_admin" && !isOwn) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const allowedFields = user.role === "super_admin"
+      ? ["full_name", "email", "role", "grade_assigned", "avatar_url", "phone_number", "is_active"]
+      : ["full_name", "avatar_url", "phone_number"]
+
+    const updates: Record<string, unknown> = {}
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) updates[field] = body[field]
+    }
+    updates.updated_at = new Date().toISOString()
+
+    const { data, error } = await (supabase
+      .from("profiles") as any)
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, error: authError } = await requireRole(["super_admin"])
+    if (authError) return authError
+
+    const { id } = await params
+
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ message: "Profile deleted" })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
+  }
+}

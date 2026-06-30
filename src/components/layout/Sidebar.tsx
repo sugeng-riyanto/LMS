@@ -1,0 +1,75 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils/cn"
+import {
+  LayoutDashboard,
+  FlaskConical,
+  Calendar,
+  Beaker,
+  BookOpen,
+  Settings,
+  BrainCircuit,
+  FileText,
+  GraduationCap,
+} from "lucide-react"
+import { ROUTES } from "@/lib/utils/constants"
+import { useRBAC } from "@/hooks/use-rbac"
+
+interface NavItem {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  roles: ("super_admin" | "teacher" | "lab_assistant" | "student")[]
+}
+
+const allNavItems: NavItem[] = [
+  { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
+  { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
+  { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.ANALYTICS, label: "Analytics", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin"] },
+]
+
+export default function Sidebar() {
+  const pathname = usePathname()
+  const { role } = useRBAC()
+
+  const navItems = role
+    ? allNavItems.filter((item) => item.roles.includes(role))
+    : allNavItems
+
+  return (
+    <aside className="hidden w-64 flex-col border-r bg-sidebar lg:flex">
+      <div className="flex items-center gap-2 border-b px-6 py-4">
+        <FlaskConical className="h-6 w-6 text-primary" />
+        <span className="text-sm font-semibold">Physics CC</span>
+      </div>
+      <nav className="flex-1 space-y-1 p-4">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const active = pathname === item.href || pathname.startsWith(item.href + "/")
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+}

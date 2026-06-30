@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  nextjs:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: physics-cc-dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env.local
+    volumes:
+      - ..:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - physics-cc-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: physics-cc-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: physics_cc
+      POSTGRES_PASSWORD: physics_cc_dev
+      POSTGRES_DB: physics_command_center
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U physics_cc -d physics_command_center"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - physics-cc-net
+
+networks:
+  physics-cc-net:
+    driver: bridge
+
+volumes:
+  postgres-data:

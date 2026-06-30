@@ -1,0 +1,26 @@
+name: Saturday Agent Generation
+
+on:
+  schedule:
+    # Every Saturday at 06:00 WIB (UTC+7) = 22:00 UTC Friday
+    - cron: "0 22 * * 5"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  generate:
+    name: Trigger Agent Generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call generate endpoint
+        env:
+          APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -X POST "$APP_URL/api/agents/generate" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --fail
+        timeout-seconds: 300
