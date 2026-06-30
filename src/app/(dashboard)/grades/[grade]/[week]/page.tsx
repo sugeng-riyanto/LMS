@@ -424,7 +424,7 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[300px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : lessonPlan.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No lesson plan yet.</p>
-              ) : lessonPlan.length === 1 && lessonPlan[0].phase === "Custom Content" ? (
+              ) : lessonPlan.length === 1 && (lessonPlan[0].phase === "Custom Content" || lessonPlan[0].phase === "From Template") ? (
                 <MarkdownRender content={lessonPlan[0].activity} />
               ) : (
                 <div className="space-y-4">
@@ -466,7 +466,7 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[300px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : worksheet.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No worksheet yet.</p>
-              ) : worksheet.length === 1 && worksheet[0].level === "Custom" ? (
+              ) : worksheet.length === 1 && (worksheet[0].level === "Custom" || worksheet[0].level === "Template") ? (
                 <MarkdownRender content={worksheet[0].questions[0]?.question ?? ""} />
               ) : (
                 <div className="space-y-6">
@@ -654,7 +654,7 @@ export default function PackageDetailPage() {
                 <textarea className="w-full min-h-[200px] rounded-lg border border-input bg-background p-4 text-sm font-mono" value={editContent} onChange={(e) => setEditContent(e.target.value)} />
               ) : answerKeys.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No answer keys yet.</p>
-              ) : answerKeys.length === 1 && answerKeys[0].question === "Custom Content" ? (
+              ) : answerKeys.length === 1 && (answerKeys[0].question === "Custom Content" || answerKeys[0].question === "Template") ? (
                 <MarkdownRender content={answerKeys[0].answer} />
               ) : (
                 <div className="space-y-4">

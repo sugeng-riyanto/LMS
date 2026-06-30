@@ -138,7 +138,7 @@ export default function EditPackagePage() {
         if (section === "lesson-plan") {
           setContent((prev) => ({ ...prev, lesson_plan: [{ phase: "From Template", timing: "—", activity: text }] }))
         } else if (section === "worksheet") {
-          setContent((prev) => ({ ...prev, worksheet: [{ level: "Template", questions: [{ question: text, points: 0 }] }] }))
+          setContent((prev) => ({ ...prev, worksheet: [{ level: "Custom", questions: [{ question: text, points: 0 }] }] }))
         } else if (section === "pre-class") {
           setContent((prev) => ({ ...prev, pre_class: { video: text, simulation: "", quiz: [] } }))
         } else if (section === "lab") {
