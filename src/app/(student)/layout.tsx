@@ -5,11 +5,12 @@ import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils/cn"
-import { BookOpen, ClipboardList, GraduationCap, LogOut, Settings } from "lucide-react"
+import { BookOpen, ClipboardList, GraduationCap, LogOut, Settings, PenTool } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
   { href: "/my-week", label: "My Week", icon: BookOpen },
+  { href: "/my-work", label: "My Work", icon: PenTool },
   { href: "/my-journal", label: "My Journal", icon: ClipboardList },
   { href: "/pre-class", label: "Pre-Class", icon: GraduationCap },
 ]

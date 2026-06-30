@@ -15,6 +15,7 @@ import {
   GraduationCap,
   ClipboardList,
   HelpCircle,
+  CheckCircle,
 } from "lucide-react"
 import { ROUTES } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
@@ -30,6 +31,7 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.GRADING, label: "Grading", icon: CheckCircle, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.SYLLABUS, label: "Syllabus", icon: ClipboardList, roles: ["super_admin", "teacher"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },

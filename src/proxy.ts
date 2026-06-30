@@ -6,6 +6,7 @@ type Role = "super_admin" | "teacher" | "lab_assistant" | "student"
 const ROLE_ROUTES: Record<string, Role[]> = {
   "/grades": ["super_admin", "teacher"],
   "/generate": ["super_admin", "teacher"],
+  "/grading": ["super_admin", "teacher"],
   "/help": ["super_admin", "teacher", "lab_assistant", "student"],
   "/lesson-plan": ["super_admin", "teacher"],
   "/memory": ["super_admin", "teacher"],
@@ -16,6 +17,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/syllabus": ["super_admin", "teacher"],
   "/calendar": ["super_admin", "teacher", "lab_assistant"],
   "/my-week": ["student"],
+  "/my-work": ["student"],
   "/my-journal": ["student"],
   "/pre-class": ["student"],
 }

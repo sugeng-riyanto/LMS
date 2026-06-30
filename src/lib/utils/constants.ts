@@ -86,6 +86,7 @@ export const ROUTES = {
   CALENDAR: "/calendar",
   SYLLABUS: "/syllabus",
   LESSON_PLAN: "/lesson-plan",
+  GRADING: "/grading",
   HELP: "/help",
   ANALYTICS: "/analytics",
   SETTINGS: "/settings",

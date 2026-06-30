@@ -12,6 +12,7 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
   student: {
     "/grades": "/dashboard",
     "/generate": "/dashboard",
+    "/grading": "/dashboard",
     "/lesson-plan": "/dashboard",
     "/memory": "/dashboard",
     "/analytics": "/dashboard",
@@ -26,6 +27,7 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
   lab_assistant: {
     "/grades": "/dashboard",
     "/generate": "/dashboard",
+    "/grading": "/dashboard",
     "/lesson-plan": "/dashboard",
     "/memory": "/dashboard",
     "/analytics": "/dashboard",
