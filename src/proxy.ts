@@ -7,6 +7,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/grades": ["super_admin", "teacher"],
   "/generate": ["super_admin", "teacher"],
   "/grading": ["super_admin", "teacher"],
+  "/profile": ["super_admin", "teacher", "lab_assistant", "student"],
   "/help": ["super_admin", "teacher", "lab_assistant", "student"],
   "/lesson-plan": ["super_admin", "teacher"],
   "/memory": ["super_admin", "teacher"],

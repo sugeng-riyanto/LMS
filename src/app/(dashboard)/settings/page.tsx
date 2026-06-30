@@ -805,9 +805,11 @@ function SchoolSettings() {
     shs_vp_name: "Aji Wahyu Budiyanto, M.Si",
     shs_principal_name: "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
     unit: "Academic",
+    logo_url: "",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [logoPreview, setLogoPreview] = useState("")
 
   useEffect(() => {
     fetch("/api/settings/school").then((r) => r.json()).then((d) => {
@@ -815,11 +817,25 @@ function SchoolSettings() {
         school_name: d.school_name ?? "",
         vp_name: d.vp_name ?? "", principal_name: d.principal_name ?? "",
         shs_vp_name: d.shs_vp_name ?? "", shs_principal_name: d.shs_principal_name ?? "",
-        unit: d.unit ?? "",
+        unit: d.unit ?? "", logo_url: d.logo_url ?? "",
       })
+      setLogoPreview(d.logo_url ?? "")
       setLoading(false)
     }).catch(() => { setLoading(false) })
   }, [])
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2MB"); return }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setLogoPreview(dataUrl)
+      setForm((p) => ({ ...p, logo_url: dataUrl }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -844,6 +860,28 @@ function SchoolSettings() {
         <p className="text-sm text-muted-foreground">
           Set VP and Principal names per level. These auto-fill in the Lesson Plan Generator based on grade.
         </p>
+        {/* Logo Upload */}
+        <div className="space-y-3">
+          <Label>School Logo</Label>
+          <div className="flex items-center gap-4">
+            {logoPreview && (
+              <img src={logoPreview} alt="School logo" className="h-16 w-16 rounded-lg border object-contain" />
+            )}
+            <label className="cursor-pointer">
+              <span className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent">
+                {logoPreview ? "Change Logo" : "Upload Logo"}
+              </span>
+              <input type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
+            </label>
+            {logoPreview && (
+              <Button variant="ghost" size="sm" onClick={() => { setLogoPreview(""); setForm((p) => ({ ...p, logo_url: "" })) }}>
+                Remove
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">PNG, JPG, or SVG. Max 2MB.</p>
+        </div>
+
         <div className="space-y-1">
           <Label>School Name</Label>
           <Input value={form.school_name} onChange={(e) => setForm((p) => ({ ...p, school_name: e.target.value }))} />

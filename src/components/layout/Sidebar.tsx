@@ -18,6 +18,7 @@ import {
   CheckCircle,
   PenTool,
   BarChart3,
+  User,
 } from "lucide-react"
 import { ROUTES } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
@@ -40,6 +41,7 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin"] },
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },

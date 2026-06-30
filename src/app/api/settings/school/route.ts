@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
     const allowed = [
       "school_name", "vp_name", "principal_name",
       "shs_vp_name", "shs_principal_name",
-      "unit", "address", "phone", "email",
+      "unit", "address", "phone", "email", "logo_url",
     ]
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString(), updated_by: user.id }
     for (const field of allowed) {
