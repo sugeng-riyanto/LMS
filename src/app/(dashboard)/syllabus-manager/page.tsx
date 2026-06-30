@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Upload, Download, FileText, FileSpreadsheet, BookOpen, CheckCircle } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Upload, Download, FileText, FileSpreadsheet, BookOpen, CheckCircle, Trash2, ExternalLink, Video, Music, Link } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -15,132 +16,145 @@ export default function SyllabusManagerPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const canManage = isSuperAdmin || isTeacher
 
-  const [uploading, setUploading] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("upload")
   const [selectedGrade, setSelectedGrade] = useState(10)
-  const [results, setResults] = useState<string[]>([])
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [docs, setDocs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (canManage) {
+      fetch(`/api/syllabus/documents?grade=${selectedGrade}`)
+        .then((r) => r.json())
+        .then((d) => setDocs(Array.isArray(d) ? d : []))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }
+  }, [canManage, selectedGrade])
 
   async function handleUpload(format: string) {
     const input = document.createElement("input")
     input.type = "file"
-    input.accept = format === "xlsx" ? ".xlsx,.xls" : format === "pdf" ? ".pdf" : format === "md" ? ".md" : format === "qmd" ? ".qmd" : "*"
+    input.accept = format === "xlsx" ? ".xlsx" : format === "pdf" ? ".pdf" : format === "md" ? ".md" : ".qmd"
     input.onchange = async (e: any) => {
       const file = e.target?.files?.[0]
       if (!file) return
       setUploading(format)
-      setResults([])
       const fd = new FormData()
-      fd.append("file", file)
-      fd.append("grade", String(selectedGrade))
+      fd.append("file", file); fd.append("grade", String(selectedGrade))
       try {
         const res = await fetch("/api/syllabus/upload", { method: "POST", body: fd })
-        const data = await res.json()
-        if (res.ok) {
-          setResults([data.message || "Uploaded successfully"])
-          toast.success("Uploaded!")
-        } else {
-          toast.error(data.error || "Upload failed")
-        }
-      } catch { toast.error("Upload failed") }
+        if (res.ok) { toast.success("Uploaded!"); fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs) }
+        else { const e = await res.json(); toast.error(e.error || "Failed") }
+      } catch { toast.error("Failed") }
       finally { setUploading(null) }
     }
     input.click()
   }
 
   function downloadTemplate(format: string) {
-    // Generate simple syllabus template content
-    let content = ""
-    let filename = ""
     const topic = "Kinematics"
-    const ref = selectedGrade >= 7 && selectedGrade <= 12 ? `Grade ${selectedGrade}` : ""
-
+    const ref = `Grade ${selectedGrade}`
+    let content = "", filename = ""
     if (format === "md") {
-      content = `# Syllabus — ${ref}\n\n## Week 1: ${topic}\n\n**Opening Ideas:**\nWhy does motion matter?\n\n**Activity Questions:**\n1. What is speed? (remember)\n2. Calculate average velocity (apply)\n\n**Problems:**\n1. Explain core concepts (L1)\n2. Analyse case study (L2)\n\n## Resources\n- Cambridge Physics textbook\n- PhET simulations\n`
+      content = `# Syllabus — ${ref}\n\n## Week 1: ${topic}\n\n**Opening Ideas:**\nWhy does motion matter?\n\n**Activity Questions:**\n1. What is speed?\n2. Calculate velocity\n\n---\n\n## Resources\n- Cambridge Physics textbook\n`
       filename = `syllabus-template-G${selectedGrade}.md`
     } else if (format === "qmd") {
-      content = `---\ntitle: "Syllabus — ${ref}"\nformat: pdf\ntoc: true\n---\n\n# Syllabus\n\n## Week 1: ${topic}\n\n**Opening Ideas:**\nWhy does motion matter?\n\n**Activity Questions:**\n1. What is speed?\n2. Calculate velocity\n\n**Problems:**\n1. Core concepts (L1)\n2. Case study (L2)\n`
+      content = `---\ntitle: "Syllabus — ${ref}"\nformat: pdf\ntoc: true\n---\n\n# Syllabus\n\n## Week 1: ${topic}\n\n**Opening Ideas:**\nWhy does motion matter?\n\n**Questions:**\n1. What is speed?\n2. Calculate velocity\n`
       filename = `syllabus-template-G${selectedGrade}.qmd`
-    } else if (format === "xlsx") {
-      // Use the existing user template approach for XLSX
-      toast.success("XLSX template feature coming")
-      return
-    }
-
+    } else { toast.success("XLSX template coming"); return }
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a"); a.href = url; a.download = filename; a.click()
-    URL.revokeObjectURL(url)
-    toast.success(`${format.toUpperCase()} template downloaded`)
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url); toast.success(`Template downloaded`)
   }
 
-  if (!canManage) {
-    return <div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">Access denied.</p></div>
-  }
+  if (!canManage) return <div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">Access denied.</p></div>
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Syllabus Manager</h1>
-        <p className="text-sm text-muted-foreground">Upload and manage syllabus documents</p>
+    <div className="space-y-6 max-w-5xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Syllabus Manager</h1>
+          <p className="text-sm text-muted-foreground">Upload, manage, and distribute syllabus documents per grade</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs">Grade</Label>
+          <select value={selectedGrade} onChange={(e) => setSelectedGrade(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm">
+            {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+          </select>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Upload Syllabus</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Label>Grade</Label>
-            <select value={selectedGrade} onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
-            </select>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {[
-              { format: "md", icon: FileText, label: "Markdown", desc: ".md" },
-              { format: "qmd", icon: FileText, label: "Quarto", desc: ".qmd" },
-              { format: "pdf", icon: FileText, label: "PDF", desc: ".pdf" },
-              { format: "xlsx", icon: FileSpreadsheet, label: "Excel", desc: ".xlsx" },
-            ].map(({ format, icon: Icon, label, desc }) => (
-              <div key={format} className="flex flex-col items-center gap-2 rounded-lg border p-4 w-32">
-                <Icon className="h-8 w-8 text-muted-foreground" />
-                <span className="text-sm font-medium">{label}</span>
-                <span className="text-[10px] text-muted-foreground">{desc}</span>
-                <div className="flex gap-1">
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate(format)}>
-                    <Download className="mr-1 h-3 w-3" />Template
-                  </Button>
-                  <Button size="sm" className="h-7 text-xs" onClick={() => handleUpload(format)} disabled={uploading === format}>
-                    <Upload className="mr-1 h-3 w-3" />{uploading === format ? "..." : "Upload"}
-                  </Button>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="upload"><Upload className="mr-1 h-4 w-4" />Upload</TabsTrigger>
+          <TabsTrigger value="files"><FileText className="mr-1 h-4 w-4" />Files ({docs.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upload" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Upload Syllabus File</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { format: "md", icon: FileText, label: "Markdown", desc: "Editable text format", color: "border-blue-200 bg-blue-50" },
+                  { format: "qmd", icon: FileText, label: "Quarto", desc: "PDF-ready markdown", color: "border-purple-200 bg-purple-50" },
+                  { format: "pdf", icon: FileText, label: "PDF", desc: "Document format", color: "border-red-200 bg-red-50" },
+                  { format: "xlsx", icon: FileSpreadsheet, label: "Excel", desc: "Spreadsheet", color: "border-green-200 bg-green-50" },
+                ].map(({ format, icon: Icon, label, desc, color }) => (
+                  <div key={format} className={`rounded-lg border-2 p-4 text-center space-y-2 ${color}`}>
+                    <Icon className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{label}</p>
+                      <p className="text-[10px] text-muted-foreground">{desc}</p>
+                    </div>
+                    <div className="flex gap-1 justify-center">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-2" onClick={() => downloadTemplate(format)} disabled={format === "xlsx"}>
+                        <Download className="mr-1 h-3 w-3" />Template
+                      </Button>
+                      <Button size="sm" className="h-7 text-[10px] px-2" onClick={() => handleUpload(format)} disabled={uploading === format}>
+                        <Upload className="mr-1 h-3 w-3" />{uploading === format ? "..." : "Upload"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="files" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Grade {selectedGrade} Files</CardTitle></CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />))}</div>
+              ) : docs.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  No syllabus files for Grade {selectedGrade}. Upload one above.
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {results.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-sm">Upload Results</CardTitle></CardHeader>
-          <CardContent>
-            {results.map((r, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-green-500" />{r}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">Stored Syllabuses</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Uploaded syllabus files are stored and linked to the selected grade. 
-            They appear here once uploaded.
-          </p>
-          {/* Syllabus list would go here - can be expanded */}
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="space-y-2">
+                  {docs.map((doc: any) => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {doc.file_type === "pdf" ? <FileText className="h-5 w-5 text-red-500 shrink-0" /> : doc.file_type === "xlsx" ? <FileSpreadsheet className="h-5 w-5 text-green-500 shrink-0" /> : <FileText className="h-5 w-5 text-blue-500 shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{doc.file_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{doc.file_type?.toUpperCase()} · {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "—"} · {new Date(doc.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0">G{doc.grade}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, CheckCircle, Send, Edit, FileDown, FileText, FileType, FileSpreadsheet, Download, Printer, Pencil } from "lucide-react"
 import { marked } from "marked"
+import MediaSection from "@/components/media/MediaSection"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -22,7 +23,7 @@ export default function PackageDetailPage() {
   const slug = (params as any)?.slug as string | undefined
   const { data: packages, isLoading } = usePackages({ grade, week })
   const pkg = packages?.[0]
-  const { isSuperAdmin } = useRBAC()
+  const { isSuperAdmin, isTeacher } = useRBAC()
   const { mutateAsync: approvePackage } = useApprovePackage()
   const { mutateAsync: publishPackage } = usePublishPackage()
   const { mutateAsync: updatePackage } = useUpdatePackage()
@@ -439,6 +440,7 @@ export default function PackageDetailPage() {
                 </div>
               )}
             </CardContent>
+            {pkg && <MediaSection packageId={pkg.id} section="lesson-plan" canEdit={isSuperAdmin || isTeacher} />}
           </Card>
         </TabsContent>
         
@@ -486,6 +488,7 @@ export default function PackageDetailPage() {
                 </div>
               )}
             </CardContent>
+            {pkg && <MediaSection packageId={pkg.id} section="worksheet" canEdit={isSuperAdmin || isTeacher} />}
           </Card>
         </TabsContent>
         
@@ -552,6 +555,7 @@ export default function PackageDetailPage() {
                   <p className="text-sm text-muted-foreground">No pre-class materials yet.</p>
                 )}</>
               )}
+              {pkg && <MediaSection packageId={pkg.id} section="pre-class" canEdit={isSuperAdmin || isTeacher} />}
             </CardContent>
           </Card>
         </TabsContent>
@@ -593,10 +597,11 @@ export default function PackageDetailPage() {
                   ))}
                 </div>
               )}
+              {pkg && <MediaSection packageId={pkg.id} section="lab-logistics" canEdit={isSuperAdmin || isTeacher} />}
             </CardContent>
           </Card>
         </TabsContent>
-
+        
         <TabsContent value="wa-blast">
           <Card id="tab-content-wa-blast">
             <CardHeader>
@@ -622,6 +627,7 @@ export default function PackageDetailPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">No WA blast message yet.</p>
               )}
+              {pkg && <MediaSection packageId={pkg.id} section="wa-blast" canEdit={isSuperAdmin || isTeacher} />}
             </CardContent>
           </Card>
         </TabsContent>
@@ -663,6 +669,7 @@ export default function PackageDetailPage() {
                   ))}
                 </div>
               )}
+              {pkg && <MediaSection packageId={pkg.id} section="answer-keys" canEdit={isSuperAdmin || isTeacher} />}
             </CardContent>
           </Card>
         </TabsContent>
