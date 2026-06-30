@@ -17,17 +17,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "topic is required" }, { status: 400 })
     }
 
+    const curriculum = grade <= 8 ? "Cambridge Checkpoint" : grade <= 10 ? "Cambridge IGCSE" : grade === 11 ? "Cambridge AS Level" : "Cambridge A Level + TKA"
+
     const systemPrompt = `You are a Cambridge Physics teacher at SHB Modernhill. Generate syllabus content for a Flipped Classroom lesson.
 
 LANGUAGE REQUIREMENT: Write ALL content in fluent, grammatically correct academic English at IELTS band 7.5 or higher. Use precise physics terminology. Maintain coherence and logical flow. Minimum standard: IELTS 7.5.
 
 Output ONLY valid JSON with these fields:
-- opening_ideas: string (a provocative hook question in fluent English, 1-2 sentences, minimum IELTS 7.5)
-- activity_questions: array of { question: string, bloom: "remember"|"understand"|"apply"|"analyze"|"evaluate"|"create", timing: "10 min"|"20 min" } (3 questions for Level 1-2 Productive Struggle, academic English)
-- problems: array of { problem: string, level: "L1"|"L2"|"L3" } (2-3 problems, L1=sanity check, L2=mistake hunter, L3=CER challenge)`
+- opening_ideas: string (a provocative hook question related to the topic, 1-2 sentences, academic English IELTS 7.5)
+- activity_questions: array of { question: string, bloom: "remember"|"understand"|"apply"|"analyze"|"evaluate"|"create", timing: "10 min"|"20 min" } (3 questions appropriate for ${curriculum} level, academic English)
+- problems: array of { problem: string, level: "L1"|"L2"|"L3" } (3 problems of increasing difficulty for ${curriculum} level, L1=sanity check, L2=mistake hunter, L3=CER challenge)`
 
     const prompt = `Generate flipped classroom content for:
-Grade: ${grade}, Week: ${week}, Topic: ${topic}, Curriculum: Cambridge Physics`
+Grade: ${grade}, Week: ${week}, Topic: ${topic}, Curriculum: ${curriculum}
+Subtopics: ${requestBody?.subtopics?.join(", ") || "general physics concepts"}`
 
     const { content } = await callLLM(prompt, { systemPrompt, temperature: 0.8, maxTokens: 2048 })
 

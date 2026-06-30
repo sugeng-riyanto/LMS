@@ -143,6 +143,55 @@ export default function SyllabusPlannerPage() {
     }))
   }
 
+  // Auto-generate content when topic changes
+  useEffect(() => {
+    if (plan.topic && topics.length > 0) {
+      const curriculum = topics.find(t => selectedTopicIds.has(t.unit_id))?.curriculum ?? "Cambridge"
+      const ref = topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => t.syllabus_ref).filter(Boolean).join(", ")
+      if (!plan.opening_ideas) {
+        const hooks: Record<string, string> = {
+          kinematics: "Why do astronauts float in space when gravity is still 90% as strong as on Earth? Let's investigate the physics of motion!",
+          forces: "How does a 400-tonne aeroplane stay in the air? Uncover the fundamental forces that govern our universe.",
+          energy: "Can energy ever truly be created or destroyed? Explore the universal principle that shapes all physical phenomena.",
+          waves: "How can whales communicate across hundreds of kilometres of ocean? Discover the physics of wave propagation.",
+          electricity: "What really happens when you flip a light switch? Trace the journey of electrical energy from power station to bulb.",
+          magnetism: "Could we build a train that levitates? Explore the invisible forces of electromagnetism.",
+          thermal: "Why does a metal spoon feel colder than a wooden one at the same temperature? Investigate thermal physics.",
+          density: "How can a massive steel ship float while a tiny nail sinks? The answer lies in density.",
+          pressure: "Why do your ears pop during takeoff? Explore the fascinating physics of pressure.",
+        }
+        const key = plan.topic.toLowerCase()
+        for (const [k, v] of Object.entries(hooks)) {
+          if (key.includes(k)) {
+            setPlan(prev => ({ ...prev, opening_ideas: v }))
+            break
+          }
+        }
+      }
+      // Auto-fill questions and problems if empty
+      if (plan.activity_questions.length === 0) {
+        setPlan(prev => ({
+          ...prev,
+          activity_questions: [
+            { question: `What fundamental principles govern ${plan.topic.toLowerCase()}?`, bloom: "remember", timing: "10 min" },
+            { question: `How can the concepts of ${plan.topic.toLowerCase()} be applied to solve practical problems?`, bloom: "apply", timing: "20 min" },
+            { question: `Evaluate a scenario involving ${plan.topic.toLowerCase()} and predict the outcome using physical laws.`, bloom: "evaluate", timing: "10 min" },
+          ],
+        }))
+      }
+      if (plan.problems.length === 0) {
+        setPlan(prev => ({
+          ...prev,
+          problems: [
+            { problem: `Define and explain the core principles of ${plan.topic.toLowerCase()} using appropriate terminology.`, level: "L1" },
+            { problem: `Analyse the following case study related to ${plan.topic.toLowerCase()} and identify any conceptual errors in the reasoning.`, level: "L2" },
+            { problem: `Design an experiment to test a hypothesis about ${plan.topic.toLowerCase()}. Include your Claim, Evidence, and Reasoning framework.`, level: "L3" },
+          ],
+        }))
+      }
+    }
+  }, [plan.topic, selectedTopicIds])
+
   const addQuestion = () => {
     setPlan(prev => ({
       ...prev,
