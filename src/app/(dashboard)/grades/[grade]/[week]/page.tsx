@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, CheckCircle, Send, Edit, FileDown, FileText, FileType, FileSpreadsheet } from "lucide-react"
+import { ArrowLeft, CheckCircle, Send, Edit, FileDown, FileText, FileType, FileSpreadsheet, Download } from "lucide-react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -206,6 +206,25 @@ export default function PackageDetailPage() {
               {fmt.toUpperCase()}
             </Button>
           ))}
+          <Button variant="default" size="sm" onClick={async () => {
+            toast.success("Downloading all formats...")
+            const fmts = ["docx", "pdf", "md"]
+            for (const fmt of fmts) {
+              try {
+                const res = await fetch(`/api/packages/${pkg.id}/export?format=${fmt}`)
+                if (!res.ok) continue
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.href = url; a.download = `grade-${grade}-week-${week}.${fmt === "docx" ? "docx" : fmt}`; a.click()
+                URL.revokeObjectURL(url)
+                await new Promise(r => setTimeout(r, 500))
+              } catch {}
+            }
+            toast.success("All formats downloaded!")
+          }}>
+            <Download className="mr-1 h-3 w-3" />All
+          </Button>
           <div className="relative" ref={exportRef}>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(!exportOpen)}>
               <FileDown className="mr-1 h-4 w-4" />
