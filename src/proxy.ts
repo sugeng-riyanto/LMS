@@ -18,6 +18,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/calendar": ["super_admin", "teacher", "lab_assistant"],
   "/my-week": ["student"],
   "/my-work": ["student"],
+  "/my-progress": ["student"],
   "/my-journal": ["student"],
   "/pre-class": ["student"],
 }

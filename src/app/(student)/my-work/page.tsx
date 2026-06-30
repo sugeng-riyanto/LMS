@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send, Palette, Type, CheckCircle, XCircle, Clock, Eye, EyeOff } from "lucide-react"
+import { Send, Palette, Type, CheckCircle, XCircle, Clock, Eye, EyeOff, Trash2 } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface Answer {
@@ -23,9 +23,25 @@ interface Answer {
   status: string
 }
 
+function getCanvasPos(canvas: HTMLCanvasElement, e: MouseEvent | TouchEvent): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect()
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
+  let clientX: number, clientY: number
+  if ("touches" in e) {
+    clientX = e.touches[0]?.clientX ?? 0
+    clientY = e.touches[0]?.clientY ?? 0
+  } else {
+    clientX = e.clientX
+    clientY = e.clientY
+  }
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY }
+}
+
 function CanvasDraw({ data, onChange, readonly }: { data: string; onChange: (d: string) => void; readonly?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [drawing, setDrawing] = useState(false)
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -34,32 +50,55 @@ function CanvasDraw({ data, onChange, readonly }: { data: string; onChange: (d: 
     if (!ctx) return
     ctx.fillStyle = "#fff"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = "#000"
-    ctx.lineWidth = 2
+    ctx.strokeStyle = "#1a1a2e"
+    ctx.lineWidth = 3
     ctx.lineCap = "round"
+    ctx.lineJoin = "round"
 
-    if (data) {
+    if (data && data.startsWith("data:image")) {
       const img = new Image()
-      img.onload = () => ctx.drawImage(img, 0, 0)
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      }
       img.src = data
     }
   }, [data])
 
-  function startDraw() { if (!readonly) setDrawing(true) }
-  function stopDraw() { if (!readonly) { setDrawing(false); saveCanvas() } }
-
-  function draw(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!drawing || readonly) return
+  function startDrawing(e: React.MouseEvent | React.TouchEvent) {
+    if (readonly) return
+    e.preventDefault()
+    setDrawing(true)
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-    ctx.stroke()
+    const pos = getCanvasPos(canvas, e.nativeEvent as MouseEvent | TouchEvent)
+    lastPos.current = pos
+    ctx.beginPath()
+    ctx.moveTo(pos.x, pos.y)
   }
 
-  function saveCanvas() {
+  function draw(e: React.MouseEvent | React.TouchEvent) {
+    if (!drawing || readonly) return
+    e.preventDefault()
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    const pos = getCanvasPos(canvas, e.nativeEvent as MouseEvent | TouchEvent)
+    if (lastPos.current) {
+      ctx.beginPath()
+      ctx.moveTo(lastPos.current.x, lastPos.current.y)
+      ctx.lineTo(pos.x, pos.y)
+      ctx.stroke()
+    }
+    lastPos.current = pos
+  }
+
+  function stopDrawing() {
+    if (!drawing) return
+    setDrawing(false)
+    lastPos.current = null
     const canvas = canvasRef.current
     if (canvas) onChange(canvas.toDataURL())
   }
@@ -78,18 +117,33 @@ function CanvasDraw({ data, onChange, readonly }: { data: string; onChange: (d: 
     <div className="space-y-2">
       <canvas
         ref={canvasRef}
-        width={400}
-        height={300}
-        className="rounded-lg border w-full cursor-crosshair"
-        style={{ maxWidth: 400 }}
-        onMouseDown={startDraw}
-        onMouseUp={stopDraw}
+        width={800}
+        height={500}
+        className="rounded-xl border-2 border-border w-full cursor-crossfire touch-none"
+        style={{ maxWidth: 800, height: 500, aspectRatio: "800/500" }}
+        onMouseDown={startDrawing}
         onMouseMove={draw}
-        onMouseLeave={stopDraw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
       />
-      {!readonly && (
-        <Button variant="outline" size="sm" onClick={clearCanvas}>Clear</Button>
-      )}
+      <div className="flex gap-2">
+        {!readonly && (
+          <>
+            <Button variant="outline" size="sm" onClick={clearCanvas}>
+              <Trash2 className="mr-1 h-3 w-3" /> Clear
+            </Button>
+            <span className="text-xs text-muted-foreground self-center">
+              Draw with mouse, touch, or stylus
+            </span>
+          </>
+        )}
+        {readonly && data && (
+          <span className="text-xs text-muted-foreground self-center">Student's drawing (read-only)</span>
+        )}
+      </div>
     </div>
   )
 }
