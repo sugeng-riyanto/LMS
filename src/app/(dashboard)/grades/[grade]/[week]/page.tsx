@@ -434,7 +434,9 @@ export default function PackageDetailPage() {
                         <h3 className="font-semibold">{phase.phase}</h3>
                         <Badge variant="outline">{phase.timing}</Badge>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{phase.activity}</p>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        <MarkdownRender content={phase.activity} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -475,10 +477,10 @@ export default function PackageDetailPage() {
                         {level.questions.map((q, j) => (
                           <div key={j} className="rounded-lg border p-3 text-sm">
                             <div className="flex items-start justify-between">
-                              <span>
-                                {j + 1}. {q.question}
-                              </span>
-                              <Badge variant="outline">{q.points} pts</Badge>
+                              <div className="flex-1">
+                                <MarkdownRender content={`${j + 1}. ${q.question}`} />
+                              </div>
+                              <Badge variant="outline" className="ml-2 shrink-0">{q.points} pts</Badge>
                             </div>
                           </div>
                         ))}
@@ -533,9 +535,9 @@ export default function PackageDetailPage() {
                     <div className="space-y-3">
                       {preClass.quiz.map((q, i) => (
                         <div key={i} className="rounded-lg border p-3">
-                          <p className="text-sm font-medium">
-                            {i + 1}. {q.question}
-                          </p>
+                          <div className="text-sm font-medium">
+                            <MarkdownRender content={`${i + 1}. ${q.question}`} />
+                          </div>
                           <ul className="mt-1 space-y-1">
                             {q.options.map((opt, j) => (
                               <li key={j} className="text-sm text-muted-foreground">

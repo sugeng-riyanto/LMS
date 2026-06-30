@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ArrowLeft, Save, FileDown, FileText, Upload } from "lucide-react"
+import { ArrowLeft, Save, FileDown, FileText, Upload, Eye, EyeOff } from "lucide-react"
+import { marked } from "marked"
 import { Separator } from "@/components/ui/separator"
 import toast from "react-hot-toast"
 
@@ -77,6 +78,21 @@ export default function EditPackagePage() {
   const [activeTab, setActiveTab] = useState("lesson-plan")
   const [content, setContent] = useState<PackageContent>(defaultContent)
   const [loadingTemplate, setLoadingTemplate] = useState(false)
+  const [showPreview, setShowPreview] = useState<Record<string, boolean>>({})
+
+  function MarkdownPreview({ content }: { content: string }) {
+    if (!content || !content.trim()) return null
+    try {
+      const html = marked.parse(content, { breaks: true }) as string
+      return <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg border border-green-200 bg-green-50 p-4 mt-2 dark:border-green-800 dark:bg-green-950" dangerouslySetInnerHTML={{ __html: html }} />
+    } catch {
+      return <pre className="text-xs text-muted-foreground mt-1">{content}</pre>
+    }
+  }
+
+  function togglePreview(key: string) {
+    setShowPreview((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   // Template downloads per section
   const TEMPLATES: Record<string, { md: string }> = {
@@ -391,6 +407,10 @@ export default function EditPackagePage() {
                     <div className="space-y-1">
                       <Label>Activity</Label>
                       <Textarea value={phase.activity} onChange={(e) => updateLessonPlan(i, "activity", e.target.value)} placeholder="Activity description (supports markdown)" rows={3} className="text-xs font-mono" />
+                      <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => togglePreview(`lp-${i}`)}>
+                        {showPreview[`lp-${i}`] ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}Preview
+                      </Button>
+                      {showPreview[`lp-${i}`] && <MarkdownPreview content={phase.activity} />}
                     </div>
                   </div>
                 </div>
@@ -464,8 +484,14 @@ export default function EditPackagePage() {
             <CardContent className="space-y-4">
               <div className="space-y-1">
                 <Label>Pre-Class Content (supports Markdown)</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => togglePreview("pre-class")}>
+                    {showPreview["pre-class"] ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}Preview
+                  </Button>
+                </div>
                 <Textarea value={content.pre_class.video} onChange={(e) => setContent((prev) => ({ ...prev, pre_class: { ...prev.pre_class, video: e.target.value } }))} placeholder="Video URL, markdown content, or paste from template..." rows={6} className="font-mono text-xs" />
-                <p className="text-[10px] text-muted-foreground">Supports markdown: ## headings, **bold**, - lists, [links](url). Renders formatted on detail page.</p>
+                {showPreview["pre-class"] && <MarkdownPreview content={content.pre_class.video} />}
+                <p className="text-[10px] text-muted-foreground">Supports markdown: ## headings, **bold**, - lists, [links](url).</p>
               </div>
               <div className="space-y-1">
                 <Label>Simulation / Additional Content</Label>
