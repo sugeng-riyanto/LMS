@@ -289,11 +289,12 @@ export default function SyllabusPlannerPage() {
       }
 
       let error: any = null
+      const savePayload = { ...payload, media_links: mediaSources }
       if (existing) {
-        const { error: e } = await (supabase.from("syllabus_planning") as any).update(payload).eq("id", existing.id)
+        const { error: e } = await (supabase.from("syllabus_planning") as any).update(savePayload).eq("id", existing.id)
         error = e
       } else {
-        const { error: e } = await (supabase.from("syllabus_planning") as any).insert(payload)
+        const { error: e } = await (supabase.from("syllabus_planning") as any).insert(savePayload)
         error = e
       }
 
@@ -454,8 +455,13 @@ export default function SyllabusPlannerPage() {
     const shareUrl = typeof window !== "undefined" ? window.location.href : ""
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(shareUrl)}`
 
-    // Student names for dropdown (sample — in production these come from API)
-    const sampleStudents = ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"]
+    // Student names from profiles (fetched on share)
+    const gradeStudents = typeof window !== "undefined"
+      ? (window as any).__SYLLABUS_STUDENTS__ || []
+      : []
+    const studentOptions = Array.isArray(gradeStudents) && gradeStudents.length
+      ? gradeStudents.map((n: string) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")
+      : ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"].map(n => `<option value="${n}">${n}</option>`).join("")
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -486,13 +492,13 @@ ${shareUrl ? `<div class="shrink-0 text-center no-print"><img src="${qrUrl}" alt
 ${objectivesHtml}
 
 <!-- STUDENT INFO -->
-<div class="bg-gray-50 rounded-xl p-4 md:p-6 space-y-4 border no-print">
+<div class="bg-gray-50 rounded-xl p-4 md:p-6 space-y-4 border">
 <h3 class="font-semibold text-gray-700">Student Information</h3>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
 <select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
 <option value="">Select student...</option>
-${sampleStudents.map(n => `<option value="${n}">${n}</option>`).join("")}
+${studentOptions}
 </select></div>
 <div><label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
 <input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" /></div>
@@ -597,6 +603,29 @@ document.addEventListener("DOMContentLoaded", function() {
 
   async function handleShare() {
     try {
+      // Fetch students for the dropdown
+      try {
+        const res = await fetch("/api/profiles")
+        const profiles = await res.json()
+        const students = (Array.isArray(profiles) ? profiles : [])
+          .filter((p: any) => p.role === "student" && p.grade_assigned === selectedGrade)
+          .map((p: any) => p.full_name)
+        ;(window as any).__SYLLABUS_STUDENTS__ = students
+      } catch {}
+
+      // Fetch media sources from saved syllabus plan if available
+      try {
+        const { data: saved } = await (supabase.from("syllabus_planning") as any)
+          .select("media_links")
+          .eq("academic_year", "2026-2027")
+          .eq("grade", selectedGrade)
+          .eq("week_number", selectedWeek)
+          .single()
+        if (saved?.media_links) {
+          setMediaSources(saved.media_links)
+        }
+      } catch {}
+
       const html = getShareHtml()
       const blob = new Blob([html], { type: "text/html;charset=utf-8" })
       const url = URL.createObjectURL(blob)
