@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2 } from "lucide-react"
+import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
@@ -87,6 +87,9 @@ export default function SyllabusPlannerPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [plan, setPlan] = useState<SyllabusPlan>(defaultPlan)
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set())
+  const [mediaSources, setMediaSources] = useState<Array<{ section: string; type: string; title: string; url: string }>>([])
+  const [showMediaForm, setShowMediaForm] = useState<string | null>(null)
+  const [mediaForm, setMediaForm] = useState({ section: "opening", type: "youtube", title: "", url: "" })
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -388,55 +391,157 @@ export default function SyllabusPlannerPage() {
     )
   }
 
+  function addMediaSource() {
+    if (!mediaForm.title || !mediaForm.url) { toast.error("Title and URL are required"); return }
+    setMediaSources(prev => [...prev, { ...mediaForm }])
+    setMediaForm({ section: "opening", type: "youtube", title: "", url: "" })
+    setShowMediaForm(null)
+    toast.success("Source added!")
+  }
+
+  function removeMediaSource(index: number) {
+    setMediaSources(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function getEmbedUrl(url: string, type: string): string | null {
+    if (type === "youtube") {
+      const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/)
+      return m ? `https://www.youtube.com/embed/${m[1]}` : url
+    }
+    if (type === "pdf" || type === "slides") {
+      const gDrive = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+      if (gDrive) return `https://drive.google.com/file/d/${gDrive[1]}/preview`
+      return url
+    }
+    return url
+  }
+
+  function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
+
+  function getShareHtml(): string {
+    const date = new Date().toLocaleDateString("en-GB")
+    const hooks = plan.opening_ideas?.split("\n").filter(Boolean) || []
+    const questions = plan.activity_questions || []
+    const problems = plan.problems || []
+    const openingSources = mediaSources.filter(s => s.section === "opening")
+    const questionSources = mediaSources.filter(s => s.section === "questions")
+
+    function renderSource(src: { url: string; type: string; title: string }) {
+      const embed = getEmbedUrl(src.url, src.type)
+      if (src.type === "youtube" && embed) return `<div class="mt-3 aspect-video rounded-lg overflow-hidden"><iframe src="${embed}" class="w-full h-full" allowfullscreen></iframe></div>`
+      if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio></div>`
+      return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
+    }
+
+    const hookHtml = hooks.map(h => `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-2"><p class="text-gray-800">${esc(h)}</p></div>`).join("")
+    const openingSrcHtml = openingSources.map(s => renderSource(s)).join("")
+    const qHtml = questions.map((q, i) => `<div class="bg-green-50 border rounded-lg p-4"><p class="font-medium">${i + 1}. ${esc(q.question)}</p><p class="text-xs text-gray-500 mt-1">Bloom: ${q.bloom} · Time: ${q.timing || "20 min"}</p></div>`).join("")
+    const qSrcHtml = questionSources.map(s => renderSource(s)).join("")
+    const pHtml = problems.map((p, i) => `<div class="bg-purple-50 border rounded-lg p-4"><p class="font-medium">${i + 1}. ${esc(p.problem)}</p><p class="text-xs text-gray-500 mt-1">Level: ${p.level}</p></div>`).join("")
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Syllabus - Grade ${selectedGrade} Week ${selectedWeek}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{font-family:'Segoe UI',system-ui,sans-serif}</style>
+</head>
+<body class="bg-gray-50 text-gray-900 p-4 md:p-8">
+<div class="max-w-4xl mx-auto">
+<div class="bg-white rounded-2xl shadow-sm border p-6 md:p-10 space-y-8">
+<div class="border-b pb-6">
+<h1 class="text-2xl md:text-3xl font-bold text-gray-900">Syllabus Plan</h1>
+<p class="text-gray-500 mt-1">Grade ${selectedGrade} · Week ${selectedWeek} · ${date}</p>
+<p class="text-gray-700 mt-2 font-medium">Topic: ${plan.topic}</p>
+</div>
+<div class="space-y-6">
+<div>
+<h2 class="text-lg font-semibold text-blue-700 mb-3">Opening Ideas (Hook / MythBuster)</h2>
+${hookHtml}
+${openingSrcHtml}
+</div>
+<div>
+<h2 class="text-lg font-semibold text-green-700 mb-3">Activity Questions (Productive Struggle)</h2>
+<div class="space-y-2">${qHtml}</div>
+${qSrcHtml}
+</div>
+<div>
+<h2 class="text-lg font-semibold text-purple-700 mb-3">Problems (CER / HOTS)</h2>
+<div class="space-y-2">${pHtml}</div>
+</div>
+</div>
+<div class="border-t pt-6 text-center text-sm text-gray-400">
+<p>Generated by Physics Command Center - SHB Modernhill</p>
+<p class="mt-1">${date}</p>
+</div>
+</div>
+</div>
+</body></html>`
+  }
+
+  async function handleShare() {
+    try {
+      const html = getShareHtml()
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.html`; a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Share page downloaded! Open in any browser.")
+    } catch { toast.error("Share failed") }
+  }
+
   async function downloadSyllabus(format: string) {
     setDownloading(format)
     try {
-      if (format === "md") {
-        const md = generateSyllabusMD()
-        const blob = new Blob([md], { type: "text/markdown" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.md`; a.click()
-        URL.revokeObjectURL(url)
-        toast.success("MD downloaded!")
-      } else {
-        // DOCX, PDF, QMD — use the lesson plan generator with syllabus content as activities/opening
-        const isJHS = selectedGrade <= 9
-        const res = await fetch("/api/lesson-plan/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            format,
-            vars: {
-              grade: selectedGrade,
-              week: selectedWeek,
-              year: "2026/2027",
-              semester: "Semester 1",
-              subject: "Physics",
-              teacher: "",
-              ssbat: `Students will be able to analyse and apply concepts related to ${plan.topic}.`,
-              opening: plan.opening_ideas || "Engage students with a real-world phenomenon.",
-              activities: plan.activity_questions.map(q => `Q: ${q.question} (${q.bloom}, ${q.timing ?? "20 min"})`).join("\n") || "Guided worksheet and group work.",
-              closing: "Students summarise key concepts. Teacher clarifies misconceptions.",
-              model: plan.calendar_status === "exam" ? "Exam Review" : "Flipped Classroom",
-              assessment: `Formative through worksheet and CER challenge on ${plan.topic}.`,
-              resources: "",
-              vp: isJHS ? "Christina Sri Waryanti, S.Pd." : "Aji Wahyu Budiyanto, M.Si",
-              principal: isJHS ? "Sisilia Juni Arianti, S.Pd., M.Pd." : "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
-              unit: "Academic",
-              problem_solving: plan.problems.map(p => `${p.problem} (${p.level})`).join("\n"),
-            },
-          }),
-        })
-        if (!res.ok) { toast.error("Download failed"); return }
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const ext = format === "qmd" ? "qmd" : format
+      const md = generateSyllabusMD()
+      const blob = new Blob([md], { type: "text/markdown" })
+      
+      if (format === "md" || format === "qmd") {
+        const ext = format === "qmd" ? "qmd" : "md"
+        const content = format === "qmd" ? `---\ntitle: "Syllabus Plan — Grade ${selectedGrade} Week ${selectedWeek}"\nformat: pdf\ntoc: true\n---\n\n${md.replace(/^---[\s\S]*?---\n\n/, "")}` : md
+        const b = new Blob([content], { type: "text/markdown" })
+        const url = URL.createObjectURL(b)
         const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.${ext}`; a.click()
         URL.revokeObjectURL(url)
         toast.success(`${format.toUpperCase()} downloaded!`)
+        return
       }
-    } catch { toast.error("Download failed") }
-    finally { setDownloading(null) }
+
+      // DOCX / PDF — use lesson plan generator with syllabus as content
+      const curriculum = topics.find(t => selectedTopicIds.has(t.unit_id))?.curriculum ?? "Cambridge"
+      const res = await fetch("/api/lesson-plan/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          vars: {
+            grade: selectedGrade, week: selectedWeek,
+            year: "2026/2027", semester: "Semester 1", subject: "Physics",
+            teacher: "",
+            ssbat: `Students will be able to analyse and apply concepts related to ${plan.topic} in accordance with the ${curriculum} curriculum.`,
+            opening: plan.opening_ideas || "Engage students with a real-world phenomenon.",
+            activities: plan.activity_questions.map(q => `**Q:** ${q.question} (${q.bloom})`).join("\n\n") || "Guided worksheet and group work.",
+            closing: `Students summarise key concepts. Teacher clarifies misconceptions.`,
+            model: plan.calendar_status === "exam" ? "Exam Review" : "Flipped Classroom",
+            assessment: `Formative assessment through worksheet and CER challenge on ${plan.topic}.`,
+            resources: `${curriculum} — ${topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => t.syllabus_ref).filter(Boolean).join(", ")}`,
+            vp: selectedGrade <= 9 ? "Christina Sri Waryanti, S.Pd." : "Aji Wahyu Budiyanto, M.Si",
+            principal: selectedGrade <= 9 ? "Sisilia Juni Arianti, S.Pd., M.Pd." : "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
+            unit: "Academic",
+            classwork: plan.problems.map(p => `${p.problem} (${p.level})`).join("\n"),
+          },
+        }),
+      })
+      if (!res.ok) { const e = await res.json().catch(() => ({ error: "Failed" })); toast.error(e.error); return }
+      const b = await res.blob()
+      const url = URL.createObjectURL(b)
+      const ext = format
+      const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.${ext}`; a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`${format.toUpperCase()} downloaded!`)
+    } catch (e) {
+      toast.error("Download failed: " + (e instanceof Error ? e.message : "Unknown"))
+    } finally { setDownloading(null) }
   }
 
   const hasConflict = events.some(e => e.is_holiday || e.event_type === "blackout")
@@ -459,6 +564,16 @@ export default function SyllabusPlannerPage() {
           <Button onClick={handleGenerate} disabled={loading || generating} size="sm">
             <BrainCircuit className="mr-1 h-4 w-4" />
             {generating ? "Generating..." : "Generate Pkg"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => {
+            const style = document.createElement("style"); style.id = "print-style"
+            style.textContent = `@media print { body * { visibility: hidden; } .print-area, .print-area * { visibility: visible; } .print-area { position: absolute; left: 0; top: 0; width: 100%; } .no-print { display: none !important; } }`
+            document.head.appendChild(style); window.print(); setTimeout(() => document.getElementById("print-style")?.remove(), 1000)
+          }}>
+            <Printer className="mr-1 h-3 w-3" />Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="mr-1 h-3 w-3" />Share
           </Button>
           <Separator orientation="vertical" className="h-6" />
           <Button onClick={() => handleSave()} disabled={loading} variant="outline" size="sm">
@@ -572,6 +687,41 @@ export default function SyllabusPlannerPage() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Phase 1 (5 min): Entry Ticket & Hook — a provocative question or myth to engage
               </p>
+
+              {/* Source of Lesson — Opening Ideas */}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">Source of Lesson</p>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => { setMediaForm({ section: "opening", type: "youtube", title: "", url: "" }); setShowMediaForm(showMediaForm === "opening" ? null : "opening") }}>
+                    <Plus className="mr-1 h-3 w-3" />Add Source
+                  </Button>
+                </div>
+                {mediaSources.filter(s => s.section === "opening").map((s, i) => (
+                  <div key={i} className="flex items-center justify-between rounded border p-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
+                      <span className="truncate">{s.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
+                      <button onClick={() => removeMediaSource(mediaSources.filter(s => s.section === "opening").indexOf(s) + mediaSources.filter((_, idx) => idx < mediaSources.length && mediaSources[idx].section !== "opening").length)} className="text-destructive hover:underline ml-1">Remove</button>
+                    </div>
+                  </div>
+                ))}
+                {showMediaForm === "opening" && (
+                  <div className="rounded border p-2 space-y-1 bg-muted/30">
+                    <select value={mediaForm.type} onChange={(e) => setMediaForm(p => ({ ...p, type: e.target.value }))} className="h-7 w-full rounded border border-input bg-background px-2 text-xs">
+                      <option value="youtube">YouTube Video</option>
+                      <option value="pdf">PDF Document</option>
+                      <option value="slides">Slides</option>
+                      <option value="audio">Audio</option>
+                    </select>
+                    <input value={mediaForm.title} onChange={(e) => setMediaForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="URL" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <Button size="sm" className="h-7 text-xs" onClick={addMediaSource}>Add</Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -625,6 +775,41 @@ export default function SyllabusPlannerPage() {
                   </Button>
                 </div>
               ))}
+
+              {/* Source of Lesson — Activity Questions */}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">Source of Lesson</p>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => { setMediaForm({ section: "questions", type: "youtube", title: "", url: "" }); setShowMediaForm(showMediaForm === "questions" ? null : "questions") }}>
+                    <Plus className="mr-1 h-3 w-3" />Add Source
+                  </Button>
+                </div>
+                {mediaSources.filter(s => s.section === "questions").map((s, i) => (
+                  <div key={i} className="flex items-center justify-between rounded border p-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
+                      <span className="truncate">{s.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
+                      <button onClick={() => removeMediaSource(mediaSources.filter(s => s.section === "questions").indexOf(s) + mediaSources.filter((_, idx) => idx < mediaSources.length && mediaSources[idx].section !== "questions").length)} className="text-destructive hover:underline ml-1">Remove</button>
+                    </div>
+                  </div>
+                ))}
+                {showMediaForm === "questions" && (
+                  <div className="rounded border p-2 space-y-1 bg-muted/30">
+                    <select value={mediaForm.type} onChange={(e) => setMediaForm(p => ({ ...p, type: e.target.value }))} className="h-7 w-full rounded border border-input bg-background px-2 text-xs">
+                      <option value="youtube">YouTube Video</option>
+                      <option value="pdf">PDF Document</option>
+                      <option value="slides">Slides</option>
+                      <option value="audio">Audio</option>
+                    </select>
+                    <input value={mediaForm.title} onChange={(e) => setMediaForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="URL" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <Button size="sm" className="h-7 text-xs" onClick={addMediaSource}>Add</Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
