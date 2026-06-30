@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Wand2, FileDown, FileText, FileType, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Wand2, FileDown, FileText, FileType, Eye, EyeOff, Loader2, Save, FolderOpen, Trash2, List } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
 import { Separator } from "@/components/ui/separator"
@@ -48,6 +48,11 @@ export default function LessonPlanPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [configLoaded, setConfigLoaded] = useState(false)
+  const [savedPlans, setSavedPlans] = useState<Array<{ id: string; name: string; grade: number; week: number; form_data: Record<string, unknown>; updated_at: string }>>([])
+  const [showSaved, setShowSaved] = useState(false)
+  const [saveName, setSaveName] = useState("")
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [loadingPlans, setLoadingPlans] = useState(false)
 
   const [schoolCfg, setSchoolCfg] = useState<{ vp_name: string; principal_name: string; shs_vp_name: string; shs_principal_name: string; unit: string } | null>(null)
 
@@ -106,6 +111,48 @@ export default function LessonPlanPage() {
   useEffect(() => {
     autoFillFromGrade(form.grade, form.week)
   }, [])
+
+  async function fetchSavedPlans() {
+    setLoadingPlans(true)
+    try {
+      const res = await fetch("/api/lesson-plan/saved")
+      if (res.ok) setSavedPlans(await res.json())
+    } catch {}
+    finally { setLoadingPlans(false) }
+  }
+
+  async function handleSavePlan() {
+    if (!saveName.trim()) { toast.error("Enter a name for this lesson plan"); return }
+    setSavingPlan(true)
+    try {
+      const existing = savedPlans.find(p => p.name === saveName.trim())
+      const payload = { name: saveName.trim(), grade: form.grade, week: form.week, form_data: form as unknown as Record<string, unknown> }
+      let res: Response
+      if (existing) {
+        res = await fetch(`/api/lesson-plan/saved/${existing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ form_data: payload.form_data }) })
+      } else {
+        res = await fetch("/api/lesson-plan/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      }
+      if (res.ok) { toast.success(existing ? "Updated!" : "Saved!"); setSaveName(""); fetchSavedPlans() }
+      else toast.error("Failed to save")
+    } catch { toast.error("Failed to save") }
+    finally { setSavingPlan(false) }
+  }
+
+  function loadPlan(plan: { id: string; name: string; form_data: Record<string, unknown> }) {
+    const fd = plan.form_data as Record<string, unknown>
+    setForm((prev) => ({ ...prev, ...fd }))
+    setShowSaved(false)
+    toast.success(`Loaded: ${plan.name}`)
+  }
+
+  async function deletePlan(id: string) {
+    if (!confirm("Delete this saved plan?")) return
+    try {
+      const res = await fetch(`/api/lesson-plan/saved/${id}`, { method: "DELETE" })
+      if (res.ok) { toast.success("Deleted"); fetchSavedPlans() }
+    } catch { toast.error("Failed to delete") }
+  }
 
   async function handleGenerate() {
     if (!form.teacher) { toast.error("Please enter your name"); return }
@@ -167,10 +214,50 @@ export default function LessonPlanPage() {
             Fill in the template variables, click generate, then preview and download your SHB lesson plan
           </p>
         </div>
-        {step === "result" && (
-          <Button variant="outline" size="sm" onClick={resetForm}>Back to Editor</Button>
-        )}
+        <div className="flex items-center gap-2">
+          {step === "result" && (
+            <Button variant="outline" size="sm" onClick={resetForm}>Back to Editor</Button>
+          )}
+          {step === "form" && (
+            <>
+              <div className="flex items-center gap-1">
+                <Input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Plan name..." className="w-40 h-8 text-xs" />
+                <Button variant="outline" size="sm" onClick={handleSavePlan} disabled={savingPlan}><Save className="h-3 w-3" /></Button>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => { setShowSaved(!showSaved); if (!showSaved) fetchSavedPlans() }}>
+                <FolderOpen className="mr-1 h-3 w-3" />Saved
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {showSaved && step === "form" && (
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2"><List className="h-4 w-4" />Saved Lesson Plans</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2">
+            {loadingPlans ? (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            ) : savedPlans.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No saved plans yet.</p>
+            ) : (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {savedPlans.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm hover:bg-accent/50">
+                    <button className="text-left flex-1" onClick={() => loadPlan(p)}>
+                      <span className="font-medium">{p.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">G{p.grade} W{p.week}</span>
+                    </button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deletePlan(p.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {step === "form" ? (
         <Card>

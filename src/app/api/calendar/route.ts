@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
       date: (r.start_date as string) ?? "",
       type: (r.event_type as string) ?? "normal",
       grade: ((r.affected_grades as number[])?.[0]) ?? null,
+      affected_grades: (r.affected_grades as number[]) ?? [],
       ...r,
     }))
 

@@ -62,6 +62,7 @@ export default function CalendarPage() {
 
   function openEdit(event: CalendarEvent) {
     setEditingId(event.id ?? null)
+    const affGrades = (event as any).affected_grades ?? (event.grade ? [event.grade] : [7, 8, 9, 10, 11, 12])
     const grades: Record<number, boolean> = {}
     GRADES.forEach((g) => { grades[g] = false })
     setForm({
@@ -74,11 +75,11 @@ export default function CalendarPage() {
       effective_days: 5,
       event_name: event.title,
       event_type: event.type,
-      affected_grades: event.grade ? [event.grade] : [7, 8, 9, 10, 11, 12],
+      affected_grades: affGrades,
       is_holiday: event.type === "holiday",
       notes: event.description ?? "",
     })
-    GRADES.forEach((g) => { grades[g] = event.grade ? event.grade === g : true })
+    GRADES.forEach((g) => { grades[g] = affGrades.includes(g) })
     setGradeSelection(grades)
     setDialogOpen(true)
   }
@@ -161,6 +162,16 @@ export default function CalendarPage() {
           {isSuperAdmin && (
             <>
               <Button size="sm" onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Event</Button>
+              <Button variant="outline" size="sm" onClick={async () => {
+                try {
+                  const res = await fetch("/api/calendar/template")
+                  if (!res.ok) { toast.error("Download failed"); return }
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a"); a.href = url; a.download = "calendar-template.xlsx"; a.click()
+                  URL.revokeObjectURL(url)
+                } catch { toast.error("Download failed") }
+              }}><Upload className="mr-1 h-4 w-4" />Template</Button>
               <Label className="cursor-pointer">
                 <Button variant="outline" size="sm"><Upload className="mr-1 h-4 w-4" />Upload XLSX</Button>
                 <Input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleXLSXUpload} />

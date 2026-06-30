@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { PackageSearch, Save, Plus, Pencil, Trash2 } from "lucide-react"
+import { PackageSearch, Save, Plus, Pencil, Trash2, Upload, Download } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface LabItem {
@@ -42,7 +42,7 @@ export default function LabPage() {
   async function fetchItems() {
     setLoading(true)
     try {
-      const res = await fetch("/api/lab/inventory")
+      const res = await fetch("/api/lab")
       if (res.ok) {
         const data: LabItem[] = await res.json()
         setItems(data)
@@ -79,9 +79,9 @@ export default function LabPage() {
       }
       let res: Response
       if (editingId) {
-        res = await fetch(`/api/lab/inventory/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        res = await fetch(`/api/lab/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       } else {
-        res = await fetch("/api/lab/inventory/new", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        res = await fetch("/api/lab/new", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       }
       if (res.ok) {
         toast.success(editingId ? "Updated!" : "Added!")
@@ -95,7 +95,7 @@ export default function LabPage() {
   async function handleDelete(id: string) {
     if (!confirm("Delete this item?")) return
     try {
-      const res = await fetch(`/api/lab/inventory/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/lab/${id}`, { method: "DELETE" })
       if (res.ok) { toast.success("Deleted!"); fetchItems() }
       else { toast.error("Failed to delete.") }
     } catch { toast.error("Failed to delete.") }
@@ -114,7 +114,32 @@ export default function LabPage() {
           <h1 className="text-2xl font-bold tracking-tight">Lab Inventory</h1>
           <p className="text-muted-foreground">Manage physics lab equipment and supplies</p>
         </div>
-        <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Item</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            try {
+              const res = await fetch("/api/lab/template")
+              if (!res.ok) { toast.error("Download failed"); return }
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a"); a.href = url; a.download = "lab-inventory-template.xlsx"; a.click()
+              URL.revokeObjectURL(url)
+            } catch { toast.error("Download failed") }
+          }}><Download className="mr-1 h-3 w-3" />Template</Button>
+          <label className="cursor-pointer">
+            <span className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent"><Upload className="mr-1 h-3 w-3" />Upload</span>
+            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const fd = new FormData(); fd.append("file", file)
+              try {
+                const res = await fetch("/api/lab/upload", { method: "POST", body: fd })
+                if (res.ok) { toast.success("Uploaded!"); fetchItems() } else toast.error("Upload failed")
+              } catch { toast.error("Upload failed") }
+              e.target.value = ""
+            }} />
+          </label>
+          <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Item</Button>
+        </div>
       </div>
 
       <Card>
