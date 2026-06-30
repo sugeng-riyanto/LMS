@@ -14,6 +14,7 @@ import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plu
 import { createClient } from "@/lib/supabase/client"
 import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
+import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
 
 interface SyllabusTopic {
@@ -305,35 +306,16 @@ export default function SyllabusPlannerPage() {
   }
 
   function generateSyllabusMD(): string {
-    const date = new Date().toLocaleDateString("en-GB")
-    let md = `# Syllabus Plan — Grade ${selectedGrade}, Week ${selectedWeek}\n\n`
-    md += `**Date:** ${date} | **Topic:** ${plan.topic}\n\n---\n\n`
-    md += `## Opening Ideas (Hook / MythBuster)\n\n${plan.opening_ideas || "*No opening ideas set.*"}\n\n---\n\n`
-    md += `## Activity Questions (Productive Struggle)\n\n`
-    if (plan.activity_questions.length === 0) {
-      md += "*No activity questions set.*\n\n"
-    } else {
-      plan.activity_questions.forEach((q, i) => {
-        md += `### ${i + 1}. ${q.question}\n\n`
-        if (q.bloom) md += `**Bloom:** ${q.bloom} | **Timing:** ${q.timing ?? "20 min"}\n\n`
-      })
-    }
-    md += `---\n\n## Problems (CER / HOTS)\n\n`
-    if (plan.problems.length === 0) {
-      md += "*No problems set.*\n\n"
-    } else {
-      plan.problems.forEach((p, i) => {
-        md += `### ${i + 1}. ${p.problem}\n\n`
-        if (p.level) md += `**Level:** ${p.level}\n\n`
-      })
-    }
-    const cal = events.length > 0 ? events.map(e => `- ${e.event_name} (${e.event_type})`).join("\n") : "- No events"
-    md += `---\n\n## Calendar Events\n\n${cal}\n\n`
-    md += `---\n\n## Curriculum & Syllabus\n\n`
-    md += `**Curriculum:** ${topics.find(t => selectedTopicIds.has(t.unit_id))?.curriculum ?? "Cambridge"}\n`
-    const ft = topics.filter(t => selectedTopicIds.has(t.unit_id))
-    if (ft.length > 0) md += `**Syllabus Ref:** ${ft.map(t => t.syllabus_ref).filter(Boolean).join(", ")}\n`
-    return md
+    const curriculum = topics.find(t => selectedTopicIds.has(t.unit_id))?.curriculum ?? "Cambridge"
+    const refs = topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => t.syllabus_ref).filter(Boolean).join(", ")
+    return generateSyllabusExport(
+      selectedGrade, selectedWeek, plan.topic,
+      plan.opening_ideas,
+      plan.activity_questions.map(q => ({ ...q })),
+      plan.problems.map(p => ({ ...p })),
+      events.map(e => ({ event_name: e.event_name, event_type: e.event_type })),
+      curriculum, refs,
+    )
   }
 
   async function downloadSyllabus(format: string) {
