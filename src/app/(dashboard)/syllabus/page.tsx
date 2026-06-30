@@ -143,53 +143,73 @@ export default function SyllabusPlannerPage() {
     }))
   }
 
-  // Auto-generate content when topic changes
+  // Auto-generate content when topic selection changes
   useEffect(() => {
-    if (plan.topic && topics.length > 0) {
-      const curriculum = topics.find(t => selectedTopicIds.has(t.unit_id))?.curriculum ?? "Cambridge"
-      const ref = topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => t.syllabus_ref).filter(Boolean).join(", ")
-      if (!plan.opening_ideas) {
-        const hooks: Record<string, string> = {
-          kinematics: "Why do astronauts float in space when gravity is still 90% as strong as on Earth? Let's investigate the physics of motion!",
-          forces: "How does a 400-tonne aeroplane stay in the air? Uncover the fundamental forces that govern our universe.",
-          energy: "Can energy ever truly be created or destroyed? Explore the universal principle that shapes all physical phenomena.",
-          waves: "How can whales communicate across hundreds of kilometres of ocean? Discover the physics of wave propagation.",
-          electricity: "What really happens when you flip a light switch? Trace the journey of electrical energy from power station to bulb.",
-          magnetism: "Could we build a train that levitates? Explore the invisible forces of electromagnetism.",
-          thermal: "Why does a metal spoon feel colder than a wooden one at the same temperature? Investigate thermal physics.",
-          density: "How can a massive steel ship float while a tiny nail sinks? The answer lies in density.",
-          pressure: "Why do your ears pop during takeoff? Explore the fascinating physics of pressure.",
-        }
-        const key = plan.topic.toLowerCase()
-        for (const [k, v] of Object.entries(hooks)) {
-          if (key.includes(k)) {
-            setPlan(prev => ({ ...prev, opening_ideas: v }))
-            break
-          }
-        }
-      }
-      // Auto-fill questions and problems if empty
-      if (plan.activity_questions.length === 0) {
-        setPlan(prev => ({
-          ...prev,
-          activity_questions: [
-            { question: `What fundamental principles govern ${plan.topic.toLowerCase()}?`, bloom: "remember", timing: "10 min" },
-            { question: `How can the concepts of ${plan.topic.toLowerCase()} be applied to solve practical problems?`, bloom: "apply", timing: "20 min" },
-            { question: `Evaluate a scenario involving ${plan.topic.toLowerCase()} and predict the outcome using physical laws.`, bloom: "evaluate", timing: "10 min" },
-          ],
-        }))
-      }
-      if (plan.problems.length === 0) {
-        setPlan(prev => ({
-          ...prev,
-          problems: [
-            { problem: `Define and explain the core principles of ${plan.topic.toLowerCase()} using appropriate terminology.`, level: "L1" },
-            { problem: `Analyse the following case study related to ${plan.topic.toLowerCase()} and identify any conceptual errors in the reasoning.`, level: "L2" },
-            { problem: `Design an experiment to test a hypothesis about ${plan.topic.toLowerCase()}. Include your Claim, Evidence, and Reasoning framework.`, level: "L3" },
-          ],
-        }))
-      }
+    if (!plan.topic || topics.length === 0) return
+
+    const selectedTopics = topics.filter(t => selectedTopicIds.has(t.unit_id))
+    const topicNames = selectedTopics.map(t => t.topic)
+    const topicLower = topicNames.join(" ").toLowerCase()
+
+    const hooks: Record<string, string> = {
+      kinematics: "Why do astronauts float in space when gravity is still 90% as strong as on Earth? Let's investigate the physics of motion!",
+      forces: "How does a 400-tonne aeroplane stay in the air? Uncover the fundamental forces that govern our universe.",
+      energy: "Can energy ever truly be created or destroyed? Explore the universal principle that shapes all physical phenomena.",
+      waves: "How can whales communicate across hundreds of kilometres of ocean? Discover the physics of wave propagation.",
+      electricity: "What really happens when you flip a light switch? Trace the journey of electrical energy from power station to bulb.",
+      magnetism: "Could we build a train that levitates? Explore the invisible forces of electromagnetism.",
+      thermal: "Why does a metal spoon feel colder than a wooden one at the same temperature? Investigate thermal physics.",
+      density: "How can a massive steel ship float while a tiny nail sinks? The answer lies in density.",
+      pressure: "Why do your ears pop during takeoff? Explore the fascinating physics of pressure.",
+      nuclear: "How can a tiny atom release enough energy to power a city? Explore the incredible physics of the atomic nucleus.",
+      radioactivity: "How do scientists date ancient artefacts using invisible radiation? Discover the principles of radioactivity.",
+      space: "How do we know the universe is expanding? Embark on a journey through space physics and cosmology.",
+      "past paper": "Master your exam technique with targeted past paper practice. Identify weak areas and build confidence.",
+      circuit: "What happens to current when you add a second bulb to a series circuit? Investigate the laws of electrical circuits.",
+      electromagnet: "How can electricity create a magnet? Explore the relationship between current and magnetic fields.",
     }
+
+    // Collect ALL matching hooks (one per matched topic)
+    const matchedHooks: string[] = []
+    for (const [k, v] of Object.entries(hooks)) {
+      if (topicLower.includes(k)) matchedHooks.push(v)
+    }
+    const openingText = matchedHooks.length > 0
+      ? matchedHooks.join("\n\nAlternatively, consider this:\n")
+      : `Why do ${topicNames.slice(0, 3).join(", ")} matter in our everyday lives? Let us investigate through scientific inquiry.`
+
+    // Generate questions for EACH selected topic
+    const questions = topicNames.length > 1
+      ? topicNames.flatMap((t) => [
+          { question: `What fundamental principles govern ${t}?`, bloom: "remember" as const, timing: "10 min" },
+          { question: `How can the concepts of ${t} be applied to solve practical problems?`, bloom: "apply" as const, timing: "15 min" },
+          { question: `Evaluate a scenario involving ${t} and predict the outcome using physical laws.`, bloom: "evaluate" as const, timing: "15 min" },
+        ])
+      : [
+          { question: `What fundamental principles govern ${topicNames[0] || plan.topic}?`, bloom: "remember" as const, timing: "10 min" },
+          { question: `How can the concepts of ${topicNames[0] || plan.topic} be applied to solve practical problems?`, bloom: "apply" as const, timing: "20 min" },
+          { question: `Evaluate a scenario involving ${topicNames[0] || plan.topic} and predict the outcome using physical laws.`, bloom: "evaluate" as const, timing: "10 min" },
+        ]
+
+    // Generate problems for EACH selected topic
+    const problems = topicNames.length > 1
+      ? topicNames.flatMap((t) => [
+          { problem: `Define and explain the core principles of ${t} using appropriate terminology.`, level: "L1" as const },
+          { problem: `Analyse the following case study related to ${t} and identify any conceptual errors in the reasoning.`, level: "L2" as const },
+          { problem: `Design an experiment to test a hypothesis about ${t}. Include your Claim, Evidence, and Reasoning framework.`, level: "L3" as const },
+        ])
+      : [
+          { problem: `Define and explain the core principles of ${topicNames[0] || plan.topic} using appropriate terminology.`, level: "L1" as const },
+          { problem: `Analyse the following case study related to ${topicNames[0] || plan.topic} and identify any conceptual errors in the reasoning.`, level: "L2" as const },
+          { problem: `Design an experiment to test a hypothesis about ${topicNames[0] || plan.topic}. Include your Claim, Evidence, and Reasoning framework.`, level: "L3" as const },
+        ]
+
+    setPlan(prev => ({
+      ...prev,
+      opening_ideas: openingText,
+      activity_questions: questions,
+      problems,
+    }))
   }, [plan.topic, selectedTopicIds])
 
   const addQuestion = () => {
@@ -257,12 +277,13 @@ export default function SyllabusPlannerPage() {
         status: "planned",
       })
 
-      if (error) throw error
+      if (error) { console.error("Save error:", error); throw new Error(error.message || "Database error") }
       if (!silent) toast.success("Syllabus plan saved!")
       setPlan(prev => ({ ...prev, status: "planned" }))
       return true
     } catch (e) {
-      if (!silent) toast.error("Failed to save: " + (e instanceof Error ? e.message : "Unknown"))
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e) || "Unknown"
+      if (!silent) toast.error("Failed to save: " + msg)
       return false
     }
   }

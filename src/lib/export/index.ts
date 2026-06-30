@@ -287,10 +287,10 @@ export async function generateDOCX(pkg: Partial<WeeklyPackage>, schoolName?: str
 
 export async function generatePDF(pkg: Partial<WeeklyPackage>, schoolName?: string): Promise<Buffer> {
   const md = generateMD(pkg, schoolName)
-  const doc = new jsPDF({ unit: "mm", format: "a4" })
-  const pw = 180, ml = 15
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" })
+  const pw = 270, ml = 15
   let y = 25
-  const bottomLimit = 270
+  const bottomLimit = 190
   const lineH = 5.5
 
   function addPage() { doc.addPage(); y = 25 }
