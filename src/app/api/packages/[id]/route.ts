@@ -58,7 +58,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await params
@@ -87,6 +87,7 @@ export async function PUT(
 
     if (body.status === "approved") {
       updates.approved_at = new Date().toISOString()
+      updates.approved_by = user.id
     }
     if (body.status === "published") {
       updates.published_at = new Date().toISOString()

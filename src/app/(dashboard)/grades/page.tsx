@@ -22,7 +22,7 @@ export default function GradesPage() {
 
   const statusColors: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
-    pending_approval: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    pending_review: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
     approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     published: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     archived: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
@@ -46,10 +46,10 @@ export default function GradesPage() {
           {GRADES.map((grade) => {
             const gradePackages = packages?.filter((p) => p.grade === grade) ?? []
             const published = gradePackages.filter((p) => p.status === "published").length
-            const pending = gradePackages.filter((p) => p.status === "pending_approval").length
+            const pending = gradePackages.filter((p) => p.status === "pending_review").length
             const draft = gradePackages.filter((p) => p.status === "draft").length
             const dominantStatus =
-              published > 0 ? "published" : pending > 0 ? "pending_approval" : "draft"
+              published > 0 ? "published" : pending > 0 ? "pending_review" : "draft"
 
             return (
               <Link
@@ -109,7 +109,7 @@ export default function GradesPage() {
           <div>
             <p className="text-sm font-medium">Pending Review</p>
             <p className="text-xs text-muted-foreground">
-              {packages?.filter((p) => p.status === "pending_approval").length ?? 0} total
+              {packages?.filter((p) => p.status === "pending_review").length ?? 0} total
             </p>
           </div>
         </div>

@@ -32,6 +32,39 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, error: authError } = await requireRole(["super_admin", "lab_assistant"])
+    if (authError) return authError
+
+    const { id } = await params
+    const body = await request.json()
+
+    const allowed = ["item_name", "category", "total_quantity", "available_quantity", "broken_quantity", "location", "notes"]
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    for (const field of allowed) {
+      if (body[field] !== undefined) updates[field] = body[field]
+    }
+
+    const { data, error } = await (supabase.from("lab_inventory") as any)
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { supabase, error: authError } = await requireRole(["super_admin", "lab_assistant"])

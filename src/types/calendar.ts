@@ -1,14 +1,38 @@
 export interface CalendarEvent {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   date: string;
-  start_time: string;
-  end_time: string;
-  type: 'lab_session' | 'deadline' | 'holiday' | 'meeting' | 'other';
+  type: string;
   grade?: number;
-  location?: string;
-  created_by: string;
+  start_date?: string;
+  end_date?: string;
+  effective_days?: number;
+  event_name?: string;
+  event_type?: string;
+  affected_grades?: number[];
+  is_holiday?: boolean;
+  week_number?: number;
+  month?: number;
+  semester?: number;
+  academic_year?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface AcademicCalendarRow {
+  id: string;
+  academic_year: string;
+  semester: number;
+  month: number;
+  week_number: number;
+  start_date: string;
+  end_date: string;
+  effective_days: number;
+  event_name: string | null;
+  event_type: string;
+  affected_grades: number[];
+  is_holiday: boolean;
+  notes: string | null;
   created_at: string;
-  updated_at: string;
 }

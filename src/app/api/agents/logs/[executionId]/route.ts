@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ executionId: string }> }
 ) {
   try {
+    const { supabase, error: authError } = await requireRole(["super_admin"])
+    if (authError) return authError
+
     const { executionId } = await params
-    const supabase = await createServerSupabaseClient()
 
     const { data, error } = await (supabase
       .from("agent_logs") as any)

@@ -2,49 +2,49 @@ import type { AgentInput, LessonPlan, LessonPlanPhase } from "./agent-types"
 
 const TOPIC_PHYSICS: Record<string, { hook: string; myth: string; phenomenon: string }> = {
   "kinematics": {
-    hook: "Bisakah seekor cheetah mengejar mobil yang melaju 100 km/jam? Mari kita hitung!",
-    myth: "Banyak yang kira benda lebih berat jatuh lebih cepat — padahal tanpa hambatan udara, semua benda jatuh dengan percepatan yang sama (9.8 m/s²)!",
-    phenomenon: "Mengapa astronot di ISS terlihat melayang padahal gravitasi di sana 90% dari gravitasi Bumi?"
+    hook: "Could a cheetah outrun a car travelling at 100 km/h? Let us calculate!",
+    myth: "Many assume heavier objects fall faster — yet without air resistance, all objects accelerate at 9.8 m/s² regardless of mass.",
+    phenomenon: "Why do astronauts aboard the ISS appear to float when gravity there is approximately 90% of Earth's gravity?"
   },
   "forces": {
-    hook: "Kenapa pesawat terbang seberat 400 ton bisa tetap di udara?",
-    myth: "Udara panas TIDAK membuat balon udara naik — perbedaan densitaslah penyebabnya!",
-    phenomenon: "Sebuah telur bisa tenggelam di air tawar tapi mengapung di air garam — mengapa?"
+    hook: "How does an aircraft weighing 400 tonnes remain airborne?",
+    myth: "Hot air does NOT cause a balloon to rise — it is the difference in density that generates lift!",
+    phenomenon: "An egg sinks in fresh water but floats in salt water — what explains this phenomenon?"
   },
   "energy": {
-    hook: "Apakah energi benar-benar bisa diciptakan? Spoiler: TIDAK!",
-    myth: "Kita tidak 'menghabiskan' energi — kita hanya mengubahnya dari satu bentuk ke bentuk lain!",
-    phenomenon: "Sebuah bola basket yang dijatuhkan tidak pernah memantul kembali ke tinggi awalnya — ke mana perginya energi?"
+    hook: "Can energy truly be created? Spoiler: It cannot!",
+    myth: "We do not 'consume' energy — we merely transform it from one form to another!",
+    phenomenon: "A basketball dropped from a height never rebounds to its original height — where does the energy go?"
   },
   "waves": {
-    hook: "Bagaimana paus biru bisa 'berbicara' dengan paus lain yang jaraknya ratusan kilometer?",
-    myth: "Gelombang membawa energi, BUKAN materi — itulah kenapa kapal tidak ikut terbawa gelombang ke pantai!",
-    phenomenon: "Mengapa langit berwarna biru di siang hari tapi merah saat matahari terbenam?"
+    hook: "How can blue whales communicate with each other across hundreds of kilometres?",
+    myth: "Waves transfer energy, NOT matter — this is why a boat is not carried ashore by incoming waves.",
+    phenomenon: "Why does the sky appear blue during the day but red during sunset?"
   },
   "electricity": {
-    hook: "Apa yang terjadi jika kita menyentuh stop kontak dengan garpu? (Jangan dicoba!)",
-    myth: "Arus listrik mengalir dari positif ke negatif — padahal sebenarnya elektron bergerak dari negatif ke positif!",
-    phenomenon: "Mengapa burung bisa bertengger di kabel listrik tegangan tinggi tanpa tersengat?"
+    hook: "What would happen if you inserted a fork into an electrical socket? (Do not attempt!)",
+    myth: "Conventional current flows from positive to negative — but electrons actually move from negative to positive!",
+    phenomenon: "Why can birds perch on high-voltage power lines without being electrocuted?"
   },
   "magnetism": {
-    hook: "Bisakah kita membuat kereta yang melayang tanpa menyentuh rel?",
-    myth: "Kutub utara kompas menunjuk ke Utara — tapi sebenarnya itu adalah kutub SELATAN magnet Bumi!",
-    phenomenon: "Mengapa hard drive bisa kehilangan data jika didekatkan magnet kuat?"
+    hook: "Could we construct a train that levitates without touching the rails?",
+    myth: "A compass needle points north — but this is actually the Earth's magnetic SOUTH pole!",
+    phenomenon: "Why can a strong magnet cause data loss on a hard drive?"
   },
   "thermal": {
-    hook: "Kenapa termos bisa menjaga kopi tetap panas selama 12 jam?",
-    myth: "Jaket tidak menghangatkan tubuh — jaket menjebak panas tubuh agar tidak keluar!",
-    phenomenon: "Mengapa minuman dalam kaleng aluminium lebih cepat dingin daripada dalam gelas kaca?"
+    hook: "How does a thermos flask maintain coffee temperature for up to 12 hours?",
+    myth: "A jacket does not warm the body — it traps body heat and prevents it from escaping!",
+    phenomenon: "Why does a beverage in an aluminium can cool faster than in a glass container?"
   },
   "pressure": {
-    hook: "Bagaimana pisau yang tajam bisa memotong lebih mudah daripada pisau tumpul?",
-    myth: "Isapan sedotan bukan karena 'menarik' — tapi karena tekanan udara luar yang mendorong!",
-    phenomenon: "Mengapa telinga kita terasa 'tersumbat' saat naik pesawat?"
+    hook: "Why does a sharp knife cut more easily than a blunt one?",
+    myth: "Drinking through a straw is not caused by 'sucking' — it is atmospheric pressure pushing the liquid upward!",
+    phenomenon: "Why do our ears feel 'blocked' during aeroplane ascent and descent?"
   },
   "density": {
-    hook: "Mengapa es batu mengapung di air padahal es adalah air yang sama?",
-    myth: "Benda yang lebih besar belum tentu lebih berat — densitaslah yang menentukan!",
-    phenomenon: "Mengapa kapal laut dari besi bisa mengapung tapi paku besi tenggelam?"
+    hook: "Why does ice float on water when both consist of H₂O?",
+    myth: "A larger object is not necessarily heavier — density is the determining factor!",
+    phenomenon: "How can a steel ship float while a steel nail sinks?"
   }
 }
 
@@ -54,9 +54,9 @@ function getTopicContent(topic: string): { hook: string; myth: string; phenomeno
     if (key.includes(k)) return v
   }
   return {
-    hook: `Apa yang akan terjadi jika ${topic} tidak ada di dunia ini?`,
-    myth: "Mari kita bedah mitos umum seputar topik ini!",
-    phenomenon: "Fenomena menarik apa yang bisa kita amati terkait konsep ini?"
+    hook: `What would happen if ${topic} did not exist in our world?`,
+    myth: "Let us examine a common misconception surrounding this topic.",
+    phenomenon: "What observable phenomena can we investigate related to this concept?"
   }
 }
 
@@ -70,48 +70,48 @@ export async function generateLessonPlan(input: AgentInput): Promise<LessonPlan>
       phase: "Entry Ticket & Hook",
       minutes: 5,
       hook_question: content.hook,
-      activity: `Siswa mengerjakan entry ticket quiz (3 soal pilihan ganda) tentang ${input.topic} secara individu. Guru menampilkan hook question dan memfasilitasi diskusi singkat. Gunakan polling interaktif untuk melihat prediksi awal siswa.`,
+      activity: `Students complete an individual entry ticket quiz (3 multiple-choice questions) on ${input.topic}. The teacher presents the hook question and facilitates a brief class discussion. Use interactive polling to gather students' initial predictions.`,
       mythbuster_or_analogy: content.myth,
-      differentiation: "Siswa with IEP diberikan visual aid berupa concept map dan opsi menjawab secara lisan. Entry ticket disediakan dalam format digital dengan font yang dapat diperbesar."
+      differentiation: "Students with IEPs receive a visual concept map and the option to respond orally. Entry tickets are provided in digital format with adjustable font size."
     },
     {
       phase: "Productive Struggle",
       minutes: 20,
-      activity: `Siswa bekerja dalam kelompok heterogen (3-4 orang) mengerjakan Level 2 worksheet tentang ${input.topic}. Setiap kelompok mendapat intentional error yang berbeda untuk diidentifikasi dan diperbaiki. Guru berkeliling memberikan scaffolding prompts.`,
-      group_rule: "Setiap anggota harus berkontribusi minimal satu ide. Gunakan 'talking chips' — setiap bicara, serahkan chip. Jika chip habis, giliran anggota lain.",
-      differentiation: "Support: Kartu prompt dengan langkah-langkah penyelesaian disediakan untuk kelompok yang membutuhkan. Challenge: Siswa advanced diberikan soal tanpa kerangka jawaban dan diminta membuat solusi alternatif.",
-      peer_grading_instruction: "Setelah 15 menit, tukar jawaban antarkelompok. Gunakan rubrik: (1) Apakah variabel diidentifikasi dengan benar? (2) Apakah rumus tepat? (3) Apakah unit sesuai? Beri skor 1-4 dan tulis satu saran perbaikan."
+      activity: `Students work in heterogeneous groups of 3-4 to complete a Level 2 worksheet on ${input.topic}. Each group receives a different intentional error to identify and correct. The teacher circulates providing scaffolding prompts.`,
+      group_rule: "Each member must contribute at least one idea. Use 'talking chips' — surrender a chip each time you speak. When chips are exhausted, it is another member's turn.",
+      differentiation: "Support: Prompt cards with step-by-step solution frameworks are provided for groups requiring assistance. Challenge: Advanced students receive problems without answer frameworks and are asked to develop alternative solutions.",
+      peer_grading_instruction: "After 15 minutes, exchange answers between groups. Use the rubric: (1) Were variables correctly identified? (2) Was the appropriate formula applied? (3) Are the units correct? Score 1-4 and provide one suggestion for improvement."
     },
     {
       phase: "CER Challenge",
       minutes: 10,
       phenomenon: content.phenomenon,
-      cer_template: `CLAIM: [Jawab pertanyaan fenomena dalam satu kalimat]
+      cer_template: `CLAIM: [Answer the phenomenon question in one sentence]
 
-EVIDENCE: [Data/rumus/hasil perhitungan yang mendukung claim]
-- Dari simulasi/percobaan: ...
-- Dari perhitungan: ...
-- Dari grafik/tabel: ...
+EVIDENCE: [Data/calculations/results supporting the claim]
+- From simulation/experiment: ...
+- From calculations: ...
+- From graphs/tables: ...
 
-REASONING: [Penjelasan ilmiah mengapa evidence mendukung claim]
-- Konsep fisika yang relevan: ...
-- Hubungan sebab-akibat: ...
-- Prinsip/hukum yang mendasari: ...`,
-      activity: `Guru menampilkan fenomena singkat terkait ${input.topic}. Siswa secara individu menulis CLAIM, EVIDENCE, dan REASONING dalam 10 menit. Dua relawan mempresentasikan jawabannya untuk diskusi kelas.`,
-      differentiation: "Support: Sentence starters disediakan ('My claim is...', 'The evidence shows...', 'This happens because...'). Challenge: Siswa diminta mengevaluasi kelemahan dari reasoning mereka sendiri."
+REASONING: [Scientific explanation of why the evidence supports the claim]
+- Relevant physics concepts: ...
+- Cause-and-effect relationships: ...
+- Underlying principles/laws: ...`,
+      activity: `The teacher presents a brief phenomenon related to ${input.topic}. Each student independently constructs a CLAIM, EVIDENCE, and REASONING argument within 10 minutes. Two volunteers present their responses for class discussion.`,
+      differentiation: "Support: Sentence starters are provided ('My claim is...', 'The evidence demonstrates...', 'This occurs because...'). Challenge: Students are asked to critically evaluate weaknesses in their own reasoning."
     },
     {
       phase: "Wrap-up & Mistake Journal",
       minutes: 5,
-      reflection_prompt: `Tuliskan di Mistake Journal kamu:
-1️⃣ Satu konsep dari ${input.topic} yang PALING membingungkan hari ini
-2️⃣ Kesalahan apa yang kamu buat saat mengerjakan soal?
-3️⃣ Dalam skala 1-5, seberapa paham kamu dengan topik ini? (lingkari)
-4️⃣ Satu pertanyaan yang masih kamu miliki untuk pertemuan berikutnya
+      reflection_prompt: `Record the following in your Mistake Journal:
+1. Which concept from ${input.topic} was most confusing today?
+2. What errors did you make while solving problems?
+3. On a scale of 1-5, how well do you understand this topic? (circle one)
+4. What question do you still have for the next session?
 
-💡 "Mistakes are proof that you are trying."`,
-      activity: `Siswa menulis refleksi singkat di Mistake Journal digital. Guru memberikan preview topik minggu depan dan mengingatkan siswa untuk menonton video pre-class.`,
-      differentiation: "Siswa dapat memilih menulis atau merekam voice note untuk refleksinya. Prompt tambahan diberikan untuk siswa yang kesulitan mengartikulasikan pemikiran."
+Remember: Mistakes are evidence that you are engaging in meaningful learning.`,
+      activity: `Students write a brief reflection in their digital Mistake Journal. The teacher provides a preview of next week's topic and reminds students to watch the pre-class video.`,
+      differentiation: "Students may choose to write or record a voice note for their reflection. Additional prompts are provided for students who struggle to articulate their thoughts."
     }
   ]
 

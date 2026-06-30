@@ -12,11 +12,13 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
   student: {
     "/grades": "/dashboard",
     "/generate": "/dashboard",
+    "/lesson-plan": "/dashboard",
     "/memory": "/dashboard",
     "/analytics": "/dashboard",
     "/settings": "/dashboard",
     "/lab": "/dashboard",
     "/calendar": "/dashboard",
+    "/syllabus": "/dashboard",
   },
   teacher: {
     "/settings": "/dashboard",
@@ -24,9 +26,11 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
   lab_assistant: {
     "/grades": "/dashboard",
     "/generate": "/dashboard",
+    "/lesson-plan": "/dashboard",
     "/memory": "/dashboard",
     "/analytics": "/dashboard",
     "/settings": "/dashboard",
+    "/syllabus": "/dashboard",
   },
 }
 

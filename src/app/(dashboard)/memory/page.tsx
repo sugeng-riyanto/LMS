@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Save, AlertTriangle, Users, StickyNote } from "lucide-react"
+import { Plus, Save, AlertTriangle, Users, StickyNote, BrainCircuit } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -44,6 +44,7 @@ export default function MemoryPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     fetchMemories()
@@ -162,6 +163,40 @@ export default function MemoryPage() {
         <Button variant="outline" size="sm" onClick={fetchMemories}>
           Refresh
         </Button>
+        {isSuperAdmin && (
+          <>
+            <Button variant="secondary" size="sm" onClick={async () => {
+              setGenerating(true)
+              try {
+                const res = await fetch("/api/agents/generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({}),
+                })
+                if (res.ok) toast.success("Generating all grades...")
+                else toast.error("Generation failed")
+              } catch { toast.error("Generation failed") }
+              finally { setGenerating(false); setTimeout(fetchMemories, 3000) }
+            }} disabled={generating}>
+              <BrainCircuit className="mr-1 h-3 w-3" />{generating ? "..." : "Generate All"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={async () => {
+              setGenerating(true)
+              try {
+                const res = await fetch("/api/agents/generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ grade: filterGrade }),
+                })
+                if (res.ok) toast.success(`Generating Grade ${filterGrade}...`)
+                else toast.error("Generation failed")
+              } catch { toast.error("Generation failed") }
+              finally { setGenerating(false); setTimeout(fetchMemories, 3000) }
+            }} disabled={generating}>
+              <BrainCircuit className="mr-1 h-3 w-3" />{generating ? "..." : `G${filterGrade}`}
+            </Button>
+          </>
+        )}
       </div>
 
       {showForm && (

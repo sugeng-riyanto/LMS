@@ -70,91 +70,91 @@ const SIMULATION_LIBRARY: Record<string, { title: string; url: string; instructi
   kinematics: {
     title: "Moving Man Simulation",
     url: "https://phet.colorado.edu/sims/cheerpj/moving-man/latest/moving-man.html?simulation=moving-man",
-    instructions: "Buka simulasi Moving Man. Setel posisi awal = 0 m, kecepatan awal = 0 m/s. Gunakan tombol 'play' untuk menggerakkan karakter. Coba kecepatan konstan, lalu percepatan konstan. Amati grafik posisi, kecepatan, dan percepatan yang terbentuk secara real-time.",
+    instructions: "Open the Moving Man simulation. Set initial position to 0 m and initial velocity to 0 m/s. Use the 'play' button to move the character. Experiment with constant velocity first, then constant acceleration. Observe the position, velocity, and acceleration graphs generated in real time.",
     questions: [
-      "Apa bentuk grafik posisi-waktu untuk gerakan dengan kecepatan konstan?",
-      "Apa yang terjadi pada grafik kecepatan jika karakter dipercepat?",
-      "Bisakah kamu membuat grafik posisi berbentuk parabola? Bagaimana caranya?"
+      "What shape does the position-time graph exhibit for constant velocity motion?",
+      "What happens to the velocity graph when the character accelerates?",
+      "Can you produce a parabolic position-time graph? Describe how."
     ]
   },
   forces: {
     title: "Forces and Motion: Basics",
     url: "https://phet.colorado.edu/sims/html/forces-and-motion-basics/latest/forces-and-motion-basics_all.html",
-    instructions: "Pilih tab 'Net Force'. Letakkan beberapa orang di sisi kiri dan kanan. Amati resultan gaya. Lalu pilih tab 'Motion' — beri gaya pada peti dan amati hubungan gaya, massa, dan percepatan.",
+    instructions: "Select the 'Net Force' tab. Place individuals on both the left and right sides and observe the resultant force. Then select the 'Motion' tab — apply a force to the crate and examine the relationship between force, mass, and acceleration.",
     questions: [
-      "Jika gaya yang diberikan sama, peti mana yang bergerak lebih cepat: peti ringan atau berat?",
-      "Apa yang terjadi jika gaya total (net force) = 0?",
-      "Bagaimana grafik kecepatan berubah jika gaya konstan diberikan?"
+      "Given the same applied force, which crate accelerates faster: a light one or a heavy one?",
+      "What occurs when the net force acting on an object is zero?",
+      "How does the velocity graph change when a constant force is applied?"
     ]
   },
   energy: {
     title: "Energy Skate Park: Basics",
     url: "https://phet.colorado.edu/sims/html/energy-skate-park-basics/latest/energy-skate-park-basics_all.html",
-    instructions: "Pilih tab 'Playground'. Tempatkan pemain skateboard di titik awal yang tinggi. Aktifkan 'Bar Graph' dan 'Speed' untuk melihat energi dan kecepatan. Coba berbagai lintasan dan amati perubahan energi potensial dan kinetik.",
+    instructions: "Select the 'Playground' tab. Place the skateboarder at a high starting point. Enable 'Bar Graph' and 'Speed' to visualise energy distribution and velocity. Experiment with various tracks and observe the transformations between potential and kinetic energy.",
     questions: [
-      "Apa yang terjadi pada energi potensial saat pemain menuruni lintasan?",
-      "Di titik mana energi kinetik maksimum?",
-      "Apakah energi total berubah? Mengapa atau mengapa tidak?"
+      "What happens to gravitational potential energy as the skater descends the track?",
+      "At which point is kinetic energy maximised?",
+      "Does the total mechanical energy change? Why or why not?"
     ]
   },
   waves: {
     title: "Wave on a String",
     url: "https://phet.colorado.edu/sims/html/wave-on-a-string/latest/wave-on-a-string_all.html",
-    instructions: "Atur 'Oscillate' on, 'Amplitude' 0.5 cm, 'Frequency' 1 Hz. Amati gelombang yang merambat. Coba ubah frekuensi, amplitudo, dan redaman (damping). Bandingkan gelombang transversal dengan longitudinal.",
+    instructions: "Set 'Oscillate' to on, 'Amplitude' to 0.5 cm, and 'Frequency' to 1 Hz. Observe the wave propagation along the string. Experiment by varying frequency, amplitude, and damping. Compare transverse and longitudinal wave behaviour.",
     questions: [
-      "Apa pengaruh frekuensi terhadap panjang gelombang?",
-      "Apa yang terjadi jika redaman (damping) diperbesar?",
-      "Bisakah kamu membuat gelombang berdiri (standing wave)? Bagaimana?"
+      "What effect does changing frequency have on wavelength?",
+      "What happens when the damping coefficient is increased?",
+      "Can you produce a standing wave? Describe the conditions required."
     ]
   },
   electricity: {
     title: "Circuit Construction Kit: DC",
     url: "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_all.html",
-    instructions: "Buat rangkaian seri sederhana dengan baterai, lampu, dan saklar. Tambahkan amperemeter dan voltmeter. Ukur arus dan tegangan. Kemudian ubah menjadi rangkaian paralel dan bandingkan.",
+    instructions: "Construct a simple series circuit comprising a battery, a bulb, and a switch. Connect an ammeter and a voltmeter to measure current and voltage. Then reconfigure the circuit into a parallel arrangement and compare the measurements.",
     questions: [
-      "Bagaimana perbandingan arus di rangkaian seri vs paralel?",
-      "Apa yang terjadi jika satu lampu dilepas di rangkaian seri? Di paralel?",
-      "Bagaimana pengaruh penambahan resistor terhadap arus total?"
+      "How does the current compare between series and parallel circuits?",
+      "What happens when one bulb is removed from a series circuit? From a parallel circuit?",
+      "How does adding additional resistors affect the total current?"
     ]
   },
   magnetism: {
     title: "Magnets and Electromagnets",
     url: "https://phet.colorado.edu/sims/html/magnets-and-electromagnets/latest/magnets-and-electromagnets_all.html",
-    instructions: "Jelajahi medan magnet di sekitar magnet batang menggunakan kompas. Amati arah garis medan. Lalu buat elektromagnet dengan melilitkan kabel pada paku besi dan hubungkan ke baterai.",
+    instructions: "Explore the magnetic field surrounding a bar magnet using a compass. Observe the direction of field lines. Then construct an electromagnet by wrapping wire around an iron nail and connecting it to a battery.",
     questions: [
-      "Apa yang terjadi pada jarum kompas saat didekatkan magnet?",
-      "Bagaimana cara memperkuat elektromagnet?",
-      "Apa perbedaan medan magnet di sekitar magnet batang vs elektromagnet?"
+      "What happens to the compass needle when brought near a magnet?",
+      "What methods can be employed to strengthen an electromagnet?",
+      "How does the magnetic field around a bar magnet differ from that of an electromagnet?"
     ]
   },
   thermal: {
     title: "Energy Forms and Changes",
     url: "https://phet.colorado.edu/sims/html/energy-forms-and-changes/latest/energy-forms-and-changes_all.html",
-    instructions: "Pilih tab 'Systems'. Tempatkan pemanas di bawah bejana berisi air. Amati transfer energi. Coba berbagai bahan (besi, batu bata, aluminium) dan ukur perubahan suhu. Gunakan termometer untuk memonitor.",
+    instructions: "Select the 'Systems' tab. Position a heat source beneath a container of water and observe the energy transfer. Experiment with different materials such as iron, brick, and aluminium, monitoring temperature changes with the thermometer.",
     questions: [
-      "Bahan mana yang paling cepat panas? Mengapa?",
-      "Apa yang terjadi pada molekul air saat dipanaskan?",
-      "Bagaimana perbandingan kapasitas panas spesifik berbagai bahan?"
+      "Which material heats up most rapidly? Provide a scientific explanation.",
+      "What happens to water molecules as they are heated?",
+      "How do the specific heat capacities of various materials compare?"
     ]
   },
   pressure: {
     title: "Under Pressure",
     url: "https://phet.colorado.edu/sims/html/under-pressure/latest/under-pressure_all.html",
-    instructions: "Tempatkan pressure gauge di berbagai kedalaman dalam fluida. Amati bagaimana tekanan berubah dengan kedalaman. Coba berbagai jenis fluida (air, minyak, madu). Ubah gravitasi dan lihat efeknya.",
+    instructions: "Position the pressure gauge at various depths within the fluid and observe how pressure changes with depth. Experiment with different fluids including water, oil, and honey. Adjust the gravitational field strength and note the effects.",
     questions: [
-      "Bagaimana tekanan berubah dengan bertambahnya kedalaman?",
-      "Fluida mana yang memberikan tekanan terbesar di kedalaman sama?",
-      "Apa hubungan antara densitas fluida dan tekanan?"
+      "How does pressure vary with increasing depth in a fluid?",
+      "Which fluid exerts the greatest pressure at the same depth? Why?",
+      "What is the relationship between fluid density and hydrostatic pressure?"
     ]
   },
   density: {
     title: "Density",
     url: "https://phet.colorado.edu/sims/html/density/latest/density_all.html",
-    instructions: "Pilih tab 'Intro'. Masukkan berbagai benda ke dalam air dan amati apakah mengapung atau tenggelam. Hitung densitas setiap benda. Gunakan tabel densitas untuk mengidentifikasi bahan yang tidak diketahui.",
+    instructions: "Select the 'Intro' tab. Submerge various objects in water and observe whether they float or sink. Calculate the density of each object. Use the density reference table to identify unknown materials.",
     questions: [
-      "Benda dengan densitas seperti apa yang akan mengapung di air?",
-      "Mengapa benda yang sama bisa mengapung di air garam tapi tenggelam di air tawar?",
-      "Bagaimana cara mengukur densitas benda tidak beraturan?"
+      "What range of density values determines whether an object will float in water?",
+      "Why might the same object float in saltwater yet sink in freshwater?",
+      "Describe a method for measuring the density of an irregularly shaped object."
     ]
   }
 }
@@ -185,11 +185,11 @@ export async function generatePreClass(input: AgentInput): Promise<PreClassMater
     sim = {
       title: `${input.topic} - Interactive Simulation`,
       url: "https://phet.colorado.edu/en/search?q=" + encodeURIComponent(input.topic),
-      instructions: `Cari simulasi terkait ${input.topic} di PhET. Ikuti petunjuk dalam simulasi dan catat pengamatanmu.`,
+      instructions: `Find a PhET simulation related to ${input.topic}. Follow the instructions within the simulation and document your observations systematically.`,
       questions: [
-        `Apa konsep utama dalam ${input.topic} yang kamu pelajari dari simulasi?`,
-        "Buatlah satu prediksi sebelum menjalankan simulasi dan bandingkan dengan hasilnya.",
-        "Bagaimana simulasi ini membantu memahami konsep fisika di baliknya?"
+        `What core concept of ${input.topic} did you learn from working with the simulation?`,
+        "Formulate a prediction before running the simulation, then compare it with the observed outcomes.",
+        "How does this simulation enhance your understanding of the underlying physics concepts?"
       ]
     }
   }
@@ -197,20 +197,20 @@ export async function generatePreClass(input: AgentInput): Promise<PreClassMater
   const fillBlank1 = input.topic.toLowerCase()
   const blanks = [
     {
-      prompt: `${input.topic} adalah cabang fisika yang mempelajari tentang ____. Konsep utamanya meliputi ____ dan ____.`,
-      answer: `pergerakan/perubahan; besaran-besaran terkait; hubungan antarbesaran`
+      prompt: `${input.topic} is a branch of physics that examines ____. Its principal concepts include ____ and ____.`,
+      answer: `motion and physical change; relevant measurable quantities; the relationships between these quantities`
     },
     {
-      prompt: `Dalam ${input.topic}, rumus yang paling sering digunakan adalah ____. Satuan SI untuk besaran ini adalah ____.`,
-      answer: `rumus-rumus fisika sesuai konteks; satuan SI sesuai konteks`
+      prompt: `In ${input.topic}, the most commonly applied formula is ____. The SI unit for this quantity is ____.`,
+      answer: `context-specific physics formulas; the corresponding SI unit`
     },
     {
-      prompt: `Hukum/Konsep penting dalam ${input.topic}: ____. Contoh penerapannya dalam kehidupan sehari-hari adalah ____.`,
-      answer: `hukum/konsep sesuai dengan topik; contoh aplikasi nyata`
+      prompt: `An important law or concept in ${input.topic}: ____. A real-world application of this principle is ____.`,
+      answer: `a law or concept relevant to the topic; a practical, real-world example`
     },
     {
-      prompt: `Satu kesalahan umum (misconception) tentang ${input.topic} adalah ____, padahal sebenarnya ____.`,
-      answer: `mitos/kesalahpahaman umum; penjelasan ilmiah yang benar`
+      prompt: `A common misconception about ${input.topic} is ____, when in reality ____.`,
+      answer: `a widespread misunderstanding; the accurate scientific explanation`
     }
   ]
 
@@ -221,7 +221,7 @@ export async function generatePreClass(input: AgentInput): Promise<PreClassMater
       source: video.source,
       duration_minutes: video.duration,
       key_concepts: video.concepts,
-      watch_guide: `Tonton video dari menit 0:00 sampai selesai. Catat: (1) 3 konsep utama, (2) 1 hal yang sudah kamu tahu, (3) 1 hal yang baru kamu pelajari. Siapkan 1 pertanyaan untuk dibahas di kelas.`
+      watch_guide: `Watch the video from the beginning to the end. Take notes on: (1) three key concepts presented, (2) one idea you already understood, and (3) one insight you have newly gained. Prepare one question to discuss in class.`
     },
     interactive_simulation: {
       title: sim.title,
@@ -233,42 +233,42 @@ export async function generatePreClass(input: AgentInput): Promise<PreClassMater
     guided_notes: {
       title: `Guided Notes: ${input.topic} | Grade ${input.grade}`,
       fill_in_blanks: blanks,
-      completed_example: `Setelah menonton video dan melakukan simulasi, lengkapi catatan terbimbing ini. Bandingkan jawabanmu dengan teman sekelas di awal pelajaran.`
+      completed_example: `After watching the video and completing the simulation, fill in these guided notes. Compare your answers with a classmate at the beginning of the lesson.`
     },
     entry_ticket_quiz: {
       questions: [
         {
-          question: `Manakah pernyataan yang BENAR tentang ${input.topic}?`,
+          question: `Which of the following statements is TRUE about ${input.topic}?`,
           options: [
-            `Pernyataan A (jawaban benar)`,
-            `Pernyataan B (distraktor masuk akal)`,
-            `Pernyataan C (misconception umum)`,
-            `Pernyataan D (distraktor kurang relevan)`
+            `Statement A (correct answer)`,
+            `Statement B (plausible distractor)`,
+            `Statement C (common misconception)`,
+            `Statement D (less relevant distractor)`
           ],
           correct: 0,
-          explanation: `Penjelasan mengapa jawaban A benar dan opsi lainnya salah.`
+          explanation: `An explanation of why answer A is correct and the other options are incorrect.`
         },
         {
-          question: `Dalam ${input.topic}, besaran ____ diukur dalam satuan ____.`,
+          question: `In ${input.topic}, the quantity ____ is measured in the unit ____.`,
           options: [
-            `opsi 1`,
-            `opsi 2`,
-            `opsi 3`,
-            `opsi 4`
+            `Option 1`,
+            `Option 2`,
+            `Option 3`,
+            `Option 4`
           ],
           correct: 0,
-          explanation: `Penjelasan tentang satuan yang tepat.`
+          explanation: `An explanation of the appropriate unit of measurement.`
         },
         {
-          question: `Berdasarkan simulasi yang kamu lakukan, apa yang terjadi jika ____?`,
+          question: `Based on the simulation you performed, what happens if ____?`,
           options: [
-            `Prediksi A (benar)`,
-            `Prediksi B (distraktor)`,
-            `Prediksi C (distraktor)`,
-            `Prediksi D (distraktor)`
+            `Prediction A (correct)`,
+            `Prediction B (distractor)`,
+            `Prediction C (distractor)`,
+            `Prediction D (distractor)`
           ],
           correct: 0,
-          explanation: `Penjelasan berdasarkan hasil simulasi.`
+          explanation: `An explanation informed by the simulation results.`
         }
       ],
       passing_score: 2

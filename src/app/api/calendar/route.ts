@@ -18,10 +18,20 @@ export async function GET(request: NextRequest) {
     if (week) query = query.eq("week_number", parseInt(week))
 
     const { data, error } = await query
-
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json(data)
+    const rows = (data ?? []) as Array<Record<string, unknown>>
+    const normalized = rows.map((r) => ({
+      id: r.id,
+      title: r.event_name ?? "",
+      description: (r.notes as string) ?? "",
+      date: (r.start_date as string) ?? "",
+      type: (r.event_type as string) ?? "normal",
+      grade: ((r.affected_grades as number[])?.[0]) ?? null,
+      ...r,
+    }))
+
+    return NextResponse.json(normalized)
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },

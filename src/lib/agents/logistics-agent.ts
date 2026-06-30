@@ -20,61 +20,61 @@ const EQUIPMENT_MAP: Record<string, ActivityEquipment> = {
       { item: "Karbon kertas ticker (pack)", quantity: 3, status: "needs_order" }
     ],
     setup: [
-      "Pasang rel presisi di atas meja praktikum dengan kemiringan 0° untuk percobaan GLB",
-      "Siapkan ticker timer di ujung rel, pastikan pita kertas terpasang dengan benar",
-      "Beri tanda 0 cm, 50 cm, dan 100 cm pada rel menggunakan spidol whiteboard",
-      "Pastikan stopwatch berfungsi dan baterai tidak habis",
-      "Siapkan 6 troli — beri label A1-A6 dan periksa rodanya berputar lancar",
-      "Kalibrasi ticker timer: atur frekuensi 50 Hz (setiap 0,02 detik satu titik)"
+      "Mount the precision rail on the laboratory bench at a 0° incline for uniform linear motion experiments",
+      "Position the ticker timer at the end of the rail, ensuring the paper tape is correctly threaded",
+      "Mark the rail at 0 cm, 50 cm, and 100 cm intervals using a whiteboard marker",
+      "Verify that the stopwatches are functional and their batteries are not depleted",
+      "Prepare 6 trolleys — label them A1 through A6 and check that the wheels rotate smoothly",
+      "Calibrate the ticker timer: set the frequency to 50 Hz (one dot every 0.02 seconds)"
     ],
     safety: [
-      "Pastikan semua kabel ticker timer tidak terkelupas untuk menghindari sengatan listrik",
-      "Jauhkan pita kertas dari sumber api",
-      "Pastikan area sekitar rel bersih dari rintangan agar troli tidak jatuh",
-      "Siswa dilarang berlari atau mendorong troli dengan kecepatan berlebihan",
-      "Gunakan sepatu tertutup selama praktikum"
+      "Ensure all ticker timer wires are properly insulated to prevent electrical hazards",
+      "Keep paper ticker tape away from any sources of ignition",
+      "Ensure the area around the track is clear of obstacles to prevent the trolley from falling",
+      "Students must not run or push trolleys at excessive speed",
+      "Closed-toe footwear is mandatory during all practical sessions"
     ],
-    labMessage: `Untuk praktikum Kinematika Grade ${7}-${12}:
+    labMessage: `For Kinematics practical sessions across Grades ${7}-${12}:
 
-Mohon siapkan 6 set ticker timer dan troli dinamika. Periksa stok pita kertas ticker — tersisa 8 roll dari pembelian terakhir. Jika kurang, segera order 3 pack karbon kertas ticker.
+Please prepare 6 sets of ticker timers and dynamics trolleys. Check the stock of ticker tape — 8 rolls remaining from the most recent purchase. If insufficient, please order 3 packs of ticker timer carbon paper immediately.
 
-Paling penting: kalibrasi ticker timer sebelum praktikum. Setel ke 50 Hz dan uji coba dengan troli kosong.
+Most importantly, calibrate the ticker timers before the practical session. Set them to 50 Hz and test-run them with an unloaded trolley.
 
-Terima kasih!`
+Thank you!`
   },
   forces: {
     items: [
       { item: "Neraca digital (0,1 g accuracy)", quantity: 6, status: "available" },
       { item: "Set beban (10g - 500g)", quantity: 6, status: "limited" },
       { item: "Dinamometer (0-5 N)", quantity: 12, status: "available" },
-      { item: "Katrol tunggal", quantity: 6, status: "available" },
-      { item: "Tali nilon (3 mm × 5 m)", quantity: 3, status: "available" },
-      { item: "Balok kayu (berbagai massa)", quantity: 6, status: "available" },
-      { item: "Kertas pasir/amplas (lembar)", quantity: 6, status: "available" },
-      { item: "Bidang miring (30°, 45°, 60°)", quantity: 3, status: "out_of_stock" }
+      { item: "Single pulley", quantity: 6, status: "available" },
+      { item: "Nylon rope (3 mm × 5 m)", quantity: 3, status: "available" },
+      { item: "Wooden blocks (various masses)", quantity: 6, status: "available" },
+      { item: "Sandpaper sheets", quantity: 6, status: "available" },
+      { item: "Inclined plane (30°, 45°, 60°)", quantity: 3, status: "out_of_stock" }
     ],
     setup: [
-      "Siapkan 6 stasiun praktikum dengan neraca digital dan dinamometer",
-      "Set beban dikelompokkan berdasarkan massa: 10g, 20g, 50g, 100g, 200g, 500g",
-      "Pasang katrol di ujung meja menggunakan clamp",
-      "Siapkan balok kayu dengan berbagai massa dan permukaan (halus vs amplas)",
-      "Bidang miring — set sudut 30°, 45°, dan 60° untuk percobaan gaya pada bidang miring"
+      "Set up 6 practical workstations, each equipped with a digital balance and a dynamometer",
+      "Group the weight sets by mass: 10 g, 20 g, 50 g, 100 g, 200 g, and 500 g",
+      "Secure a pulley at the edge of each table using a clamp",
+      "Prepare wooden blocks of varying masses with different surface textures (smooth versus sandpaper)",
+      "For inclined planes — set the angles to 30°, 45°, and 60° for experiments on forces on inclined planes"
     ],
     safety: [
-      "Pastikan beban tidak dijatuhkan ke lantai — dapat merusak ubin dan membahayakan kaki",
-      "Gunakan dinamometer dengan hati-hati — jangan melebihi kapasitas 5 N",
-      "Tali nilon jangan dililitkan ke tangan",
-      "Hati-hati dengan ujung kawat katrol yang tajam"
+      "Ensure that weights are not dropped on the floor, as this may damage the tiles and pose a risk of foot injury",
+      "Use dynamometers with care — do not exceed their 5 N capacity",
+      "Do not wrap the nylon rope around hands or fingers",
+      "Be cautious of sharp edges on the pulley wire"
     ],
-    labMessage: `Assalamu'alaikum, Lab Assistant.
+    labMessage: `Greetings, Lab Assistant.
 
-Minggu ini praktikum Gaya — Grade ${7}-${9}.
+This week's practical session covers Forces for Grades ${7} through ${9}.
 
-Mohon periksa stok bidang miring — 3 set terakhir kelihatannya sudah tidak layak. Frame kayu ada yang retak. Jika ada, tolong siapkan yang masih bagus. 
+Please inspect the stock of inclined planes — the last 3 sets appear to be in unsuitable condition, with cracks in the wooden frames. If available, kindly prepare those that are still in good condition.
 
-Juga, tolong sortir set beban — beberapa beban 100g mungkin tercampur dengan set lain. Timbang ulang dan beri label.
+Additionally, please sort the weight sets — some 100 g masses may have been mixed with other sets. Re-weigh them and affix proper labels.
 
-Syukron.`
+Thank you.`
   },
   energy: {
     items: [
@@ -88,26 +88,26 @@ Syukron.`
       { item: "Kalorimeter sederhana (gelas styrofoam)", quantity: 6, status: "available" }
     ],
     setup: [
-      "Siapkan area jatuh bebas — beri tanda ketinggian 1m, 1.5m, 2m pada dinding",
-      "Pasang meteran vertikal di dinding menggunakan selotip",
-      "Siapkan stasiun energi kinetik dengan mobil mainan dan meteran horizontal",
-      "Set up calorimeter stations: gelas styrofoam, termometer, air hangat"
+      "Prepare the free-fall area — mark heights of 1 m, 1.5 m, and 2 m on the wall",
+      "Attach a vertical measuring tape to the wall using adhesive tape",
+      "Set up kinetic energy stations with wind-up toy cars and a horizontal measuring tape",
+      "Set up calorimeter stations: Styrofoam cups, thermometers, and warm water"
     ],
     safety: [
-      "Pastikan area jatuh bebas bebas dari orang",
-      "Jangan melempar bola — jatuhkan saja",
-      "Air hangat untuk kalorimeter maksimal 50°C — periksa suhu sebelum praktikum",
-      "Bersihkan tumpahan air segera untuk menghindari terpeleset"
+      "Ensure the free-fall area is clear of people",
+      "Do not throw the balls — simply release them",
+      "Warm water for the calorimeters must not exceed 50 °C — check the temperature before the practical session",
+      "Clean up any water spills immediately to prevent slipping"
     ],
     labMessage: `Lab Assistant,
 
-Praktikum Energi Grade ${10} minggu ini. Siapkan 6 set percobaan jatuh bebas dengan bola tenis dan basket.
+This week's practical session on Energy is for Grade ${10}. Prepare 6 sets for the free-fall experiment using tennis balls and basketballs.
 
-Mohon cek mobil mainan wind-up — beberapa mungkin perlu diganti baterainya (atau winding mechanism-nya). Kalau ada yang rusak, beri tahu hari Selasa agar bisa cari alternatif.
+Please check the wind-up toy cars — some may require battery replacement (or repair of the winding mechanism). If any are damaged, notify me by Tuesday so that alternatives can be arranged.
 
-Juga, pastikan air hangat tidak lebih dari 50°C — safety first.
+Also, ensure that the warm water does not exceed 50 °C — safety first.
 
-Terima kasih.`
+Thank you.`
   },
   electricity: {
     items: [
@@ -122,65 +122,65 @@ Terima kasih.`
       { item: "Multimeter digital", quantity: 6, status: "available" }
     ],
     setup: [
-      "Siapkan 6 stasiun rangkaian listrik dengan papan breadboard",
-      "Uji semua bohlam — ganti yang putus sebelum praktikum",
-      "Kelompokkan resistor berdasarkan nilai dan label",
-      "Periksa baterai dengan multimeter — tegangan harus 1,5 V ± 0,1 V",
-      "Siapkan lembar instruksi rangkaian seri dan paralel"
+      "Set up 6 circuit-building stations, each equipped with a breadboard",
+      "Test all bulbs; replace any that are blown before the practical session",
+      "Group the resistors by their resistance values and label them accordingly",
+      "Check each battery with a multimeter — voltage should be 1.5 V ± 0.1 V",
+      "Prepare instruction sheets for series and parallel circuits"
     ],
     safety: [
-      "Tegangan rendah (1,5-6 V) — aman, tapi tetap awasi siswa",
-      "PERINGATAN: Jangan menghubungkan kutub baterai langsung tanpa beban (konsleting)",
-      "Periksa kabel dari isolasi terkelupas",
-      "Bohlam bisa panas — biarkan dingin sebelum disentuh",
-      "Pastikan tangan kering saat merangkai komponen listrik"
+      "Low voltage (1.5–6 V) is generally safe, but students should remain supervised at all times",
+      "WARNING: Do not connect the battery terminals directly without a load (short circuit)",
+      "Inspect cables for frayed or stripped insulation",
+      "Bulbs may become hot — allow them to cool before touching",
+      "Ensure hands are dry when handling electrical components"
     ],
     labMessage: `Dear Lab Assistant,
 
-Minggu ini Grade ${10} praktikum Listrik — rangkaian seri dan paralel.
+This week, Grade ${10} will be conducting practical work on Electricity — series and parallel circuits.
 
-Mohon cek kabel banana plug — beberapa mungkin perlu disolder ulang. Kalau ada yang putus, tolong ganti.
+Please check the banana plug cables — some may require re-soldering. Replace any that are broken.
 
-Paling urgent: periksa semua bohlam 2,5V. Dari pengalaman, beberapa sering putus dalam penyimpanan.
+Most urgent: test all 2.5 V bulbs. From experience, several tend to blow during storage.
 
-Baterai tolong dites satu per satu dengan multimeter.
+Please test each battery individually with a multimeter.
 
-Jazakumullah khairan.`
+Thank you.`
   },
   waves: {
     items: [
       { item: "Slinky besar", quantity: 6, status: "available" },
       { item: "Ripple tank (tangki riak)", quantity: 3, status: "limited" },
-      { item: "Motor vibrator untuk ripple tank", quantity: 3, status: "limited" },
+      { item: "Vibrator motor for ripple tank", quantity: 3, status: "limited" },
       { item: "Sumber cahaya (overhead projector)", quantity: 3, status: "available" },
       { item: "Penggaris 30 cm", quantity: 12, status: "available" },
       { item: "Garpu tala (256 Hz, 512 Hz)", quantity: 6, status: "available" },
       { item: "Tali nilon 3m", quantity: 6, status: "available" }
     ],
     setup: [
-      "Siapkan slinky di lantai — regangkan sekitar 3m untuk demonstrasi gelombang longitudinal",
-      "Isi ripple tank dengan air setinggi 1-2 cm — pastikan level air rata",
-      "Set up motor vibrator dan atur frekuensi",
-      "Atur sumber cahaya di atas ripple tank untuk proyeksi bayangan",
-      "Siapkan garpu tala dan palu pemukul"
+      "Lay the slinky on the floor — stretch it to approximately 3 m for the longitudinal wave demonstration",
+      "Fill the ripple tank with water to a depth of 1–2 cm — ensure the water level is even",
+      "Set up the motor vibrator and adjust its frequency",
+      "Position the light source above the ripple tank for shadow projection",
+      "Prepare the tuning forks and a rubber mallet"
     ],
     safety: [
-      "Hati-hati dengan air di sekitar ripple tank — jauhkan dari peralatan listrik",
-      "Slinky jangan ditarik melebihi batas elastis — bisa putus",
-      "Garpu tala jangan dipukul terlalu keras",
-      "Lantai licin karena air — segera lap tumpahan"
+      "Exercise caution with water near the ripple tanks — keep it away from electrical equipment",
+      "Do not stretch the slinky beyond its elastic limit, as it may break",
+      "Do not strike the tuning forks with excessive force",
+      "The floor may become slippery due to water — wipe up any spills immediately"
     ],
     labMessage: `Lab Assistant,
 
-Praktikum Gelombang untuk Grade ${11} AS Level.
+The Waves practical session is for Grade ${11} AS Level.
 
-Tolong siapkan 3 ripple tank. Isi air 1-2 cm. Cek motor vibrator — mungkin perlu baterai baru.
+Please prepare 3 ripple tanks. Fill them with 1–2 cm of water. Check the motor vibrators — they may need new batteries.
 
-Kalau ada slinky yang rusak, tolong report. Sisanya aman.
+If any slinkies are damaged, please report them. The remaining equipment is in good condition.
 
-Pastikan area praktikum bebas dari kabel listrik di lantai karena akan ada air.
+Ensure the practical area is free of electrical cables on the floor, as water will be in use.
 
-Syukron.`
+Thank you.`
   }
 }
 
@@ -195,21 +195,21 @@ export async function generateLogistics(input: AgentInput): Promise<LabLogistics
   if (!equipment) {
     equipment = {
       items: [
-        { item: "Papan tulis whiteboard", quantity: 1, status: "available" },
-        { item: "Spidol whiteboard (set)", quantity: 6, status: "available" },
-        { item: "Laptop + proyektor", quantity: 1, status: "available" },
-        { item: "Alat tulis siswa", quantity: 30, status: "available" },
-        { item: "Kertas HVS (rim)", quantity: 2, status: "available" }
+        { item: "Whiteboard", quantity: 1, status: "available" },
+        { item: "Whiteboard markers (set)", quantity: 6, status: "available" },
+        { item: "Laptop + projector", quantity: 1, status: "available" },
+        { item: "Student stationery set", quantity: 30, status: "available" },
+        { item: "A4 paper (ream)", quantity: 2, status: "available" }
       ],
       setup: [
-        "Siapkan ruang kelas dalam formasi kelompok (4-5 siswa per kelompok)",
-        "Pastikan proyektor berfungsi dan terhubung ke laptop guru",
-        "Cetak worksheet untuk semua siswa (30 eksemplar)"
+        "Arrange the classroom into group formations (4–5 students per group)",
+        "Ensure the projector is functioning and connected to the teacher's laptop",
+        "Print worksheets for all students (30 copies)"
       ],
       safety: [
-        "Prosedur standar ruang kelas berlaku"
+        "Standard classroom procedures apply"
       ],
-      labMessage: `Praktikum ${input.topic} minggu ini bersifat demonstrasi di kelas — tidak perlu persiapan laboratorium khusus. Cukup siapkan proyektor dan alat tulis.`
+      labMessage: `This week's practical session on ${input.topic} will be conducted as an in-class demonstration — no specialised laboratory preparation is required. Simply prepare the projector and stationery.`
     }
   }
 

@@ -21,26 +21,24 @@ function getEmoji(topic: string): string {
 
 function getWaBody(topic: string, grade: number, week: number): string {
   const emoji = getEmoji(topic)
-  const days = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
-  const day = days[week % 5]
 
   return (
     `*📢 PHYSICS COMMAND CENTER — WEEK ${week} UPDATE*\n\n` +
-    `Halo, Physics Warriors! ${emoji}\n\n` +
-    `Siap buat minggu ini seru? Kita bakal explore *${topic}* di Grade ${grade}!\n\n` +
-    `📋 *Apa aja yang bakal kita lakukan:*\n` +
-    `${emoji} *${day}* — Pre-class review + Entry Ticket + ${topic} Hook Activity\n` +
-    `📝 *${day}* — Productive Struggle: worksheet level 2 (jangan lupa cari intentional error!)\n` +
-    `🧪 *${day}* — Lab Day! Praktikum langsung — siap-siap kotor tangan!\n` +
-    `📚 *${day}* — CER Challenge + Wrap-up\n\n` +
-    `🎯 *Target Minggu Ini:*\n` +
-    `✅ Tonton video pre-class (link di LMS)\n` +
-    `✅ Kerjakan guided notes\n` +
-    `✅ Selesaikan 3 level worksheet\n` +
-    `✅ Submit Mistake Journal\n\n` +
-    `💡 *Reminder:* Jangan lupa bawa kalkulator, penggaris, dan semangat!\n\n` +
+    `Greetings, Physics Warriors! ${emoji}\n\n` +
+    `Ready for an exciting week? We will be exploring *${topic}* in Grade ${grade}!\n\n` +
+    `📋 *Weekly Schedule:*\n` +
+    `📖 Day 1 — Pre-class review + Entry Ticket + ${topic} Hook Activity\n` +
+    `📝 Day 2 — Productive Struggle: Level 2 Worksheet (find the intentional error!)\n` +
+    `🧪 Day 3 — Lab Day: hands-on practical session\n` +
+    `📚 Day 4 — CER Challenge + Wrap-up\n\n` +
+    `🎯 *This Week's Targets:*\n` +
+    `✅ Watch pre-class video (link available on LMS)\n` +
+    `✅ Complete guided notes\n` +
+    `✅ Finish all 3 worksheet levels\n` +
+    `✅ Submit Mistake Journal entry\n\n` +
+    `💡 *Reminder:* Bring your calculator, ruler, and scientific curiosity!\n\n` +
     `Keep questioning, keep exploring! 🚀\n` +
-    `— Mr. Physics Teacher`
+    `— Physics Department`
   )
 }
 
@@ -55,28 +53,28 @@ function getLmsBody(topic: string, grade: number): string {
     `**Topic:** ${topic}\n` +
     `**Model:** Flipped Classroom\n\n` +
     `---\n\n` +
-    `### 📺 Pre-Class (Kerjakan SEBELUM kelas)\n\n` +
-    `1. Tonton video pengantar ${topic} (link di bawah)\n` +
-    `2. Kerjakan guided notes — isi bagian yang kosong\n` +
-    `3. Selesaikan Entry Ticket Quiz di LMS (minimal skor 2/3 untuk bisa ikut sesi lab)\n\n` +
+    `### 📺 Pre-Class (Complete BEFORE class)\n\n` +
+    `1. Watch the introductory video on ${topic} (link below)\n` +
+    `2. Complete the guided notes — fill in the blanks\n` +
+    `3. Complete the Entry Ticket Quiz on the LMS (minimum score 2/3 required for lab participation)\n\n` +
     `---\n\n` +
     `### 📝 In-Class Activities\n\n` +
-    `**Phase 1 — Entry Ticket & Hook (5 menit)**\n` +
+    `**Phase 1 — Entry Ticket & Hook (5 minutes)**\n` +
     `- Entry ticket quiz review\n` +
     `- Hook question challenge\n\n` +
-    `**Phase 2 — Productive Struggle (20 menit)**\n` +
-    `- Kerjakan Level 2 Worksheet (kelompok)\n` +
-    `- Temukan dan perbaiki intentional error\n` +
-    `- Peer grading setelah selesai\n\n` +
-    `**Phase 3 — CER Challenge (10 menit)**\n` +
-    `- Analisis fenomena fisika\n` +
-    `- Tulis Claim, Evidence, Reasoning\n\n` +
-    `**Phase 4 — Wrap-up (5 menit)**\n` +
+    `**Phase 2 — Productive Struggle (20 minutes)**\n` +
+    `- Complete Level 2 Worksheet (group work)\n` +
+    `- Identify and correct intentional errors\n` +
+    `- Peer grading upon completion\n\n` +
+    `**Phase 3 — CER Challenge (10 minutes)**\n` +
+    `- Analyse the physics phenomenon\n` +
+    `- Write Claim, Evidence, Reasoning\n\n` +
+    `**Phase 4 — Wrap-up (5 minutes)**\n` +
     `- Mistake Journal\n` +
-    `- Preview minggu depan\n\n` +
+    `- Preview of next week's topic\n\n` +
     `---\n\n` +
     `### 📎 Attachments\n\n` +
-    `- Worksheet (3 levels) — cetak atau akses digital\n` +
+    `- Worksheet (3 levels) — print or access digitally\n` +
     `- Lab Safety Sheet\n` +
     `- CER Template\n\n` +
     `---\n\n` +
@@ -87,22 +85,20 @@ function getLmsBody(topic: string, grade: number): string {
 function getParentMessage(topic: string, grade: number): string {
   const emoji = getEmoji(topic)
   return (
-    `Assalamu'alaikum Wr. Wb.\n\n` +
-    `Kepada Orang Tua/Wali Siswa Grade ${grade},\n\n` +
-    `Kami sampaikan bahwa minggu ini di pelajaran Fisika, putra/putri Bapak/Ibu akan mempelajari *${topic}* ${emoji}.\n\n` +
-    `Pembelajaran akan menggunakan model *Flipped Classroom*, di mana siswa menonton video dan mengerjakan guided notes SEBELUM datang ke kelas. Kami mohon bantuan Bapak/Ibu untuk:\n\n` +
-    `1️⃣ Mengingatkan putra/putri untuk menonton video pre-class yang sudah tersedia di LMS\n` +
-    `2️⃣ Memastikan mereka mengerjakan Entry Ticket Quiz sebelum jam pelajaran\n` +
-    `3️⃣ Mendukung proses belajar mereka di rumah — tanyakan apa yang mereka pelajari!\n\n` +
-    `Untuk informasi lebih lanjut, silakan cek LMS atau menghubungi guru mata pelajaran.\n\n` +
-    `Wassalamu'alaikum Wr. Wb.\n\n` +
-    `Salam hangat,\n` +
+    `Dear Parents and Guardians of Grade ${grade} Students,\n\n` +
+    `We wish to inform you that this week in Physics class, your child will be studying *${topic}* ${emoji}.\n\n` +
+    `The lessons will follow the *Flipped Classroom* model, in which students watch instructional videos and complete guided notes BEFORE attending class. We kindly request your support in the following areas:\n\n` +
+    `1. Remind your child to watch the pre-class video available on the LMS platform\n` +
+    `2. Ensure they complete the Entry Ticket Quiz before the lesson begins\n` +
+    `3. Support their learning at home — ask them what they have discovered!\n\n` +
+    `For further information, please check the LMS or contact the subject teacher.\n\n` +
+    `Yours sincerely,\n` +
     `Tim Fisika SHB Modernhill`
   )
 }
 
 export async function generateBroadcast(input: AgentInput): Promise<BroadcastMessage> {
-  const deadline = `Deadline: Jumat, minggu ini pukul 23:59 WIB`
+  const deadline = `Deadline: Friday, 11:59 PM (end of week)`
 
   return {
     wa_message: getWaBody(input.topic, input.grade, input.week_number),

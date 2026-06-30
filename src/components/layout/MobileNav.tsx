@@ -9,6 +9,7 @@ import {
   BrainCircuit,
   Calendar,
   Beaker,
+  FileText,
 } from "lucide-react"
 import { ROUTES } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
@@ -24,6 +25,7 @@ const allMobileNavItems: NavItem[] = [
   { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.LESSON_PLAN, label: "Lsn Plan", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
 ]

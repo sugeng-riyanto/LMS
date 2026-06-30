@@ -4,6 +4,7 @@ import { generateWorksheet } from "./worksheet-agent"
 import { generatePreClass } from "./flipped-curator"
 import { generateLogistics } from "./logistics-agent"
 import { generateBroadcast } from "./broadcast-agent"
+import { callLLM, getActiveProvider } from "./call-llm"
 import { getCurrentWeek, getAcademicYear } from "../utils/week-calculator"
 
 const TOPIC_MAP: Record<number, Record<number, string>> = {
@@ -59,19 +60,19 @@ const TOPIC_MAP: Record<number, Record<number, string>> = {
 
 const MISCONCEPTIONS: Record<string, string[]> = {
   kinematics: [
-    "Siswa mengira displacement dan distance itu sama",
-    "Siswa mengira percepatan negatif selalu berarti perlambatan",
-    "Siswa mengira benda yang diam tidak memiliki gaya yang bekerja",
-    "Siswa kesulitan membedakan kecepatan rata-rata dan kecepatan sesaat"
+    "Students often confuse displacement with distance",
+    "Students believe negative acceleration always means deceleration",
+    "Students think stationary objects have no forces acting on them",
+    "Students struggle to distinguish between average and instantaneous velocity"
   ],
   forces: [
-    "Siswa mengira gaya diperlukan untuk mempertahankan gerak",
-    "Siswa mengira aksi-reaksi bekerja pada benda yang sama",
-    "Siswa mengira benda lebih berat jatuh lebih cepat"
+    "Students think a force is required to maintain motion",
+    "Students believe action-reaction forces act on the same object",
+    "Students think heavier objects fall faster"
   ],
   energy: [
-    "Siswa mengira energi bisa 'habis' dan 'diciptakan'",
-    "Siswa mengira energi hanya ada saat benda bergerak"
+    "Students think energy can be 'used up' or 'created'",
+    "Students think energy only exists when an object is moving"
   ]
 }
 
@@ -104,8 +105,8 @@ function getMisconceptionsForTopic(grade: number, topic: string): string[] {
     if (key.includes(k)) return v
   }
   return [
-    "Siswa mungkin mengalami kesulitan dengan konsep abstrak dalam topik ini",
-    "Siswa perlu bantuan menghubungkan konsep dengan aplikasi sehari-hari"
+    "Students may struggle with abstract concepts in this topic",
+    "Students need help connecting concepts to everyday applications"
   ]
 }
 
@@ -132,6 +133,17 @@ export async function orchestrateWeeklyGeneration(grade?: number): Promise<Weekl
       previous_misconceptions: previousMisconceptions,
       syllabus_ref: syllabusRef,
       exam_type: examType
+    }
+
+    const activeProvider = await getActiveProvider()
+
+    if (activeProvider) {
+      try {
+        const result = await generateWithLLM(input, activeProvider)
+        if (result) return result
+      } catch (llmError) {
+        console.warn("LLM generation failed, falling back to template agents:", llmError)
+      }
     }
 
     const [lessonPlan, worksheet, preClass, logistics, broadcast] = await Promise.all([
@@ -161,5 +173,69 @@ export async function orchestrateWeeklyGeneration(grade?: number): Promise<Weekl
     throw new Error(
       `Failed to generate weekly package: ${error instanceof Error ? error.message : "Unknown error"}`
     )
+  }
+}
+
+async function generateWithLLM(
+  input: AgentInput,
+  _provider: unknown
+): Promise<WeeklyPackage | null> {
+  const systemPrompt = `You are an expert Cambridge Physics teacher at SHB Modernhill. Generate a complete weekly teaching package following the Flipped Classroom methodology.
+
+LANGUAGE REQUIREMENT: Write ALL content in fluent, grammatically correct academic English at IELTS band 7.5 or higher. Use precise physics terminology. Maintain coherence and logical flow throughout. No informal or conversational language.
+
+RULES:
+- 40-minute lesson structure: Entry Ticket (5min) → Productive Struggle (20min) → CER Challenge (10min) → Wrap-up + Mistake Journal (5min)
+- No calculus. CER required for Level 3. "Ask 3 Before Me". "No Eraser" policy. Mistake Journal every lesson.
+- Worksheets: Level 1 (sanity check), Level 2 (mistake hunter), Level 3 (CER challenge)
+- Include differentiation for Support (IEP) and Challenge (advanced) students
+- Lab experiments must use available school equipment (no expensive/rare items)
+- Answer keys must include detailed step-by-step solutions
+
+Output MUST be valid JSON matching the WeeklyPackage type exactly.`
+
+  const prompt = `Generate a weekly physics teaching package for:
+- Grade: ${input.grade}
+- Week: ${input.week_number}
+- Topic: ${input.topic}
+- Syllabus: ${input.syllabus_ref}
+- Calendar status: ${input.calendar_status}${input.exam_type !== "none" ? ` (${input.exam_type})` : ""}
+- Common misconceptions: ${input.previous_misconceptions.join("; ")}
+
+Return a JSON object with these keys:
+- lesson_plan: { title, grade: ${input.grade}, duration_minutes: 40, phases: [{ phase, minutes, hook_question?, activity, mythbuster_or_analogy?, group_rule?, differentiation?, phenomenon?, cer_template?, reflection_prompt?, peer_grading_instruction? }] }
+- worksheet: { title, levels: [{ level: 1, name: "Sanity Check", minutes: 10, questions }, { level: 2, name: "Mistake Hunter", minutes: 15, questions }, { level: 3, name: "CER Challenge", minutes: 10, questions }] }
+  Each question: { id, type, bloom, question, mark_scheme, peer_grade?, intentional_error?, solution_steps?, options?, correct?, explanation? }
+- pre_class: { video_resource: { title, url, source, duration_minutes, key_concepts, watch_guide }, interactive_simulation: { title, url, platform, instructions, inquiry_questions }, guided_notes: { title, fill_in_blanks, completed_example }, entry_ticket_quiz: { questions: [{ question, options, correct, explanation }], passing_score } }
+- lab_logistics: { lab_required, equipment_list: [{ item, quantity, status }], setup_instructions, safety_notes, lab_technician_message }
+- broadcast: { wa_message, lms_post: { title, body }, parent_message }`
+
+  const { content } = await callLLM(prompt, {
+    systemPrompt,
+    temperature: 0.8,
+    maxTokens: 8192,
+  })
+
+  try {
+    const parsed = JSON.parse(content)
+    const now = new Date().toISOString()
+
+    return {
+      academic_year: input.academic_year,
+      grade: input.grade,
+      week_number: input.week_number,
+      topic: input.topic,
+      calendar_status: input.calendar_status,
+      lesson_plan: parsed.lesson_plan,
+      worksheet: parsed.worksheet,
+      pre_class: parsed.pre_class,
+      lab_logistics: parsed.lab_logistics,
+      broadcast: parsed.broadcast,
+      generated_at: now,
+      agent_version: "1.1.0-llm",
+    }
+  } catch (parseError) {
+    console.error("Failed to parse LLM output as JSON:", parseError)
+    return null
   }
 }

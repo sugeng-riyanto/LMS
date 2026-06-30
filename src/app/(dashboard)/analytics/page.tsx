@@ -5,7 +5,8 @@ import { useRBAC } from "@/hooks/use-rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2 } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -51,33 +52,29 @@ export default function AnalyticsPage() {
   }
 
   if (!canView) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">You do not have access to this page.</p>
-      </div>
-    )
+    return <div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">You do not have access to this page.</p></div>
   }
 
   const students = data?.students ?? []
+  const lowPerformers = students.filter((s) => s.entry_ticket_accuracy < 0.4)
+  const highPerformers = students.filter((s) => s.entry_ticket_accuracy >= 0.8)
+  const avg = data?.average_accuracy ?? 0
+
   const accuracyRanges = [
-    { range: "0-20%", min: 0, max: 0.2 },
-    { range: "20-40%", min: 0.2, max: 0.4 },
-    { range: "40-60%", min: 0.4, max: 0.6 },
-    { range: "60-80%", min: 0.6, max: 0.8 },
-    { range: "80-100%", min: 0.8, max: 1.0 },
+    { range: "0-20%", min: 0, max: 0.2, color: "bg-red-500" },
+    { range: "21-40%", min: 0.2, max: 0.4, color: "bg-orange-500" },
+    { range: "41-60%", min: 0.4, max: 0.6, color: "bg-yellow-500" },
+    { range: "61-80%", min: 0.6, max: 0.8, color: "bg-blue-500" },
+    { range: "81-100%", min: 0.8, max: 1.0, color: "bg-green-500" },
   ]
   const scoreDist = accuracyRanges.map((r) => ({
-    range: r.range,
+    ...r,
     count: students.filter((s) => s.entry_ticket_accuracy >= r.min && s.entry_ticket_accuracy < r.max).length,
   }))
   const maxScore = Math.max(...scoreDist.map((s) => s.count), 1)
 
-  const misconceptionTopics = [...new Set(students.map((s) => `Student ${s.full_name.split(" ")[0]}`).slice(0, 6))]
-  const misconceptions = misconceptionTopics.map((topic) => ({
-    topic,
-    count: Math.floor(Math.random() * 5) + 1,
-  }))
-  const maxMisconception = Math.max(...misconceptions.map((m) => m.count), 1)
+  const totalEntries = students.reduce((sum, s) => sum + s.total_journal_entries, 0)
+  const totalPackages = students.reduce((sum, s) => sum + s.packages_attempted, 0)
 
   return (
     <div className="space-y-6">
@@ -88,56 +85,73 @@ export default function AnalyticsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Label>Grade</Label>
-          <select
-            value={filterGrade}
-            onChange={(e) => setFilterGrade(Number(e.target.value))}
-            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-          >
-            {GRADES.map((g) => (
-              <option key={g} value={g}>Grade {g}</option>
-            ))}
+          <select value={filterGrade} onChange={(e) => setFilterGrade(Number(e.target.value))}
+            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+            {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
           </select>
-          <Button variant="outline" size="sm" onClick={fetchAnalytics}>
-            <ArrowUpDown className="mr-1 h-4 w-4" />
-            Refresh
-          </Button>
+          <Button variant="outline" size="sm" onClick={fetchAnalytics}><ArrowUpDown className="mr-1 h-4 w-4" />Refresh</Button>
         </div>
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-xl bg-muted" />
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (<div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />))}
         </div>
       ) : !data ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             No analytics data available. Make sure students have activity data.
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={fetchAnalytics}>
-                Retry
-              </Button>
-            </div>
+            <div className="mt-4"><Button variant="outline" size="sm" onClick={fetchAnalytics}>Retry</Button></div>
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* KPI Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Score Distribution</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Students</CardTitle>
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent><p className="text-2xl font-bold">{data.total_students}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Avg Accuracy</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
+                <p className={`text-2xl font-bold ${avg >= 0.7 ? "text-green-600" : avg >= 0.4 ? "text-amber-600" : "text-red-600"}`}>
+                  {(avg * 100).toFixed(0)}%
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Journal Entries</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent><p className="text-2xl font-bold">{totalEntries}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Packages</CardTitle>
+                <BrainCircuit className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent><p className="text-2xl font-bold">{totalPackages}</p></CardContent>
+            </Card>
+          </div>
+
+          {/* Score Distribution + Summary + Alert */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Score Distribution</CardTitle></CardHeader>
+              <CardContent>
                 {scoreDist.map((s) => (
-                  <div key={s.range} className="flex items-center gap-2">
+                  <div key={s.range} className="flex items-center gap-2 py-1">
                     <span className="w-20 text-xs text-muted-foreground">{s.range}</span>
                     <div className="flex-1 rounded-full bg-muted">
-                      <div
-                        className="h-3 rounded-full bg-primary"
-                        style={{ width: `${(s.count / maxScore) * 100}%` }}
-                      />
+                      <div className={`h-3 rounded-full ${s.color}`} style={{ width: `${(s.count / maxScore) * 100}%` }} />
                     </div>
                     <span className="w-8 text-right text-xs font-medium">{s.count}</span>
                   </div>
@@ -146,54 +160,52 @@ export default function AnalyticsPage() {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Summary</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Students</span>
-                  <span className="font-medium">{data.total_students}</span>
+              <CardHeader><CardTitle className="text-sm">Performance Summary</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                  <Users className="h-5 w-5 text-green-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">{'High Achievers (\u226580%)'}</p>
+                    <p className="text-lg font-bold text-green-700 dark:text-green-400">{highPerformers.length}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Avg Accuracy</span>
-                  <span className="font-medium">{(data.average_accuracy * 100).toFixed(0)}%</span>
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+                  <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Needs Attention {'(<40%)'}</p>
+                    <p className="text-lg font-bold text-red-700 dark:text-red-400">{lowPerformers.length}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Journal Entries</span>
-                  <span className="font-medium">{data.total_journal_entries}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Packages Attempted</span>
-                  <span className="font-medium">{data.total_packages_attempted}</span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>{data.total_students > 0 ? `${(highPerformers.length / data.total_students * 100).toFixed(0)}% students are on track` : "No data"}</span>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Student Progress</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
+              <CardHeader><CardTitle className="text-sm">Low Performers</CardTitle></CardHeader>
               <CardContent>
-                {students.slice(0, 8).map((s) => (
-                  <div key={s.student_id} className="flex items-center justify-between py-1 text-xs">
-                    <span className="truncate w-28">{s.full_name}</span>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-3 w-3 text-green-500" />
-                      <span>{Math.round(s.entry_ticket_accuracy * 100)}%</span>
-                      <span className="text-muted-foreground">{s.total_journal_entries} entries</span>
-                    </div>
+                {lowPerformers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">All students are performing well!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {lowPerformers.slice(0, 5).map((s) => (
+                      <div key={s.student_id} className="flex items-center justify-between text-sm">
+                        <span className="truncate w-28">{s.full_name}</span>
+                        <Badge variant="destructive" className="text-xs">{Math.round(s.entry_ticket_accuracy * 100)}%</Badge>
+                      </div>
+                    ))}
+                    {lowPerformers.length > 5 && <p className="text-xs text-muted-foreground">+{lowPerformers.length - 5} more</p>}
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </div>
 
+          {/* Full Student Table */}
           <Card>
-            <CardHeader>
-              <CardTitle>Student Performance Table</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Student Performance Table</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -201,31 +213,29 @@ export default function AnalyticsPage() {
                     <tr className="border-b">
                       <th className="p-2 text-left font-medium">Student</th>
                       <th className="p-2 text-left font-medium">Grade</th>
-                      <th className="p-2 text-center font-medium">Journal Entries</th>
-                      <th className="p-2 text-center font-medium">Quiz Accuracy</th>
-                      <th className="p-2 text-center font-medium">Packages Attempted</th>
+                      <th className="p-2 text-center font-medium">Journal</th>
+                      <th className="p-2 text-center font-medium">Accuracy</th>
+                      <th className="p-2 text-center font-medium">Packages</th>
+                      <th className="p-2 text-center font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.map((s) => (
                       <tr key={s.student_id} className="border-b hover:bg-muted/50">
                         <td className="p-2 font-medium">{s.full_name}</td>
-                        <td className="p-2">Grade {s.grade_assigned}</td>
+                        <td className="p-2">G{s.grade_assigned}</td>
                         <td className="p-2 text-center">{s.total_journal_entries}</td>
                         <td className="p-2 text-center">
-                          <span
-                            className={
-                              s.entry_ticket_accuracy >= 0.7
-                                ? "text-green-600"
-                                : s.entry_ticket_accuracy >= 0.4
-                                  ? "text-amber-600"
-                                  : "text-red-600"
-                            }
-                          >
+                          <span className={s.entry_ticket_accuracy >= 0.7 ? "text-green-600 font-medium" : s.entry_ticket_accuracy >= 0.4 ? "text-amber-600" : "text-red-600 font-medium"}>
                             {Math.round(s.entry_ticket_accuracy * 100)}%
                           </span>
                         </td>
                         <td className="p-2 text-center">{s.packages_attempted}</td>
+                        <td className="p-2 text-center">
+                          {s.entry_ticket_accuracy >= 0.7 ? <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">On Track</Badge>
+                            : s.entry_ticket_accuracy >= 0.4 ? <Badge variant="secondary">Developing</Badge>
+                            : <Badge variant="destructive">Needs Help</Badge>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

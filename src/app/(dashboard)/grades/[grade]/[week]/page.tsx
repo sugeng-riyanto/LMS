@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { usePackages, useApprovePackage, usePublishPackage } from "@/hooks/use-packages"
 import { useRBAC } from "@/hooks/use-rbac"
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, CheckCircle, Send, Edit } from "lucide-react"
+import { ArrowLeft, CheckCircle, Send, Edit, FileDown, FileText, FileType, FileSpreadsheet } from "lucide-react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -24,8 +24,18 @@ export default function PackageDetailPage() {
   const { mutateAsync: approvePackage } = useApprovePackage()
   const { mutateAsync: publishPackage } = usePublishPackage()
   const [activeTab, setActiveTab] = useState("lesson-plan")
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
 
-  const content = pkg?.content as Record<string, unknown> | undefined
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    if (exportOpen) document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [exportOpen])
 
   async function handleApprove() {
     if (!pkg) return
@@ -67,12 +77,71 @@ export default function PackageDetailPage() {
     )
   }
 
-  const lessonPlan = (content?.lesson_plan as Array<{ phase: string; timing: string; activity: string }>) ?? []
-  const worksheet = (content?.worksheet as Array<{ level: string; questions: Array<{ question: string; points: number }> }>) ?? []
-  const preClass = (content?.pre_class as { video?: string; simulation?: string; quiz?: Array<{ question: string; options: string[]; answer: string }> }) ?? {}
-  const labLogistics = (content?.lab_logistics as Array<{ item: string; quantity: number; notes: string }>) ?? []
-  const waBlast = (content?.wa_blast as string) ?? pkg.content?.wa_blast
-  const answerKeys = (content?.answer_keys as Array<{ question: string; answer: string; explanation: string }>) ?? []
+  const lessonPlan = (() => {
+    const lp = pkg?.lesson_plan
+    if (Array.isArray(lp)) return lp as Array<{ phase: string; timing: string; activity: string }>
+    if (lp && typeof lp === "object") {
+      const obj = lp as Record<string, unknown>
+      if (Array.isArray(obj.phases)) return (obj.phases as Array<Record<string, unknown>>).map((p) => ({
+        phase: (p.phase ?? "") as string,
+        timing: `${p.minutes ?? "?"} min`,
+        activity: (p.activity ?? "") as string,
+      }))
+    }
+    return []
+  })()
+  const worksheet = (() => {
+    const ws = pkg?.worksheet
+    if (Array.isArray(ws)) return ws as Array<{ level: string; questions: Array<{ question: string; points: number }> }>
+    if (ws && typeof ws === "object") {
+      const obj = ws as Record<string, unknown>
+      if (Array.isArray(obj.levels)) return (obj.levels as Array<Record<string, unknown>>).map((l) => ({
+        level: `${l.level ?? ""}`,
+        questions: ((l.questions ?? []) as Array<Record<string, unknown>>).map((q) => ({
+          question: (q.question ?? "") as string,
+          points: (q.points ?? (q.mark_scheme ? 1 : 1)) as number,
+        })),
+      }))
+    }
+    return []
+  })()
+  const preClass = (() => {
+    const pc = pkg?.pre_class
+    if (pc && typeof pc === "object" && "video" in (pc as Record<string, unknown>)) return pc as { video?: string; simulation?: string; quiz?: Array<{ question: string; options: string[]; answer: string }> }
+    if (pc && typeof pc === "object") {
+      const obj = pc as Record<string, unknown>
+      const quiz = obj.entry_ticket_quiz as Record<string, unknown> | undefined
+      return {
+        video: (obj.video_resource as Record<string, unknown> ?? {}).title as string ?? "",
+        simulation: (obj.interactive_simulation as Record<string, unknown> ?? {}).title as string ?? "",
+        quiz: Array.isArray(quiz?.questions) ? (quiz.questions as Array<Record<string, unknown>>).map((q) => ({
+          question: (q.question ?? "") as string,
+          options: (q.options ?? []) as string[],
+          answer: (q.options as string[])?.[q.correct as number] ?? "",
+        })) : [],
+      }
+    }
+    return {}
+  })()
+  const labLogistics = (() => {
+    const ll = pkg?.lab_logistics
+    if (Array.isArray(ll)) return ll as Array<{ item: string; quantity: number; notes: string }>
+    if (ll && typeof ll === "object") {
+      const obj = ll as Record<string, unknown>
+      if (Array.isArray(obj.equipment_list)) return (obj.equipment_list as Array<Record<string, unknown>>).map((e) => ({
+        item: (e.item ?? "") as string,
+        quantity: (e.quantity ?? 1) as number,
+        notes: (e.status as string) ?? "",
+      }))
+    }
+    return []
+  })()
+  const waBlast = (pkg?.wa_blast as string) ?? ""
+  const answerKeys = (() => {
+    const ak = pkg?.answer_keys
+    if (Array.isArray(ak)) return ak as Array<{ question: string; answer: string; explanation: string }>
+    return []
+  })()
 
   return (
     <div className="space-y-6">
@@ -93,10 +162,12 @@ export default function PackageDetailPage() {
                   ? "default"
                   : pkg.status === "approved"
                     ? "secondary"
-                    : "outline"
+                    : pkg.status === "pending_review"
+                      ? "outline"
+                      : "outline"
               }
             >
-              {pkg.status}
+              {pkg.status === "pending_review" ? "Pending Review" : pkg.status}
             </Badge>
           </div>
         </div>
@@ -107,9 +178,60 @@ export default function PackageDetailPage() {
               Edit
             </Button>
           </Link>
+          {(["docx", "pdf", "md"] as const).map((fmt) => (
+            <Button key={fmt} variant="outline" size="sm" onClick={async () => {
+              try {
+                const res = await fetch(`/api/packages/${pkg.id}/lesson-plan-template?format=${fmt}`)
+                if (!res.ok) { toast.error("Download failed"); return }
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.href = url; a.download = `lesson-plan-G${grade}-W${week}.${fmt === "docx" ? "docx" : fmt}`; a.click()
+                URL.revokeObjectURL(url)
+                toast.success(`${fmt.toUpperCase()} downloaded!`)
+              } catch { toast.error("Download failed") }
+            }}>
+              {fmt === "docx" ? <FileSpreadsheet className="mr-1 h-3 w-3" /> : fmt === "pdf" ? <FileText className="mr-1 h-3 w-3" /> : <FileType className="mr-1 h-3 w-3" />}
+              {fmt.toUpperCase()}
+            </Button>
+          ))}
+          <div className="relative" ref={exportRef}>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(!exportOpen)}>
+              <FileDown className="mr-1 h-4 w-4" />
+              Export
+            </Button>
+            {exportOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border bg-background p-1 shadow-lg">
+                {(["md", "qmd", "docx", "pdf"] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent"
+                    onClick={async () => {
+                      setExportOpen(false)
+                      try {
+                        const res = await fetch(`/api/packages/${pkg.id}/export?format=${fmt}`)
+                        if (!res.ok) { toast.error("Export failed"); return }
+                        const blob = await res.blob()
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement("a")
+                        a.href = url
+                        a.download = `grade-${grade}-week-${week}.${fmt === "docx" ? "docx" : fmt === "qmd" ? "qmd" : fmt === "pdf" ? "pdf" : "md"}`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        toast.success(`Exported as ${fmt.toUpperCase()}`)
+                      } catch { toast.error("Export failed") }
+                    }}
+                  >
+                    {fmt === "md" ? <FileText className="h-4 w-4" /> : fmt === "qmd" ? <FileType className="h-4 w-4" /> : <FileDown className="h-4 w-4" />}
+                    {fmt.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {isSuperAdmin && pkg.status !== "published" && (
             <>
-              {pkg.status === "draft" && (
+              {(pkg.status === "draft" || pkg.status === "pending_review") && (
                 <Button size="sm" onClick={handleApprove}>
                   <CheckCircle className="mr-1 h-4 w-4" />
                   Approve

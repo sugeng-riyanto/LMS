@@ -26,9 +26,8 @@ export default function PreClassPage() {
   const { data: packages } = usePackages({ grade, status: "published" })
 
   const thisWeek = 1
-  const currentPkg = packages?.find((p) => p.week === thisWeek)
-  const content = currentPkg?.content as Record<string, unknown> | undefined
-  const preClass = (content?.pre_class as { video?: string; simulation?: string; quiz?: QuizQuestion[] }) ?? {}
+  const currentPkg = packages?.find((p) => (p.week ?? p.week_number) === thisWeek)
+  const preClass = (currentPkg?.pre_class as { video?: string; simulation?: string; quiz?: QuizQuestion[] }) ?? {}
 
   const quiz: QuizQuestion[] = preClass.quiz ?? []
   const [answers, setAnswers] = useState<QuizAnswer[]>([])

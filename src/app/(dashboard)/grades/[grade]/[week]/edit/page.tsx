@@ -77,16 +77,79 @@ export default function EditPackagePage() {
   const [activeTab, setActiveTab] = useState("lesson-plan")
   const [content, setContent] = useState<PackageContent>(defaultContent)
 
+  function extractPhases(lp: unknown): LessonPhase[] {
+    if (Array.isArray(lp) && lp.length > 0 && "phase" in lp[0]) return lp
+    if (lp && typeof lp === "object") {
+      const obj = lp as Record<string, unknown>
+      if (Array.isArray(obj.phases)) return obj.phases.map((p: Record<string, unknown>) => ({
+        phase: (p.phase ?? "") as string,
+        timing: `${p.minutes ?? "?"} min`,
+        activity: (p.activity ?? "") as string,
+      }))
+    }
+    return defaultContent.lesson_plan
+  }
+
+  function extractLevels(ws: unknown): WorksheetLevel[] {
+    if (Array.isArray(ws) && ws.length > 0 && "level" in ws[0]) return ws
+    if (ws && typeof ws === "object") {
+      const obj = ws as Record<string, unknown>
+      if (Array.isArray(obj.levels)) return obj.levels.map((l: Record<string, unknown>) => ({
+        level: `${l.level ?? ""}`,
+        questions: ((l.questions ?? []) as Array<Record<string, unknown>>).map((q) => ({
+          question: (q.question ?? "") as string,
+          points: (q.points ?? (q.mark_scheme ? 1 : 1)) as number,
+        })),
+      }))
+    }
+    return defaultContent.worksheet
+  }
+
+  function extractPreClass(pc: unknown): PreClass {
+    if (pc && typeof pc === "object" && "video" in (pc as Record<string, unknown>)) return pc as PreClass
+    if (pc && typeof pc === "object") {
+      const obj = pc as Record<string, unknown>
+      const quiz = obj.entry_ticket_quiz as Record<string, unknown> | undefined
+      return {
+        video: (obj.video_resource as Record<string, unknown> ?? {}).title as string ?? "",
+        simulation: (obj.interactive_simulation as Record<string, unknown> ?? {}).title as string ?? "",
+        quiz: Array.isArray(quiz?.questions) ? quiz.questions.map((q: Record<string, unknown>) => ({
+          question: (q.question ?? "") as string,
+          options: (q.options ?? []) as string[],
+          answer: (q.options as string[])?.[q.correct as number] ?? "",
+        })) : defaultContent.pre_class.quiz,
+      }
+    }
+    return defaultContent.pre_class
+  }
+
+  function extractLabItems(ll: unknown): LabItem[] {
+    if (Array.isArray(ll) && ll.length > 0 && "item" in ll[0]) return ll
+    if (ll && typeof ll === "object") {
+      const obj = ll as Record<string, unknown>
+      if (Array.isArray(obj.equipment_list)) return obj.equipment_list.map((e: Record<string, unknown>) => ({
+        item: (e.item ?? "") as string,
+        quantity: (e.quantity ?? 1) as number,
+        notes: e.status as string ?? "",
+      }))
+    }
+    return defaultContent.lab_logistics
+  }
+
+  function extractAnswerKeys(ak: unknown): AnswerKey[] {
+    if (Array.isArray(ak)) return ak as AnswerKey[]
+    return defaultContent.answer_keys
+  }
+
   useEffect(() => {
-    if (pkg?.content) {
-      const existing = pkg.content as Record<string, unknown>
+    if (pkg) {
       setContent({
-        lesson_plan: (existing.lesson_plan as LessonPhase[]) ?? defaultContent.lesson_plan,
-        worksheet: (existing.worksheet as WorksheetLevel[]) ?? defaultContent.worksheet,
-        pre_class: (existing.pre_class as PreClass) ?? defaultContent.pre_class,
-        lab_logistics: (existing.lab_logistics as LabItem[]) ?? defaultContent.lab_logistics,
-        wa_blast: (existing.wa_blast as string) ?? "",
-        answer_keys: (existing.answer_keys as AnswerKey[]) ?? defaultContent.answer_keys,
+        lesson_plan: extractPhases(pkg.lesson_plan),
+        worksheet: extractLevels(pkg.worksheet),
+        pre_class: extractPreClass(pkg.pre_class),
+        lab_logistics: extractLabItems(pkg.lab_logistics),
+        wa_blast: (pkg.wa_blast as string) ?? "",
+        answer_keys: extractAnswerKeys(pkg.answer_keys),
       })
     }
   }, [pkg])
@@ -94,7 +157,7 @@ export default function EditPackagePage() {
   async function handleSave() {
     if (!pkg) return
     try {
-      await updatePackage({ id: pkg.id, content: content as unknown as Record<string, unknown> })
+      await updatePackage({ id: pkg.id, ...content })
       toast.success("Package updated!")
       router.push(`/grades/${grade}/${week}`)
     } catch {
