@@ -447,15 +447,16 @@ export default function SyllabusPlannerPage() {
 
   function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
 
-  function getShareHtml(): string {
+  function getShareHtml(overrideMedia?: typeof mediaSources): string {
+    const activeMedia = overrideMedia || mediaSources
     const today = new Date()
     const dateStr = today.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     const dateCode = today.toISOString().split("T")[0].replace(/-/g, "")
     const hooks = plan.opening_ideas?.split("\n").filter(Boolean) || []
     const questions = plan.activity_questions || []
     const problems = plan.problems || []
-    const openingSources = mediaSources.filter(s => s.section === "opening")
-    const questionSources = mediaSources.filter(s => s.section === "questions")
+    const openingSources = activeMedia.filter(s => s.section === "opening")
+    const questionSources = activeMedia.filter(s => s.section === "questions")
     const allQs = [...hooks.map(h => ({ text: h, section: "opening" })), ...questions.map(q => ({ text: q.question, section: "question" })), ...problems.map(p => ({ text: p.problem, section: "problem" }))]
 
     const selectedTopics = topics.filter(t => selectedTopicIds.has(t.unit_id))
@@ -614,14 +615,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
   async function handleShare() {
     try {
+      let fetchedMedia: typeof mediaSources = mediaSources
+      let fetchedStudents: string[] = []
+
       // Fetch students for the dropdown
       try {
         const res = await fetch("/api/profiles")
         const profiles = await res.json()
-        const students = (Array.isArray(profiles) ? profiles : [])
+        fetchedStudents = (Array.isArray(profiles) ? profiles : [])
           .filter((p: any) => p.role === "student" && p.grade_assigned === selectedGrade)
           .map((p: any) => p.full_name)
-        ;(window as any).__SYLLABUS_STUDENTS__ = students
+        ;(window as any).__SYLLABUS_STUDENTS__ = fetchedStudents
       } catch {}
 
       // Fetch media sources from saved syllabus plan if available
@@ -633,11 +637,12 @@ document.addEventListener("DOMContentLoaded", function() {
           .eq("week_number", selectedWeek)
           .single()
         if (saved?.media_links) {
-          setMediaSources(saved.media_links)
+          fetchedMedia = saved.media_links
+          setMediaSources(saved.media_links) // for UI
         }
       } catch {}
 
-      const html = getShareHtml()
+      const html = getShareHtml(fetchedMedia)
       const blob = new Blob([html], { type: "text/html;charset=utf-8" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.html`; a.click()
@@ -826,8 +831,40 @@ document.addEventListener("DOMContentLoaded", function() {
             </CardContent>
           </Card>
 
+          {/* Learning Objectives */}
+          {selectedTopicIds.size > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <BookOpen className="h-4 w-4 text-green-600" />
+                  Learning Objectives
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => (
+                    <div key={t.id} className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50/50 p-3 dark:border-green-800 dark:bg-green-950/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">✓</div>
+                      <div>
+                        <p className="font-medium text-sm">{t.topic}</p>
+                        <p className="text-xs text-muted-foreground">{t.syllabus_ref} · {t.curriculum}</p>
+                        {t.subtopics.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {t.subtopics.map((st, si) => (
+                              <span key={si} className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-1.5 py-0.5 rounded">{st}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lightbulb className="h-4 w-4" />
                 Opening Ideas (Hook / MythBuster)
