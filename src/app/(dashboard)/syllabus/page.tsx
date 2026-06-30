@@ -119,6 +119,11 @@ export default function SyllabusPlannerPage() {
           status: (p.status as string) ?? "draft",
         })
         setSelectedTopicIds(new Set(p.subtopics as string[] ?? []))
+        // Load media sources from saved plan
+        const media = p.media_links as Array<{ section: string; type: string; title: string; url: string }> | undefined
+        if (media && Array.isArray(media) && media.length > 0) {
+          setMediaSources(media)
+        }
       } else {
         setPlan({ ...defaultPlan, grade: selectedGrade, week_number: selectedWeek })
         setSelectedTopicIds(new Set())
@@ -417,8 +422,14 @@ export default function SyllabusPlannerPage() {
     toast.success("Source added!")
   }
 
-  function removeMediaSource(index: number) {
-    setMediaSources(prev => prev.filter((_, i) => i !== index))
+  function removeMediaSource(section: string, idx: number) {
+    setMediaSources(prev => {
+      const inSection = prev.filter(s => s.section === section)
+      const target = inSection[idx]
+      if (!target) return prev
+      const globalIdx = prev.indexOf(target)
+      return prev.filter((_, i) => i !== globalIdx)
+    })
   }
 
   function getEmbedUrl(url: string, type: string): string | null {
@@ -849,7 +860,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
-                      <button onClick={() => removeMediaSource(mediaSources.filter(s => s.section === "opening").indexOf(s) + mediaSources.filter((_, idx) => idx < mediaSources.length && mediaSources[idx].section !== "opening").length)} className="text-destructive hover:underline ml-1">Remove</button>
+                      <button onClick={() => removeMediaSource("opening", i)} className="text-destructive hover:underline ml-1">Remove</button>
                     </div>
                   </div>
                 ))}
@@ -937,7 +948,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
-                      <button onClick={() => removeMediaSource(mediaSources.filter(s => s.section === "questions").indexOf(s) + mediaSources.filter((_, idx) => idx < mediaSources.length && mediaSources[idx].section !== "questions").length)} className="text-destructive hover:underline ml-1">Remove</button>
+                      <button onClick={() => removeMediaSource("questions", i)} className="text-destructive hover:underline ml-1">Remove</button>
                     </div>
                   </div>
                 ))}
