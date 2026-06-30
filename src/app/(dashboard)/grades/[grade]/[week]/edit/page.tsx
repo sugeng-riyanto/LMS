@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, FileDown, FileText, Upload } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import toast from "react-hot-toast"
 
@@ -76,6 +76,68 @@ export default function EditPackagePage() {
   const { mutateAsync: updatePackage, isPending } = useUpdatePackage()
   const [activeTab, setActiveTab] = useState("lesson-plan")
   const [content, setContent] = useState<PackageContent>(defaultContent)
+  const [loadingTemplate, setLoadingTemplate] = useState(false)
+
+  // Template downloads per section
+  const TEMPLATES: Record<string, { md: string }> = {
+    "lesson-plan": {
+      md: `## Phase 1: Entry Ticket & Hook (5 min)\n\n**Hook Question:** Write your hook question here.\n**Activity:** Describe the entry activity.\n**MythBuster:** Common misconception to address.\n\n## Phase 2: Productive Struggle (20 min)\n\n**Activity:** Describe the main activity.\n**Group Rule:** Collaboration guidelines.\n\n## Phase 3: CER Challenge (10 min)\n\n**Phenomenon:** Describe the phenomenon.\n**CER Template:** CLAIM / EVIDENCE / REASONING\n\n## Phase 4: Wrap-up & Mistake Journal (5 min)\n\n**Reflection Prompt:** Write reflection questions.`,
+    },
+    worksheet: {
+      md: `## Level 1: Sanity Check (10 min)\n\n1. Question 1\n   A) Option A\n   B) Option B\n   C) Option C\n   D) Option D\n\n## Level 2: Mistake Hunter (15 min)\n\nA word problem with an intentional error embedded.\n\n## Level 3: CER Challenge (10 min)\n\nPhenomenon description. Students write Claim, Evidence, Reasoning.`,
+    },
+    "pre-class": {
+      md: `### Video Resource\n- **Title:** \n- **URL:** \n- **Duration:** min\n- **Key Concepts:** \n\n### Interactive Simulation\n- **Title:** \n- **URL:** \n- **Instructions:** \n\n### Entry Ticket Quiz\n1. Question\n   A) \n   B) \n   C) \n   D) \n\n*Passing score: 2/3*`,
+    },
+    lab: {
+      md: `| Item | Qty | Status |\n|------|-----|--------|\n|  |  | available |\n\n**Setup Instructions:**\n1. \n2. \n\n**Safety Notes:**\n- \n\n**Lab Message:**`,
+    },
+    "wa-blast": {
+      md: `*📢 WEEKLY UPDATE*\n\nGreetings students!\n\nThis week we will explore **[topic]**.\n\n📋 **Schedule:**\n📖 Day 1 — Pre-class review\n📝 Day 2 — Worksheet\n🧪 Day 3 — Lab\n\nKeep learning! 🚀`,
+    },
+    answers: {
+      md: `### Question 1\n**Answer:** \n**Explanation:** \n\n### Question 2\n**Answer:** \n**Explanation:** `,
+    },
+  }
+
+  function downloadTemplate(section: string) {
+    const tpl = TEMPLATES[section]
+    if (!tpl) return
+    const blob = new Blob([tpl.md], { type: "text/markdown;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a"); a.href = url; a.download = `${section}-template.md`; a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Template downloaded")
+  }
+
+  async function loadTemplate(section: string) {
+    const input = document.createElement("input")
+    input.type = "file"; input.accept = ".md,.qmd,.txt"
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0]
+      if (!file) return
+      setLoadingTemplate(true)
+      try {
+        const text = await file.text()
+        if (section === "lesson-plan") {
+          setContent((prev) => ({ ...prev, lesson_plan: [{ phase: "From Template", timing: "—", activity: text }] }))
+        } else if (section === "worksheet") {
+          setContent((prev) => ({ ...prev, worksheet: [{ level: "Template", questions: [{ question: text, points: 0 }] }] }))
+        } else if (section === "pre-class") {
+          setContent((prev) => ({ ...prev, pre_class: { video: text, simulation: "", quiz: [] } }))
+        } else if (section === "lab") {
+          setContent((prev) => ({ ...prev, lab_logistics: [{ item: text, quantity: 0, notes: "" }] }))
+        } else if (section === "wa-blast") {
+          setContent((prev) => ({ ...prev, wa_blast: text }))
+        } else if (section === "answers") {
+          setContent((prev) => ({ ...prev, answer_keys: [{ question: "Template", answer: text, explanation: "" }] }))
+        }
+        toast.success("Template loaded!")
+      } catch { toast.error("Failed to load") }
+      finally { setLoadingTemplate(false) }
+    }
+    input.click()
+  }
 
   function extractPhases(lp: unknown): LessonPhase[] {
     if (Array.isArray(lp) && lp.length > 0 && "phase" in lp[0]) return lp
@@ -299,9 +361,14 @@ export default function EditPackagePage() {
 
         <TabsContent value="lesson-plan">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Lesson Phases</CardTitle>
-              <Button variant="outline" size="sm" onClick={addLessonPhase}>Add Phase</Button>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Lesson Plan</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("lesson-plan")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("lesson-plan")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {content.lesson_plan.map((phase, i) => (
@@ -334,9 +401,14 @@ export default function EditPackagePage() {
 
         <TabsContent value="worksheet">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Worksheet Levels</CardTitle>
-              <Button variant="outline" size="sm" onClick={addWorksheetLevel}>Add Level</Button>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Worksheet</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("worksheet")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("worksheet")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {content.worksheet.map((level, li) => (
@@ -381,7 +453,13 @@ export default function EditPackagePage() {
         <TabsContent value="pre-class">
           <Card>
             <CardHeader>
-              <CardTitle>Pre-Class Materials</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Pre-Class Materials</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("pre-class")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("pre-class")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1">
@@ -424,7 +502,11 @@ export default function EditPackagePage() {
         <TabsContent value="lab">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Equipment Checklist</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle>Equipment Checklist</CardTitle>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("lab")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("lab")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+              </div>
               <Button variant="outline" size="sm" onClick={addLabItem}>Add Item</Button>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -451,7 +533,13 @@ export default function EditPackagePage() {
         <TabsContent value="wa-blast">
           <Card>
             <CardHeader>
-              <CardTitle>WA Blast Message</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>WA Blast Message</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("wa-blast")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("wa-blast")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
@@ -470,7 +558,11 @@ export default function EditPackagePage() {
         <TabsContent value="answers">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Answer Keys</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle>Answer Keys</CardTitle>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => downloadTemplate("answers")}><FileDown className="mr-1 h-3 w-3" />Template</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate("answers")} disabled={loadingTemplate}><Upload className="mr-1 h-3 w-3" />Load</Button>
+              </div>
               <Button variant="outline" size="sm" onClick={addAnswerKey}>Add Entry</Button>
             </CardHeader>
             <CardContent className="space-y-4">

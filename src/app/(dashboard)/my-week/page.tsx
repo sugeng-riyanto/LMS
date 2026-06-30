@@ -50,6 +50,7 @@ export default function MyWeekPage() {
   const ws = pkg?.worksheet as Record<string, unknown> | undefined
   const levels = (ws?.levels as Array<{ level?: string; name?: string; minutes?: number }>) ?? []
   const pc = pkg?.pre_class as Record<string, unknown> | undefined
+  const isMarkdownPC = pc && typeof pc === "object" && ((pc as any).video && !(pc as any).video_resource)
   const vr = pc?.video_resource as { title?: string; duration_minutes?: number } | undefined
   const broadcast = pkg?.wa_blast as string | null
 
