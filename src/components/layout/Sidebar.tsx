@@ -16,6 +16,8 @@ import {
   ClipboardList,
   HelpCircle,
   CheckCircle,
+  PenTool,
+  BarChart3,
 } from "lucide-react"
 import { ROUTES } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
@@ -34,11 +36,16 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.GRADING, label: "Grading", icon: CheckCircle, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.SYLLABUS, label: "Syllabus", icon: ClipboardList, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin"] },
+  { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
+  { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
+  { href: "/my-progress", label: "My Progress", icon: BarChart3, roles: ["student"] },
+  { href: "/my-journal", label: "My Journal", icon: ClipboardList, roles: ["student"] },
+  { href: "/pre-class", label: "Pre-Class", icon: GraduationCap, roles: ["student"] },
   { href: ROUTES.HELP, label: "Help", icon: HelpCircle, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
 ]
 
