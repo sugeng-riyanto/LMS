@@ -461,8 +461,13 @@ export default function SyllabusPlannerPage() {
     const allQs = [...hooks.map(h => ({ text: h, section: "opening" })), ...questions.map(q => ({ text: q.question, section: "question" })), ...problems.map(p => ({ text: p.problem, section: "problem" }))]
 
     const selectedTopics = topics.filter(t => selectedTopicIds.has(t.unit_id))
+    const allObjectives = (window as any).__SYLLABUS_OBJECTIVES__ || []
     const objectivesHtml = selectedTopics.length > 0
-      ? `<div class="mb-6"><h2 class="text-lg font-semibold text-gray-800 mb-2">Learning Objectives</h2><ul class="space-y-1">${selectedTopics.map(t => `<li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#x2713;</span><div><p class="font-medium text-gray-800">${esc(t.topic)}</p><p class="text-xs text-gray-500">${esc(t.syllabus_ref)} · ${esc(t.curriculum)}</p></div></li>`).join("")}</ul></div>`
+      ? `<div class="mb-6"><h2 class="text-lg font-semibold text-gray-800 mb-2">Learning Objectives</h2><div class="space-y-3">${selectedTopics.map(t => {
+        const obj = Array.isArray(allObjectives) ? allObjectives.find((o: any) => o.topic.toLowerCase() === t.topic.toLowerCase()) : null
+        const objectives = obj?.objectives || []
+        return `<div class="border-l-4 border-green-500 pl-4"><p class="font-medium text-gray-800">${esc(t.topic)}</p><p class="text-xs text-gray-500 mb-1">${esc(t.syllabus_ref)} · ${esc(t.curriculum)}</p>${objectives.length ? `<ul class="space-y-0.5 mt-1">${objectives.map((o: string) => `<li class="text-xs text-gray-600 flex items-start gap-1.5"><span class="text-green-500 mt-0.5">•</span>${esc(o)}</li>`).join("")}</ul>` : `<div class="flex flex-wrap gap-1 mt-1">${t.subtopics.map((st: string) => `<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">${esc(st)}</span>`).join("")}</div>`}</div>`
+      }).join("")}</div></div>`
       : ""
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://yourdomain.com"
@@ -478,6 +483,19 @@ export default function SyllabusPlannerPage() {
     const studentOptions = Array.isArray(gradeStudents) && gradeStudents.length
       ? gradeStudents.map((n: string) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")
       : ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"].map(n => `<option value="${n}">${n}</option>`).join("")
+
+    // Render media sources (YouTube, PDF, slides, audio)
+    function renderSource(src: { url: string; type: string; title: string }) {
+      const embed = (url: string, type: string) => {
+        if (type === "youtube") { const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/); return m ? `https://www.youtube.com/embed/${m[1]}` : null }
+        if (type === "pdf" || type === "slides") { const g = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/); return g ? `https://drive.google.com/file/d/${g[1]}/preview` : null }
+        return null
+      }
+      const e = embed(src.url, src.type)
+      if ((src.type === "youtube" || src.type === "pdf" || src.type === "slides") && e) return `<div class="mt-3 aspect-video rounded-lg overflow-hidden border"><iframe src="${e}" class="w-full h-full" allowfullscreen></iframe></div>`
+      if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio></div>`
+      return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
+    }
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -525,9 +543,8 @@ ${studentOptions}
 <div class="space-y-8 mt-6">
 ${allQs.map((item, idx) => {
   const sectionLabel = item.section === "opening" ? "Opening Ideas" : item.section === "question" ? "Activity Question" : "Problem"
-  const sectionColor = item.section === "opening" ? "blue" : item.section === "question" ? "green" : "purple"
   const bgColor = item.section === "opening" ? "bg-blue-50" : item.section === "question" ? "bg-green-50" : "bg-purple-50"
-  const borderColor = item.section === "opening" ? "border-blue-500" : item.section === "question" ? "border-green-500" : "border-purple-500"
+  const srcList = item.section === "opening" ? openingSources : item.section === "question" ? questionSources : []
   return `
 <div class="rounded-xl border p-5 space-y-4">
 <div class="flex items-start gap-3">
@@ -537,6 +554,7 @@ ${allQs.map((item, idx) => {
 <p class="font-medium text-gray-800">${esc(item.text)}</p>
 </div>
 </div>
+${srcList.map(s => renderSource(s)).join("")}
 <div class="space-y-3">
 <textarea id="ans-text-${idx}" rows="3" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here (paste disabled)" onpaste="event.preventDefault();alert('Paste is disabled. Please type your answer manually.')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
 <canvas id="ans-canvas-${idx}" width="700" height="300" class="w-full rounded-lg border"></canvas>
@@ -630,6 +648,13 @@ document.addEventListener("DOMContentLoaded", function() {
           .filter((p: any) => p.role === "student" && p.grade_assigned === selectedGrade)
           .map((p: any) => p.full_name)
         ;(window as any).__SYLLABUS_STUDENTS__ = fetchedStudents
+      } catch {}
+
+      // Fetch objectives for Learning Objectives section
+      try {
+        const res = await fetch(`/api/syllabus/objectives?grade=${selectedGrade}`)
+        const data = await res.json()
+        if (Array.isArray(data)) (window as any).__SYLLABUS_OBJECTIVES__ = data
       } catch {}
 
       // Fetch media sources from saved syllabus plan if available
