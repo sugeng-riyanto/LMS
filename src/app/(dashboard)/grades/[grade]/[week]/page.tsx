@@ -18,6 +18,7 @@ export default function PackageDetailPage() {
   const router = useRouter()
   const grade = Number(params.grade)
   const week = Number(params.week)
+  const slug = (params as any)?.slug as string | undefined
   const { data: packages, isLoading } = usePackages({ grade, week })
   const pkg = packages?.[0]
   const { isSuperAdmin } = useRBAC()
@@ -154,6 +155,16 @@ export default function PackageDetailPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             Week {week}: {pkg.title}
           </h1>
+          {!slug && pkg.title && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Slug: <code className="text-primary">/grades/{grade}/{week}/{pkg.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}</code>
+              <button className="ml-2 text-primary hover:underline text-xs" onClick={() => {
+                const s = pkg.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") ?? ""
+                navigator.clipboard.writeText(`${window.location.origin}/grades/${grade}/${week}/${s}`)
+                toast.success("Slug URL copied!")
+              }}>Copy</button>
+            </p>
+          )}
           <div className="mt-1 flex items-center gap-2">
             <Badge variant="secondary">Grade {grade}</Badge>
             <Badge

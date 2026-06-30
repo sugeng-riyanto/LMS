@@ -193,7 +193,7 @@ export default function SyllabusPlannerPage() {
     }
 
     try {
-      const { error } = await supabase.from("syllabus_planning").upsert({
+      const { error } = await (supabase.from("syllabus_planning") as any).upsert({
         grade: selectedGrade,
         week_number: selectedWeek,
         academic_year: "2026-2027",
@@ -202,8 +202,8 @@ export default function SyllabusPlannerPage() {
         opening_ideas: plan.opening_ideas,
         activity_questions: plan.activity_questions,
         problems: plan.problems,
-        calendar_status: events.find(e => e.event_type !== "holiday")?.event_type ?? "normal",
-        effective_days: events[0]?.effective_days ?? 5,
+        calendar_status: (events ?? []).find(e => e.event_type !== "holiday")?.event_type ?? "normal",
+        effective_days: (events ?? [])[0]?.effective_days ?? 5,
         status: "planned",
       })
 

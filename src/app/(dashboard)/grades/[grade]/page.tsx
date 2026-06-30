@@ -96,7 +96,7 @@ export default function GradePackagesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/grades/${grade}/${pkg.week}`}>
+                        <Link href={`/grades/${grade}/${pkg.week}/${(pkg.topic ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}>
                           <Button variant="outline" size="sm">
                             <Eye className="mr-1 h-3 w-3" />
                             View
