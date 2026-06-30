@@ -40,10 +40,12 @@ export default function GradingPage() {
   async function fetchData() {
     setLoading(true)
     try {
-      const [submissions, profiles] = await Promise.all([
-        fetch(`/api/teacher/grading?grade=${grade}&status=all`).then(r => r.json()).catch(() => []),
-        fetch("/api/profiles").then(r => r.json()).catch(() => []),
+      const [subRes, profRes] = await Promise.all([
+        fetch(`/api/teacher/grading?grade=${grade}&status=all`),
+        fetch("/api/profiles"),
       ])
+      const submissions = subRes.ok ? await subRes.json() : (console.error("Grading API:", subRes.status, await subRes.text().catch(() => "")), [])
+      const profiles = profRes.ok ? await profRes.json() : (console.error("Profiles API:", profRes.status), [])
       setWorks(submissions)
       // Extract unique students from submission data first
       const seen = new Set<string>()
@@ -141,6 +143,7 @@ export default function GradingPage() {
           <Badge variant={totalGraded === totalSubmissions && totalSubmissions > 0 ? "default" : "secondary"} className="text-xs">
             {totalGraded}/{totalSubmissions} graded
           </Badge>
+          <span className="text-xs text-muted-foreground">{works.length} submissions</span>
         </div>
       </div>
 
