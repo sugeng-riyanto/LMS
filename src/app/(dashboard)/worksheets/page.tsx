@@ -48,19 +48,29 @@ interface Worksheet {
 }
 
 function loadPDFjs(): Promise<any> {
+  const CDNS = [
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js",
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.js",
+    "https://unpkg.com/pdfjs-dist@4.9.155/build/pdf.min.js",
+  ]
+  const WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js"
   return new Promise((resolve, reject) => {
     if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib)
-    const timeout = setTimeout(() => reject(new Error("PDF.js CDN timeout")), 15000)
-    const s = document.createElement("script")
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"
-    s.onload = () => {
-      clearTimeout(timeout)
-      ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js"
-      resolve((window as any).pdfjsLib)
+    let attempt = 0
+    function tryLoad() {
+      if (attempt >= CDNS.length) return reject(new Error("PDF.js CDN unavailable — check internet connection"))
+      const s = document.createElement("script")
+      s.src = CDNS[attempt]
+      const t = setTimeout(() => { s.onload = null; s.onerror = null; attempt++; tryLoad() }, 10000)
+      s.onload = () => {
+        clearTimeout(t)
+        ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER
+        resolve((window as any).pdfjsLib)
+      }
+      s.onerror = () => { clearTimeout(t); attempt++; tryLoad() }
+      document.head.appendChild(s)
     }
-    s.onerror = () => { clearTimeout(timeout); reject(new Error("Failed to load PDF.js")) }
-    document.head.appendChild(s)
+    tryLoad()
   })
 }
 
