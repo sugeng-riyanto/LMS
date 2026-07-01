@@ -50,14 +50,16 @@ interface Worksheet {
 function loadPDFjs(): Promise<any> {
   return new Promise((resolve, reject) => {
     if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib)
+    const timeout = setTimeout(() => reject(new Error("PDF.js CDN timeout")), 15000)
     const s = document.createElement("script")
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"
     s.onload = () => {
-      (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+      clearTimeout(timeout)
+      ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js"
       resolve((window as any).pdfjsLib)
     }
-    s.onerror = reject
+    s.onerror = () => { clearTimeout(timeout); reject(new Error("Failed to load PDF.js")) }
     document.head.appendChild(s)
   })
 }
@@ -224,12 +226,7 @@ export default function WorksheetsPage() {
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
-    const hasPdfUrl = form.pdf_url && form.pdf_url.trim().length > 0
-    const hasPageImgs = pageImages.length > 0
-    if (!hasPdfUrl && !hasPageImgs) {
-      toast.error("Upload a PDF using the button above, or paste a PDF URL in the field below")
-      return
-    }
+    if (pageImages.length === 0) { toast.error("Upload a PDF first using the Choose PDF button"); return }
     setSaving(true)
     try {
       const additionalLinks = form.additional_links
@@ -244,15 +241,15 @@ export default function WorksheetsPage() {
         grade: Number(form.grade),
         week_number: form.week_number ? Number(form.week_number) : null,
         topic: form.topic || null,
-        pdf_url: hasPageImgs ? "" : form.pdf_url,
+        pdf_url: "",
         pdf_pages: Number(form.pdf_pages) || 1,
         media_links: additionalLinks,
         objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
         reference_pdf_url: form.reference_pdf_url || null,
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
+        page_images: pageImages,
       }
-      if (hasPageImgs) body.page_images = pageImages
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
       const method = editingId ? "PUT" : "POST"
@@ -520,17 +517,10 @@ export default function WorksheetsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Number of Pages</Label>
-                  <Input type="number" min={1} max={50} value={form.pdf_pages}
-                    onChange={e => updateForm({ pdf_pages: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Paste PDF URL (fallback) <span className="text-xs text-muted-foreground">(Google Drive, direct link — no annotation drawing, only text answers)</span></Label>
-                  <Input value={form.pdf_url} onChange={e => updateForm({ pdf_url: e.target.value })}
-                    placeholder="https://drive.google.com/file/d/... or https://example.com/file.pdf" />
-                </div>
+              <div className="space-y-2">
+                <Label>Number of Pages</Label>
+                <Input type="number" min={1} max={50} value={form.pdf_pages}
+                  onChange={e => updateForm({ pdf_pages: e.target.value })} />
               </div>
             </div>
 
