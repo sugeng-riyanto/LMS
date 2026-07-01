@@ -19,7 +19,7 @@ const COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#ec4899"
 export default function MyWeekPage() {
   const router = useRouter()
   const { profile } = useAuth()
-  const grade = profile?.grade ?? 0
+  const grade = profile?.grade_assigned ?? 0
   const thisWeek = getCurrentWeek()
   const { data: packages, isLoading } = usePackages({ grade, status: "published" })
   const pkg = packages?.find((p: any) => p.week === thisWeek)

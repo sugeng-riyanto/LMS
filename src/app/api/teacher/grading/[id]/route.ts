@@ -21,6 +21,11 @@ export async function PUT(
       graded_at: new Date().toISOString(),
     }
 
+    const validCategories = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
+    if (body.score_category && validCategories.includes(body.score_category)) {
+      updates.score_category = body.score_category
+    }
+
     const { data, error } = await (supabase.from("student_work") as any)
       .update(updates)
       .eq("id", id)
@@ -75,12 +80,16 @@ export async function POST(
       autoFeedback = autoFeedback ?? "Review the question and try again."
     }
 
+    const validCategories = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
     const updates: Record<string, unknown> = {
       score: Math.min(Math.max(autoScore, 0), work.max_score ?? 10),
       feedback: autoFeedback,
       teacher_id: user.id,
       status: "graded",
       graded_at: new Date().toISOString(),
+    }
+    if (body.score_category && validCategories.includes(body.score_category)) {
+      updates.score_category = body.score_category
     }
 
     const { data, error } = await (supabase.from("student_work") as any)

@@ -120,9 +120,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="rounded-xl border bg-card p-6">
-          <h2 className="mb-2 text-lg font-semibold">Grade {profile?.grade}</h2>
+          <h2 className="mb-2 text-lg font-semibold">Grade {profile?.grade_assigned}</h2>
           <p className="text-sm text-muted-foreground">
-            You are enrolled in Grade {profile?.grade}. Your weekly packages,
+            You are enrolled in Grade {profile?.grade_assigned}. Your weekly packages,
             journals, and pre-class work are available above.
           </p>
         </div>

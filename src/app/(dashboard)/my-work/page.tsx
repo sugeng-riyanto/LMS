@@ -110,7 +110,7 @@ const QUESTIONS = [
 export default function MyWorkPage() {
   const router = useRouter()
   const { profile } = useAuth()
-  const grade = profile?.grade ?? 0
+  const grade = profile?.grade_assigned ?? 0
   const week = getCurrentWeek()
   const { data: packages } = usePackages({ grade, status: "published" })
   const pkg = packages?.[0]

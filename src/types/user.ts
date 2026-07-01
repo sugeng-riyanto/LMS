@@ -4,7 +4,10 @@ export interface UserProfile {
   full_name: string;
   role: 'super_admin' | 'teacher' | 'lab_assistant' | 'student';
   avatar_url?: string;
-  grade?: number;
+  grade_assigned?: number | null;
+  phone_number?: string | null;
+  is_active?: boolean;
+  last_login_at?: string | null;
   created_at: string;
   updated_at: string;
 }

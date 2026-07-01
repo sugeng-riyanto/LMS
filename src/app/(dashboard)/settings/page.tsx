@@ -90,7 +90,7 @@ export default function SettingsPage() {
 
   function openEditDialog(user: UserProfile) {
     setEditingUser(user)
-    setEditForm({ role: user.role, grade: user.grade ?? 7 })
+    setEditForm({ role: user.role, grade: user.grade_assigned ?? 7 })
     setEditOpen(true)
   }
 
@@ -100,7 +100,7 @@ export default function SettingsPage() {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({ role: editForm.role, grade_assigned: editForm.grade }),
       })
       if (res.ok) {
         toast.success("User updated!")
@@ -449,7 +449,7 @@ export default function SettingsPage() {
                         <TableCell>
                           <Badge className={roleColors[user.role] ?? ""}>{ROLE_LABELS[user.role]}</Badge>
                         </TableCell>
-                        <TableCell>{user.grade ? `Grade ${user.grade}` : "-"}</TableCell>
+                        <TableCell>{user.grade_assigned ? `Grade ${user.grade_assigned}` : "-"}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
                             <Settings className="mr-1 h-3 w-3" />

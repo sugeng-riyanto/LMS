@@ -92,7 +92,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label>Grade</Label>
-                  <Input value={profile?.grade ? `Grade ${profile.grade}` : "-"} disabled className="bg-muted" />
+                  <Input value={profile?.grade_assigned ? `Grade ${profile.grade_assigned}` : "-"} disabled className="bg-muted" />
                 </div>
                 <div className="space-y-1">
                   <Label>Role</Label>

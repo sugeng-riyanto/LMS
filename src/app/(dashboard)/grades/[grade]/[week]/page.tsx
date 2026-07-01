@@ -246,18 +246,18 @@ export default function PackageDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Button variant="ghost" size="sm" onClick={() => router.push(`/grades/${grade}`)}>
             <ArrowLeft className="mr-1 h-4 w-4" />
             Grade {grade}
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             Week {week}: {pkg.title}
           </h1>
           {!slug && pkg.title && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              Slug: <code className="text-primary">/grades/{grade}/{week}/{pkg.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}</code>
+              Slug: <code className="text-primary">/grades/{grade}/{week}/{pkg.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}</code>
               <button className="ml-2 text-primary hover:underline text-xs" onClick={() => {
                 const s = pkg.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") ?? ""
                 navigator.clipboard.writeText(`${window.location.origin}/grades/${grade}/${week}/${s}`)
@@ -265,7 +265,7 @@ export default function PackageDetailPage() {
               }}>Copy</button>
             </p>
           )}
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">Grade {grade}</Badge>
             <Badge
               variant={
@@ -273,16 +273,14 @@ export default function PackageDetailPage() {
                   ? "default"
                   : pkg.status === "approved"
                     ? "secondary"
-                    : pkg.status === "pending_review"
-                      ? "outline"
-                      : "outline"
+                    : "outline"
               }
             >
               {pkg.status === "pending_review" ? "Pending Review" : pkg.status}
             </Badge>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/grades/${grade}/${week}/edit`}>
             <Button variant="outline" size="sm">
               <Edit className="mr-1 h-4 w-4" />
@@ -290,25 +288,27 @@ export default function PackageDetailPage() {
             </Button>
           </Link>
           {/* Tab-aware download: exports the full package content per format */}
-          {(["docx", "pdf", "md"] as const).map((fmt) => (
-            <Button key={fmt} variant="outline" size="sm" onClick={async () => {
-              try {
-                const res = await fetch(`/api/packages/${pkg.id}/export?format=${fmt}`)
-                if (!res.ok) { toast.error("Download failed"); return }
-                const blob = await res.blob()
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement("a")
-                const tab = activeTab === "lesson-plan" ? "lesson-plan" : activeTab === "wa-blast" ? "wa-blast" : activeTab === "answers" ? "answer-keys" : activeTab
-                a.href = url; a.download = `${tab}-G${grade}-W${week}-${todayStr}.${fmt === "docx" ? "docx" : fmt}`; a.click()
-                URL.revokeObjectURL(url)
-                toast.success(`${fmt.toUpperCase()} downloaded!`)
-              } catch { toast.error("Download failed") }
-            }}>
-              {fmt === "docx" ? <FileSpreadsheet className="mr-1 h-3 w-3" /> : fmt === "pdf" ? <FileText className="mr-1 h-3 w-3" /> : <FileType className="mr-1 h-3 w-3" />}
-              {fmt.toUpperCase()}
-            </Button>
-          ))}
-          <Button variant="default" size="sm" onClick={async () => {
+          <div className="hidden sm:flex items-center gap-1">
+            {(["docx", "pdf", "md"] as const).map((fmt) => (
+              <Button key={fmt} variant="outline" size="sm" onClick={async () => {
+                try {
+                  const res = await fetch(`/api/packages/${pkg.id}/export?format=${fmt}`)
+                  if (!res.ok) { toast.error("Download failed"); return }
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  const tab = activeTab === "lesson-plan" ? "lesson-plan" : activeTab === "wa-blast" ? "wa-blast" : activeTab === "answers" ? "answer-keys" : activeTab
+                  a.href = url; a.download = `${tab}-G${grade}-W${week}-${todayStr}.${fmt === "docx" ? "docx" : fmt}`; a.click()
+                  URL.revokeObjectURL(url)
+                  toast.success(`${fmt.toUpperCase()} downloaded!`)
+                } catch { toast.error("Download failed") }
+              }}>
+                {fmt === "docx" ? <FileSpreadsheet className="mr-1 h-3 w-3" /> : fmt === "pdf" ? <FileText className="mr-1 h-3 w-3" /> : <FileType className="mr-1 h-3 w-3" />}
+                {fmt.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+          <Button variant="default" size="sm" className="hidden sm:inline-flex" onClick={async () => {
             toast.success("Downloading all formats...")
             const fmts = ["docx", "pdf", "md"]
             for (const fmt of fmts) {
@@ -330,7 +330,7 @@ export default function PackageDetailPage() {
           <div className="relative" ref={exportRef}>
             <Button variant="outline" size="sm" onClick={() => setExportOpen(!exportOpen)}>
               <FileDown className="mr-1 h-4 w-4" />
-              More
+              {exportOpen ? "Close" : "Export"}
             </Button>
             {exportOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border bg-background p-1 shadow-lg">

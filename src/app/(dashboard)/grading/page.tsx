@@ -72,18 +72,25 @@ export default function GradingPage() {
     setSubmissions((prev: any[]) => prev.map((w: any) => w.id === workId ? { ...w, _feedback: val } : w))
   }
 
+  function updateCategory(workId: string, val: string) {
+    setSubmissions((prev: any[]) => prev.map((w: any) => w.id === workId ? { ...w, _score_category: val } : w))
+  }
+
   async function handleGrade(workId: string) {
     const w = submissions.find((x: any) => x.id === workId)
     if (!w) return
     setSaving(workId)
     try {
+      const body: Record<string, unknown> = {
+        score: w._score !== undefined ? parseFloat(w._score) : w.score,
+        feedback: w._feedback !== undefined ? w._feedback : w.feedback,
+      }
+      const cat = w._score_category ?? w.score_category
+      if (cat) body.score_category = cat
       const res = await fetch(`/api/teacher/grading/${workId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          score: w._score !== undefined ? parseFloat(w._score) : w.score,
-          feedback: w._feedback !== undefined ? w._feedback : w.feedback,
-        }),
+        body: JSON.stringify(body),
       })
       if (res.ok) { toast.success("Graded!"); fetchData() }
       else { const e = await res.json().catch(() => ({ error: "Error" })); toast.error(e.error) }
@@ -94,7 +101,11 @@ export default function GradingPage() {
   async function handleAutoGrade(workId: string) {
     setSaving(workId)
     try {
-      const res = await fetch(`/api/teacher/grading/${workId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
+      const w = submissions.find((x: any) => x.id === workId)
+      const body: Record<string, unknown> = {}
+      const cat = w?._score_category ?? w?.score_category
+      if (cat) body.score_category = cat
+      const res = await fetch(`/api/teacher/grading/${workId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       if (res.ok) { toast.success("Auto-graded!"); fetchData() }
       else { const e = await res.json().catch(() => ({ error: "Error" })); toast.error(e.error) }
     } catch (e) { toast.error(e instanceof Error ? e.message : "Error") }
@@ -192,18 +203,32 @@ export default function GradingPage() {
                                 : <pre className="whitespace-pre-wrap">{work.answer_text || "(blank)"}</pre>}
                             </div>
 
-                            {/* Score + Feedback */}
-                            <div className="grid grid-cols-3 gap-2">
+                            {/* Score + Feedback + Category */}
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                               <div className="space-y-1">
                                 <Label className="text-[10px]">Score</Label>
                                 <Input type="number" min={0} max={10} step={0.5} value={scoreVal}
                                   onChange={(e) => updateScore(work.id, e.target.value)}
                                   className="h-8 text-xs" />
                               </div>
-                              <div className="col-span-2 space-y-1">
+                              <div className="sm:col-span-2 space-y-1">
                                 <Label className="text-[10px]">Feedback</Label>
                                 <Textarea value={fbVal} onChange={(e) => updateFeedback(work.id, e.target.value)}
                                   rows={1} className="h-8 text-xs resize-none" placeholder="Quick feedback..." />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">Category</Label>
+                                <select value={work._score_category ?? work.score_category ?? ""}
+                                  onChange={(e) => updateCategory(work.id, e.target.value)}
+                                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs">
+                                  <option value="">Auto-detect</option>
+                                  <option value="classwork">Classwork</option>
+                                  <option value="unit_test">Unit Test</option>
+                                  <option value="project">Project</option>
+                                  <option value="homework">Homework</option>
+                                  <option value="mid_semester">Mid Semester</option>
+                                  <option value="final_semester">Final Semester</option>
+                                </select>
                               </div>
                             </div>
 

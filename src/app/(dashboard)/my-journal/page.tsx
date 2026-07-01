@@ -60,7 +60,7 @@ export default function MyJournalPage() {
     try {
       const body = {
         ...form,
-        grade: profile.grade,
+        grade: profile.grade_assigned,
       }
       let res: Response
       if (editingId) {

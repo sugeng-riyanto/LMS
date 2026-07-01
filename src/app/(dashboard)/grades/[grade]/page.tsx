@@ -38,7 +38,6 @@ export default function GradePackagesPage() {
         grade,
         week: CURRENT_WEEK,
         title: `Grade ${grade} - Week ${CURRENT_WEEK}`,
-        subject: "Physics",
       })
       toast.success("Package created for current week!")
     } catch {
@@ -48,17 +47,17 @@ export default function GradePackagesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Grade {grade}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Grade {grade}</h1>
           <p className="text-muted-foreground">Weekly packages for Grade {grade}</p>
         </div>
         {canEdit && needsCurrentWeek && (
-          <Button onClick={handleGenerateCurrent}>
+          <Button onClick={handleGenerateCurrent} className="w-full sm:w-auto">
             <Plus className="mr-1 h-4 w-4" />
             Generate Week {CURRENT_WEEK}
           </Button>

@@ -48,9 +48,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    const allowed = ["academic_year", "grade", "week_number", "topic_taught", "misconceptions", "average_classwork_score", "students_struggling", "students_advanced", "lab_equipment_status", "notes_for_next_week"]
+    const sanitized: Record<string, unknown> = { created_by: user.id }
+    for (const field of allowed) {
+      if (body[field] !== undefined) sanitized[field] = body[field]
+    }
+
     const { data, error } = await (supabase
       .from("class_memory") as any)
-      .insert({ ...body, created_by: user.id })
+      .insert(sanitized)
       .select()
       .single()
 

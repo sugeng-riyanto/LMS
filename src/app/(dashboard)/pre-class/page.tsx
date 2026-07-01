@@ -22,7 +22,7 @@ interface QuizAnswer {
 
 export default function PreClassPage() {
   const { profile } = useAuth()
-  const grade = profile?.grade ?? 0
+  const grade = profile?.grade_assigned ?? 0
   const { data: packages } = usePackages({ grade, status: "published" })
 
   const thisWeek = 1
