@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
-import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil } from "lucide-react"
+import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
@@ -54,6 +54,8 @@ export default function WorksheetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState("")
   const [form, setForm] = useState({
     title: "",
     grade: "10",
@@ -203,6 +205,26 @@ export default function WorksheetsPage() {
     setEditingId(null)
     setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
     setSelectedObjectives(new Set())
+    setUploadedFileName("")
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.type !== "application/pdf") { toast.error("Only PDF files allowed"); return }
+    if (file.size > 10 * 1024 * 1024) { toast.error("File too large (max 10MB)"); return }
+    setUploading(true)
+    setUploadedFileName(file.name)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      const data = await res.json()
+      updateForm({ pdf_url: data.url })
+      toast.success("PDF uploaded!")
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed") }
+    finally { setUploading(false); if (e.target) e.target.value = "" }
   }
 
   if (!canManage) return <p className="p-8 text-center text-muted-foreground">Access denied.</p>
@@ -308,11 +330,23 @@ export default function WorksheetsPage() {
                 <FileText className="h-4 w-4 text-blue-600" />
                 Worksheet PDF <span className="text-xs font-normal text-muted-foreground">(for annotation canvas)</span>
               </h3>
+              <div className="space-y-2">
+                <Label>Upload PDF file *</Label>
+                <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" onClick={() => document.getElementById("pdf-upload-input")?.click()} disabled={uploading}>
+                    {uploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
+                    {uploading ? "Uploading..." : "Choose PDF File"}
+                  </Button>
+                  <input id="pdf-upload-input" type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleUpload} />
+                  {form.pdf_url && !uploading && <span className="flex items-center gap-1 text-xs text-green-600"><Check className="h-3 w-3" /> Ready</span>}
+                  {uploadedFileName && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{uploadedFileName}</span>}
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>PDF URL *</Label>
+                  <Label>Or paste PDF URL</Label>
                   <Input value={form.pdf_url} onChange={e => updateForm({ pdf_url: e.target.value })}
-                    placeholder="docs.google.com/document/d/... or direct PDF" />
+                    placeholder="docs.google.com/document/d/... or direct PDF link" />
                 </div>
                 <div className="space-y-2">
                   <Label>Number of Pages</Label>
