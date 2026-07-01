@@ -493,10 +493,10 @@ export default function SyllabusPlannerPage() {
       if (gDrive) {
         const fileId = gDrive[1]
         if (type === "slides") return `https://docs.google.com/presentation/d/${fileId}/embed`
-        // PDF: use Google Docs Viewer (works on all domains including localhost)
-        return `https://docs.google.com/viewer?url=https://drive.google.com/uc?export=download&id=${fileId}&embedded=true`
+        // PDF: use direct Google Drive preview (works on HTTPS)
+        return `https://drive.google.com/file/d/${fileId}/preview`
       }
-      if (url.match(/\.pdf/i)) return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+      if (url.match(/\.pdf/i)) return url
       return null
     }
     if (type === "audio") return url
@@ -542,12 +542,26 @@ export default function SyllabusPlannerPage() {
       ? gradeStudents.map((n: string) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")
       : ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"].map(n => `<option value="${n}">${n}</option>`).join("")
 
+    function getPublicEmbedUrl(url: string, type: string): string | null {
+      const gDrive = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+      if (gDrive) {
+        const fileId = gDrive[1]
+        if (type === "slides") return `https://docs.google.com/presentation/d/${fileId}/embed`
+        if (type === "pdf") return `https://drive.google.com/file/d/${fileId}/preview`
+      }
+      if (type === "youtube") {
+        const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/)
+        return m ? `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0` : null
+      }
+      return null
+    }
+
     // Render media sources — always show embed with click-to-load
     function renderSource(src: { url: string; type: string; title: string }) {
-      const embedUrl = getEmbedUrl(src.url, src.type)
+      const embedUrl = getPublicEmbedUrl(src.url, src.type)
       const videoId = src.type === "youtube" ? (src.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/) || [])[1] : null
 
-      // YouTube: thumbnail with click-to-play + fallback link
+      // YouTube: thumbnail with click-to-play
       if (src.type === "youtube" && videoId) {
         const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`
         return `<div class="mt-3 rounded-lg overflow-hidden border bg-black relative" style="aspect-ratio:16/9">
