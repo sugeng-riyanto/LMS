@@ -13,10 +13,6 @@ function getGoogleDriveEmbedUrl(url: string): string | null {
   return null
 }
 
-function isGoogleDriveUrl(url: string): boolean {
-  return /drive\.google\.com/.test(url)
-}
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -35,7 +31,6 @@ export async function GET(
     const grade = ws.grade
     const pages = ws.pdf_pages || 1
     const pdfUrl = ws.pdf_url
-    const isGDrive = isGoogleDriveUrl(pdfUrl)
     const directPdfUrl = getGoogleDriveDirectUrl(pdfUrl)
     const embedPdfUrl = getGoogleDriveEmbedUrl(pdfUrl)
     const mediaLinks: Array<{ type: string; url: string; title: string }> = ws.media_links || []
@@ -122,19 +117,8 @@ export async function GET(
     const allMedia = [...extraMedia, ...mediaLinks]
     const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
 
-    // For Google Drive URLs: use embed directly (PDF.js CORS blocked by Google Drive)
-    // For direct PDF URLs: use PDF.js for annotation canvas
-    let pdfContentHtml = ""
-    if (isGDrive && embedPdfUrl) {
-      pdfContentHtml = `<div class="rounded-xl border bg-white overflow-hidden" style="aspect-ratio:1/1.4;max-height:90vh">
-        <iframe src="${esc(embedPdfUrl)}" class="w-full h-full" allowfullscreen style="border:0"></iframe>
-      </div>
-      <div class="px-4 py-3 space-y-2 border-t bg-gray-50/50 mt-1">
-        <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="1" placeholder="Type your answer here (optional)"></textarea>
-      </div>`
-    } else {
-      // Direct PDF URL — use PDF.js with annotation canvases
-      const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
+    // Page-per-page structure — PDF.js try dulu, fallback ke Google Drive embed
+    const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden" data-page="${i + 1}">
   <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
     <span>Page ${i + 1} of ${pages}</span>
@@ -163,8 +147,6 @@ export async function GET(
     </div>
   </div>
 </div>`).join("")
-      pdfContentHtml = pdfPagesHtml
-    }
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -211,7 +193,7 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 </div>` : ""}
 
 <div class="bg-white rounded-2xl shadow-sm border p-6">
-  ${pdfContentHtml}
+  ${pdfPagesHtml}
 </div>
 
 <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
@@ -247,7 +229,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const PDF_URL = ${JSON.stringify(directPdfUrl)}
 const PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 const PDF_PAGES = ${pages}
-const IS_GDRIVE = ${isGDrive}
 
 var CS = {}
 
@@ -335,7 +316,7 @@ function handlePrint() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  if (!IS_GDRIVE) loadPDF()
+  loadPDF()
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {

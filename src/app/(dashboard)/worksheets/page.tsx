@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
-import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText } from "lucide-react"
+import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
@@ -52,6 +52,7 @@ export default function WorksheetsPage() {
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     title: "",
@@ -136,28 +137,31 @@ export default function WorksheetsPage() {
           })
         : []
 
-      const res = await fetch("/api/worksheets", {
-        method: "POST",
+      const body = {
+        title: form.title,
+        grade: Number(form.grade),
+        week_number: form.week_number ? Number(form.week_number) : null,
+        topic: form.topic || null,
+        pdf_url: form.pdf_url,
+        pdf_pages: Number(form.pdf_pages) || 1,
+        media_links: additionalLinks,
+        objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
+        reference_pdf_url: form.reference_pdf_url || null,
+        theory_video_url: form.theory_video_url || null,
+        theory_video_title: form.theory_video_title || null,
+      }
+
+      const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
+      const method = editingId ? "PUT" : "POST"
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title,
-          grade: Number(form.grade),
-          week_number: form.week_number ? Number(form.week_number) : null,
-          topic: form.topic || null,
-          pdf_url: form.pdf_url,
-          pdf_pages: Number(form.pdf_pages) || 1,
-          media_links: additionalLinks,
-          objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
-          reference_pdf_url: form.reference_pdf_url || null,
-          theory_video_url: form.theory_video_url || null,
-          theory_video_title: form.theory_video_title || null,
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success("Worksheet created!")
-      setShowForm(false)
-      setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
-      setSelectedObjectives(new Set())
+      toast.success(editingId ? "Worksheet updated!" : "Worksheet created!")
+      handleCancel()
       load()
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed") }
     finally { setSaving(false) }
@@ -172,6 +176,35 @@ export default function WorksheetsPage() {
     } catch { toast.error("Failed") }
   }
 
+  function handleEdit(ws: Worksheet) {
+    const addLinks = (ws.media_links || []).map(m => `${m.url} | ${m.title} | ${m.type}`).join("\n")
+    setForm({
+      title: ws.title,
+      grade: String(ws.grade),
+      week_number: String(ws.week_number || ""),
+      topic: ws.topic || "",
+      pdf_url: ws.pdf_url,
+      pdf_pages: String(ws.pdf_pages || 1),
+      objectives: "",
+      reference_pdf_url: ws.reference_pdf_url || "",
+      theory_video_url: ws.theory_video_url || "",
+      theory_video_title: ws.theory_video_title || "",
+      additional_links: addLinks,
+    })
+    const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
+    setSelectedObjectives(new Set(savedObjectives))
+    setEditingId(ws.id)
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function handleCancel() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
+    setSelectedObjectives(new Set())
+  }
+
   if (!canManage) return <p className="p-8 text-center text-muted-foreground">Access denied.</p>
 
   return (
@@ -181,14 +214,17 @@ export default function WorksheetsPage() {
           <h1 className="text-2xl font-bold">Shared Worksheets</h1>
           <p className="text-sm text-muted-foreground">Upload PDF worksheets for students to annotate online</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => showForm ? handleCancel() : setShowForm(true)}>
           <Plus className="mr-1 h-4 w-4" /> {showForm ? "Close" : "New Worksheet"}
         </Button>
       </div>
 
       {showForm && (
         <Card>
-          <CardContent className="pt-6 space-y-5">
+          <CardHeader>
+            <CardTitle className="text-lg">{editingId ? "Edit Worksheet" : "New Worksheet"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-5">
             {/* Row 1: Grade + Week */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -327,7 +363,7 @@ export default function WorksheetsPage() {
 
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              {saving ? "Saving..." : "Save Worksheet"}
+              {saving ? "Saving..." : editingId ? "Update Worksheet" : "Save Worksheet"}
             </Button>
           </CardContent>
         </Card>
@@ -349,9 +385,14 @@ export default function WorksheetsPage() {
                       <CardTitle className="text-base">{ws.title}</CardTitle>
                       <p className="text-xs text-muted-foreground mt-0.5">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(ws.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(ws)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(ws.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
