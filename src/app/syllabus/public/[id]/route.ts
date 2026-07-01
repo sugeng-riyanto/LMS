@@ -203,7 +203,7 @@ ${srcList.map(s => renderMedia(s)).join("")}
 </div>
 
 <div class="flex flex-wrap gap-3 pt-4 no-print">
-<button onclick="window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
+<button onclick="if(!document.getElementById('student-name').value){alert('Please select your Full Name before printing.');return false}window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
 <button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All</button>
 </div>
 
