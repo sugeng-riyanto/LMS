@@ -31,8 +31,6 @@ export async function GET(
     const grade = ws.grade
     const pages = ws.pdf_pages || 1
     const pdfUrl = ws.pdf_url || ""
-    const pageImages: string[] = ws.page_images || []
-    const hasPageImages = pageImages.length > 0
     const directPdfUrl = getGoogleDriveDirectUrl(pdfUrl)
     const embedPdfUrl = getGoogleDriveEmbedUrl(pdfUrl)
     const mediaLinks: Array<{ type: string; url: string; title: string }> = ws.media_links || []
@@ -119,151 +117,8 @@ export async function GET(
     const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
 
     // Generate page HTML — use pageImages if available, else PDF.js/embed fallback
-    let pageContentHtml: string
-    let scriptHtml: string
-
-    if (hasPageImages) {
-      // Page images rendered as <img> — no PDF.js needed
-      const imgPagesHtml = Array.from({ length: pageImages.length }, (_, i) => `
-<div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden">
-  <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
-    <span>Page ${i + 1} of ${pageImages.length}</span>
-    <span class="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
-  </div>
-  <div class="relative w-full">
-    <img src="${esc(pageImages[i])}" class="w-full" alt="Page ${i + 1}" style="display:block" />
-    <canvas class="annotation-canvas absolute inset-0 w-full h-full" data-page="${i + 1}"></canvas>
-  </div>
-  <div class="px-4 py-3 space-y-2 border-t bg-gray-50/50">
-    <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)"></textarea>
-    <div class="flex flex-wrap items-center gap-1.5 no-print">
-      <select class="tool-size text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
-        <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option>
-      </select>
-      <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen">✏️ Pen</button>
-      <button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser">🧹 Eraser</button>
-      <button class="tool-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}">🗑️ Clear</button>
-      <select class="tool-color text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
-        <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
-      </select>
-      <span class="text-xs text-gray-400 ml-1" id="mode-label-${i + 1}">✏️ Drawing</span>
-    </div>
-  </div>
-</div>`).join("")
-      pageContentHtml = imgPagesHtml
-      scriptHtml = `<script>
-const HAS_IMAGES = true
-const PAGE_COUNT = ${pageImages.length}
-
-var CS = {}
-
-function initAnnotation(page) {
-  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
-  if (!c) return
-  var parent = c.parentElement
-  c.width = parent.offsetWidth
-  c.height = parent.offsetHeight
-  var ctx = c.getContext('2d')
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
-
-  function p(e) {
-    var r = c.getBoundingClientRect()
-    var s = c.width / r.width
-    var si = c.height / r.height
-    var t = e.touches ? e.touches[0] : e
-    return { x: (t.clientX - r.left) * s, y: (t.clientY - r.top) * si }
-  }
-
-  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; s.drawing = true; var o = p(e); s.last = o; s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size }
-  function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() } s.last = o }
-  function sp() { if (CS[page]) { CS[page].drawing = false; CS[page].last = null } }
-
-  c.addEventListener('mousedown', st); c.addEventListener('mousemove', mv); c.addEventListener('mouseup', sp); c.addEventListener('mouseleave', sp)
-  c.addEventListener('touchstart', st, { passive: false }); c.addEventListener('touchmove', mv, { passive: false }); c.addEventListener('touchend', sp)
-}
-
-function clearPage(page) {
-  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
-  if (!c) return
-  var ctx = c.getContext('2d')
-  ctx.clearRect(0, 0, c.width, c.height)
-  CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
-}
-
-function clearAll() { for (var i = 1; i <= PAGE_COUNT; i++) clearPage(i) }
-
-function handlePrint() {
-  var name = document.getElementById('student-name')?.value?.trim()
-  if (!name) { alert('Please select your Full Name before printing.'); return }
-  window.print()
-}
-
-function resizeAnnotations() {
-  for (var i = 1; i <= PAGE_COUNT; i++) {
-    var c = document.querySelector('.annotation-canvas[data-page="' + i + '"]')
-    if (!c) continue
-    var parent = c.parentElement
-    c.width = parent.offsetWidth
-    c.height = parent.offsetHeight
-    if (CS[i]) CS[i].ctx = c.getContext('2d')
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  resizeAnnotations()
-  for (var i = 1; i <= PAGE_COUNT; i++) initAnnotation(i)
-  setTimeout(resizeAnnotations, 800)
-  window.addEventListener('load', resizeAnnotations)
-
-  document.querySelectorAll('.tool-pen').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '✏️ Drawing'
-      document.querySelectorAll('.tool-pen[data-target="' + target + '"],.tool-eraser[data-target="' + target + '"]').forEach(function(x) { x.style.background = '#fff'; x.style.borderColor = '#d1d5db' })
-      this.style.background = '#dbeafe'; this.style.borderColor = '#3b82f6'
-    })
-  })
-
-  document.querySelectorAll('.tool-eraser').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = 'rgba(0,0,0,0)'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3 }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🧹 Eraser'
-      document.querySelectorAll('.tool-pen[data-target="' + target + '"],.tool-eraser[data-target="' + target + '"]').forEach(function(x) { x.style.background = '#fff'; x.style.borderColor = '#d1d5db' })
-      this.style.background = '#fef3c7'; this.style.borderColor = '#f59e0b'
-    })
-  })
-
-  document.querySelectorAll('.tool-clear').forEach(function(b) {
-    b.addEventListener('click', function() { clearPage(parseInt(this.dataset.target)) })
-  })
-
-  document.querySelectorAll('.tool-size').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].size = parseInt(this.value) })
-  })
-
-  document.querySelectorAll('.tool-color').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].color = this.value; CS[t].ctx.strokeStyle = this.value } })
-  })
-
-  document.querySelectorAll('.yt-player').forEach(function(el) {
-    el.addEventListener('click', function() {
-      var e = this.dataset.embed
-      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen style="border:0"></iframe>'
-    })
-  })
-
-  document.querySelectorAll('.doc-preview').forEach(function(el) {
-    el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
-  })
-})
-</script>`
-    } else {
-      // PDF.js path — for direct PDF URLs or Google Drive fallback
-      const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
+    // PDF.js path — render PDF to canvas, annotation overlay
+    const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden" data-page="${i + 1}">
   <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
     <span>Page ${i + 1} of ${pages}</span>
@@ -292,8 +147,83 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>`).join("")
-      pageContentHtml = pdfPagesHtml
-      scriptHtml = `<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"></script>
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/api/favicon" type="image/svg+xml" />
+<title>Worksheet: ${esc(ws.title)} - Grade ${grade}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
+@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
+canvas{max-width:100%;height:auto}
+.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block}
+.pdf-page-wrapper{position:relative}
+.pdf-canvas{width:100%!important;height:auto!important;display:block}
+.answer-text{-webkit-user-select:text;user-select:text}
+</style>
+</head>
+<body>
+<div class="max-w-5xl mx-auto p-4 md:p-6 space-y-4">
+
+<div class="bg-white rounded-2xl shadow-sm border p-6">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold">${esc(ws.title)}</h1>
+      <p class="text-gray-500 mt-1">Grade ${grade}${ws.week_number ? ` · Week ${ws.week_number}` : ""}${ws.topic ? ` · ${esc(ws.topic)}` : ""} · ${dateStr}</p>
+    </div>
+    <div class="shrink-0 text-center">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${origin}/worksheet/public/${id}`)}" alt="QR" class="w-20 h-20 mx-auto rounded border" />
+      <p class="text-[10px] text-gray-400 mt-1">Scan to open worksheet</p>
+    </div>
+  </div>
+</div>
+
+${objectivesText ? `<div class="bg-white rounded-2xl shadow-sm border p-6">
+  <h2 class="font-semibold text-gray-700 mb-2">Learning Objectives</h2>
+  <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
+    ${objectivesText.split('\n').filter(Boolean).map(o => `<li>${esc(o)}</li>`).join('')}
+  </ul>
+</div>` : ""}
+
+${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
+  <h2 class="font-semibold text-gray-700">Reference Materials</h2>
+  ${mediaHtml}
+</div>` : ""}
+
+<div class="bg-white rounded-2xl shadow-sm border p-6">
+  ${pdfPagesHtml}
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+  <h3 class="font-semibold text-gray-700">Student Information</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+      <select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+        <option value="">Select student...</option>
+        ${studentOptions}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
+      <input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+    </div>
+  </div>
+</div>
+
+<div class="flex flex-wrap gap-3 no-print">
+  <button onclick="handlePrint()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
+  <button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All Drawings</button>
+</div>
+
+<div class="text-center text-sm text-gray-400 py-4">
+  <p>Generated by Physics Command Center - SHB Modernhill</p>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js'
 
@@ -383,7 +313,7 @@ function handlePrint() {
 
 document.addEventListener('DOMContentLoaded', function() {
   loadPDF()
-  // ... tool event listeners ...
+
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
@@ -421,85 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
     el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
   })
 })
-</script>`
-    }
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="/api/favicon" type="image/svg+xml" />
-<title>Worksheet: ${esc(ws.title)} - Grade ${grade}</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
-@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
-canvas{max-width:100%;height:auto}
-.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block}
-.pdf-page-wrapper{position:relative}
-.pdf-canvas{width:100%!important;height:auto!important;display:block}
-.answer-text{-webkit-user-select:text;user-select:text}
-</style>
-</head>
-<body>
-<div class="max-w-5xl mx-auto p-4 md:p-6 space-y-4">
-
-<div class="bg-white rounded-2xl shadow-sm border p-6">
-  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-    <div>
-      <h1 class="text-2xl md:text-3xl font-bold">${esc(ws.title)}</h1>
-      <p class="text-gray-500 mt-1">Grade ${grade}${ws.week_number ? ` · Week ${ws.week_number}` : ""}${ws.topic ? ` · ${esc(ws.topic)}` : ""} · ${dateStr}</p>
-    </div>
-    <div class="shrink-0 text-center">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${origin}/worksheet/public/${id}`)}" alt="QR" class="w-20 h-20 mx-auto rounded border" />
-      <p class="text-[10px] text-gray-400 mt-1">Scan to open worksheet</p>
-    </div>
-  </div>
-</div>
-
-${objectivesText ? `<div class="bg-white rounded-2xl shadow-sm border p-6">
-  <h2 class="font-semibold text-gray-700 mb-2">Learning Objectives</h2>
-  <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
-    ${objectivesText.split('\n').filter(Boolean).map(o => `<li>${esc(o)}</li>`).join('')}
-  </ul>
-</div>` : ""}
-
-${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
-  <h2 class="font-semibold text-gray-700">Reference Materials</h2>
-  ${mediaHtml}
-</div>` : ""}
-
-<div class="bg-white rounded-2xl shadow-sm border p-6">
-  ${pageContentHtml}
-</div>
-
-<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-  <h3 class="font-semibold text-gray-700">Student Information</h3>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-      <select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
-        <option value="">Select student...</option>
-        ${studentOptions}
-      </select>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
-      <input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" />
-    </div>
-  </div>
-</div>
-
-<div class="flex flex-wrap gap-3 no-print">
-  <button onclick="handlePrint()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
-  <button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All Drawings</button>
-</div>
-
-<div class="text-center text-sm text-gray-400 py-4">
-  <p>Generated by Physics Command Center - SHB Modernhill</p>
-</div>
-</div>
-
-${scriptHtml}
+</script>
 </body></html>`
 
     return new NextResponse(html, {

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
-import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check, ImageIcon } from "lucide-react"
+import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
@@ -38,40 +38,12 @@ interface Worksheet {
   topic: string | null
   pdf_url: string
   pdf_pages: number
-  page_images: string[] | null
   media_links: { type: string; url: string; title: string }[]
   objectives: string | null
   reference_pdf_url: string | null
   theory_video_url: string | null
   theory_video_title: string | null
   created_at: string
-}
-
-function loadPDFjs(): Promise<any> {
-  const CDNS = [
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js",
-    "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.9.155/build/pdf.min.js",
-    "https://unpkg.com/pdfjs-dist@4.9.155/build/pdf.min.js",
-  ]
-  const WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js"
-  return new Promise((resolve, reject) => {
-    if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib)
-    let attempt = 0
-    function tryLoad() {
-      if (attempt >= CDNS.length) return reject(new Error("PDF.js CDN unavailable — check internet connection"))
-      const s = document.createElement("script")
-      s.src = CDNS[attempt]
-      const t = setTimeout(() => { s.onload = null; s.onerror = null; attempt++; tryLoad() }, 10000)
-      s.onload = () => {
-        clearTimeout(t)
-        ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER
-        resolve((window as any).pdfjsLib)
-      }
-      s.onerror = () => { clearTimeout(t); attempt++; tryLoad() }
-      document.head.appendChild(s)
-    }
-    tryLoad()
-  })
 }
 
 export default function WorksheetsPage() {
@@ -83,10 +55,8 @@ export default function WorksheetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [converting, setConverting] = useState(false)
-  const [convertProgress, setConvertProgress] = useState("")
+  const [uploading, setUploading] = useState(false)
   const [uploadedFileName, setUploadedFileName] = useState("")
-  const [pageImages, setPageImages] = useState<string[]>([])
   const [form, setForm] = useState({
     title: "",
     grade: "10",
@@ -159,90 +129,9 @@ export default function WorksheetsPage() {
 
   useEffect(() => { load() }, [])
 
-  useEffect(() => {
-    if (pageImages.length === 0) return
-    const previewData: Record<number, any> = {}
-    const wrap = document.querySelector(".preview-page:first-child")?.closest(".space-y-4")
-    if (!wrap) return
-
-    function initPreview(i: number) {
-      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
-      if (!c) return
-      const parent = c.parentElement
-      if (!parent) return
-      c.width = parent.offsetWidth || 800
-      c.height = parent.offsetHeight || 600
-      const ctx = c.getContext("2d")!
-      ctx.lineCap = "round"
-      ctx.lineJoin = "round"
-      previewData[i] = { ctx, mode: "pen", size: 5, color: "#1a1a2e", drawing: false, last: null }
-    }
-
-    function getPos(e: MouseEvent | TouchEvent, c: HTMLCanvasElement) {
-      const r = c.getBoundingClientRect()
-      const t = "touches" in e ? e.touches[0] : e
-      return { x: (t.clientX - r.left) * (c.width / r.width), y: (t.clientY - r.top) * (c.height / r.height) }
-    }
-
-    function setupCanvas(i: number) {
-      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
-      if (!c) return
-      initPreview(i)
-      const st = (e: Event) => { e.preventDefault(); const d = previewData[i]; if (!d) return; d.drawing = true; const o = getPos(e as any, c); d.last = o; d.ctx.beginPath(); d.ctx.moveTo(o.x, o.y); d.ctx.strokeStyle = d.color; d.ctx.lineWidth = d.size }
-      const mv = (e: Event) => { const d = previewData[i]; if (!d || !d.drawing) return; e.preventDefault(); const o = getPos(e as any, c); if (d.last) { d.ctx.beginPath(); d.ctx.moveTo(d.last.x, d.last.y); d.ctx.lineTo(o.x, o.y); d.ctx.stroke() } d.last = o }
-      const sp = () => { const d = previewData[i]; if (d) { d.drawing = false; d.last = null } }
-      c.addEventListener("mousedown", st); c.addEventListener("mousemove", mv); c.addEventListener("mouseup", sp); c.addEventListener("mouseleave", sp)
-      c.addEventListener("touchstart", st as any, { passive: false }); c.addEventListener("touchmove", mv as any, { passive: false }); c.addEventListener("touchend", sp)
-    }
-
-    function clearPage(i: number) {
-      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
-      if (!c) return
-      c.getContext("2d")?.clearRect(0, 0, c.width, c.height)
-      initPreview(i)
-    }
-
-    for (let i = 1; i <= pageImages.length; i++) {
-      const img = document.querySelector(`.preview-page[data-page="${i}"] img`) as HTMLImageElement | null
-      if (img) {
-        if (img.complete) setupCanvas(i)
-        else img.onload = () => setupCanvas(i)
-      }
-    }
-
-    const h = (sel: string, fn: (i: number, e: Event) => void) => {
-      document.querySelectorAll(sel).forEach(el => el.addEventListener("click", (e) => fn(Number((el as HTMLElement).dataset.previewTarget), e)))
-    }
-    h(".preview-pen", (i) => { const d = previewData[i]; if (d) { d.mode = "pen"; d.ctx.strokeStyle = d.color; d.ctx.lineWidth = d.size; d.ctx.globalCompositeOperation = "source-over" } })
-    h(".preview-eraser", (i) => { const d = previewData[i]; if (d) { d.mode = "eraser"; d.ctx.strokeStyle = "rgba(0,0,0,0)"; d.ctx.lineWidth = d.size * 3; d.ctx.globalCompositeOperation = "destination-out" } })
-    h(".preview-clear", (i) => clearPage(i))
-    document.querySelectorAll(".preview-size").forEach(el => el.addEventListener("change", () => { const d = previewData[Number((el as HTMLElement).dataset.previewTarget)]; if (d) d.size = Number((el as HTMLSelectElement).value) }))
-    document.querySelectorAll(".preview-color").forEach(el => el.addEventListener("change", () => { const d = previewData[Number((el as HTMLElement).dataset.previewTarget)]; if (d) { d.color = (el as HTMLSelectElement).value; d.ctx.strokeStyle = d.color } }))
-
-    function resize() {
-      for (let i = 1; i <= pageImages.length; i++) {
-        const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
-        if (!c) continue
-        const p = c.parentElement
-        if (!p) continue
-        c.width = p.offsetWidth || 800
-        c.height = p.offsetHeight || 600
-      }
-    }
-    window.addEventListener("resize", resize)
-    setTimeout(resize, 500)
-    return () => window.removeEventListener("resize", resize)
-  }, [pageImages])
-
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
-    const hasImgs = pageImages.length > 0
-    const hasUrl = form.pdf_url && form.pdf_url.trim().length > 0
-    if (!hasImgs && !hasUrl) {
-      if (uploadedFileName) toast.error("PDF conversion failed — check browser console (F12) or try a smaller PDF file")
-      else toast.error("Upload a PDF first using the Choose PDF button")
-      return
-    }
+    if (!form.pdf_url) { toast.error("Upload a PDF first"); return }
     setSaving(true)
     try {
       const additionalLinks = form.additional_links
@@ -252,12 +141,12 @@ export default function WorksheetsPage() {
           })
         : []
 
-      const body: Record<string, any> = {
+      const body = {
         title: form.title,
         grade: Number(form.grade),
         week_number: form.week_number ? Number(form.week_number) : null,
         topic: form.topic || null,
-        pdf_url: pageImages.length > 0 ? "" : form.pdf_url,
+        pdf_url: form.pdf_url,
         pdf_pages: Number(form.pdf_pages) || 1,
         media_links: additionalLinks,
         objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
@@ -265,7 +154,6 @@ export default function WorksheetsPage() {
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
       }
-      if (pageImages.length > 0) body.page_images = pageImages
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
       const method = editingId ? "PUT" : "POST"
@@ -307,10 +195,9 @@ export default function WorksheetsPage() {
       theory_video_title: ws.theory_video_title || "",
       additional_links: addLinks,
     })
-    setPageImages(ws.page_images || [])
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
-    setUploadedFileName(ws.page_images ? `${ws.pdf_pages} pages` : "")
+    setUploadedFileName(ws.pdf_url ? "PDF attached" : "")
     setEditingId(ws.id)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -321,9 +208,7 @@ export default function WorksheetsPage() {
     setEditingId(null)
     setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
     setSelectedObjectives(new Set())
-    setPageImages([])
     setUploadedFileName("")
-    setConvertProgress("")
   }
 
   async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -331,43 +216,21 @@ export default function WorksheetsPage() {
     if (!file) return
     if (file.type !== "application/pdf") { toast.error("Only PDF files allowed"); return }
     if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return }
-    setConverting(true)
-    setConvertProgress("Loading PDF...")
+    setUploading(true)
     setUploadedFileName(file.name)
-    setPageImages([])
     try {
-      const pdfjsLib = await loadPDFjs()
-      const data = await file.arrayBuffer()
-      const pdf = await pdfjsLib.getDocument({ data }).promise
-      const totalPages = pdf.numPages
-      updateForm({ pdf_pages: String(totalPages) })
-      const urls: string[] = []
-      for (let i = 1; i <= totalPages; i++) {
-        setConvertProgress(`Converting page ${i} of ${totalPages}...`)
-        const page = await pdf.getPage(i)
-        const vp = page.getViewport({ scale: 2.0 })
-        const c = document.createElement("canvas")
-        c.width = vp.width
-        c.height = vp.height
-        const ctx = c.getContext("2d")!
-        await page.render({ canvasContext: ctx, viewport: vp }).promise
-        const blob = await new Promise<Blob>(r => c.toBlob(b => r(b!), "image/png"))
-        const fd = new FormData()
-        fd.append("file", blob, `page_${i}.png`)
-        const res = await fetch("/api/upload", { method: "POST", body: fd })
-        if (!res.ok) throw new Error("Image upload failed")
-        const d = await res.json()
-        urls.push(d.url)
-      }
-      setPageImages(urls)
-      updateForm({ pdf_url: "" })
-      setConvertProgress(`${totalPages} pages converted to images`)
-      toast.success(`PDF converted to ${totalPages} images — ready for annotation!`)
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Upload failed") }
+      const data = await res.json()
+      updateForm({ pdf_url: data.url })
+      toast.success("PDF uploaded!")
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "PDF conversion failed — check console (F12) for details")
-      setConvertProgress("")
+      toast.error(e instanceof Error ? e.message : "Upload failed")
+      setUploadedFileName("")
     } finally {
-      setConverting(false)
+      setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
@@ -469,70 +332,34 @@ export default function WorksheetsPage() {
             {/* Separator */}
             <hr className="border-dashed" />
 
-            {/* Worksheet — Convert PDF → Page Images */}
+            {/* Worksheet — Upload PDF */}
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <FileText className="h-4 w-4 text-blue-600" />
-                Worksheet <span className="text-xs font-normal text-muted-foreground">(upload PDF → convert to images → annotation canvas)</span>
+                Worksheet PDF
               </h3>
               <div className="space-y-2">
-                <Label>Upload PDF *</Label>
+                <Label>Upload PDF file *</Label>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={converting}>
-                    {converting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
-                    {converting ? "Converting..." : "Choose PDF"}
+                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                    {uploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
+                    {uploading ? "Uploading..." : "Choose PDF"}
                   </Button>
                   <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFilePick} />
-                  {uploadedFileName && !converting && (
+                  {uploadedFileName && !uploading && (
                     <span className="flex items-center gap-1 text-xs text-green-600">
                       <Check className="h-3 w-3" /> {uploadedFileName}
-                      <button type="button" onClick={() => { setPageImages([]); setUploadedFileName(""); setConvertProgress(""); updateForm({ pdf_url: "" }) }}
+                      <button type="button" onClick={() => { setUploadedFileName(""); updateForm({ pdf_url: "" }) }}
                         className="ml-1 text-red-500 hover:text-red-700 font-medium">✕</button>
                     </span>
                   )}
-                  {convertProgress && (
-                    <span className="text-xs text-muted-foreground">{convertProgress}</span>
-                  )}
                 </div>
               </div>
-
-              {pageImages.length > 0 && (
-                <div className="space-y-3 border rounded-lg p-4 bg-gray-50/50">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">Preview — exactly what students will see</Label>
-                    <Badge variant="secondary" className="text-[10px]">{pageImages.length} pages · annotation ready</Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground">Try drawing below — same canvas as student view</div>
-                  <div className="space-y-4">
-                    {pageImages.map((url, i) => (
-                      <div key={i} className="rounded-lg border bg-white overflow-hidden preview-page" data-page={i + 1}>
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b text-xs text-gray-500">
-                          <span>Page {i + 1} of {pageImages.length}</span>
-                          <span className="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
-                        </div>
-                        <div className="relative w-full preview-canvas-wrap">
-                          <img src={url} alt={`Page ${i + 1}`} className="w-full" style={{ display: "block" }} />
-                          <canvas className="absolute inset-0 w-full h-full preview-annotation-canvas"
-                            data-preview-page={i + 1}
-                            style={{ cursor: "crosshair", touchAction: "none" }} />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-t bg-gray-50/50">
-                          <select className="preview-size text-xs border rounded px-1 py-0.5 bg-white" data-preview-target={i + 1}>
-                            <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option>
-                          </select>
-                          <button className="preview-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-preview-target={i + 1}>✏️ Pen</button>
-                          <button className="preview-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-preview-target={i + 1}>🧹 Eraser</button>
-                          <button className="preview-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-preview-target={i + 1}>🗑️ Clear</button>
-                          <select className="preview-color text-xs border rounded px-1 py-0.5 bg-white" data-preview-target={i + 1}>
-                            <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              {form.pdf_url && (
+                <div className="text-xs text-muted-foreground truncate">
+                  PDF URL: <span className="font-mono">{form.pdf_url}</span>
                 </div>
               )}
-
               <div className="space-y-2">
                 <Label>Number of Pages</Label>
                 <Input type="number" min={1} max={50} value={form.pdf_pages}
@@ -579,9 +406,9 @@ export default function WorksheetsPage() {
                 placeholder="https://docs.google.com/presentation/d/... | Notes | slides&#10;https://drive.google.com/file/d/... | Worksheet Key | pdf" />
             </div>
 
-            <Button onClick={handleSave} disabled={saving || converting}>
-              {(saving || converting) && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              {saving ? "Saving..." : converting ? "Converting..." : editingId ? "Update Worksheet" : "Save Worksheet"}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {saving ? "Saving..." : editingId ? "Update Worksheet" : "Save Worksheet"}
             </Button>
           </CardContent>
         </Card>
@@ -616,7 +443,6 @@ export default function WorksheetsPage() {
                 <CardContent>
                   {ws.topic && <Badge variant="secondary" className="mb-2">{ws.topic}</Badge>}
                   <div className="flex flex-wrap gap-1 mb-2">
-                    {ws.page_images && <Badge variant="outline" className="text-[10px]">🖼️ Canvas Ready</Badge>}
                     {ws.reference_pdf_url && <Badge variant="outline" className="text-[10px]">📄 Ref PDF</Badge>}
                     {ws.theory_video_url && <Badge variant="outline" className="text-[10px]">🎬 Theory Video</Badge>}
                     {ws.objectives && <Badge variant="outline" className="text-[10px]">🎯 Objectives</Badge>}
