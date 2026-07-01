@@ -493,8 +493,8 @@ export default function SyllabusPlannerPage() {
       if (gDrive) {
         const fileId = gDrive[1]
         if (type === "slides") return `https://docs.google.com/presentation/d/${fileId}/embed`
-        // PDF: use direct Google Drive preview (most reliable)
-        return `https://drive.google.com/file/d/${fileId}/preview`
+        // PDF: use Google Docs Viewer (works on all domains including localhost)
+        return `https://docs.google.com/viewer?url=https://drive.google.com/uc?export=download&id=${fileId}&embedded=true`
       }
       if (url.match(/\.pdf/i)) return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
       return null
