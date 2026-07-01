@@ -13,6 +13,10 @@ function getGoogleDriveEmbedUrl(url: string): string | null {
   return null
 }
 
+function isGoogleDriveUrl(url: string): boolean {
+  return /drive\.google\.com/.test(url)
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,6 +35,7 @@ export async function GET(
     const grade = ws.grade
     const pages = ws.pdf_pages || 1
     const pdfUrl = ws.pdf_url
+    const isGDrive = isGoogleDriveUrl(pdfUrl)
     const directPdfUrl = getGoogleDriveDirectUrl(pdfUrl)
     const embedPdfUrl = getGoogleDriveEmbedUrl(pdfUrl)
     const mediaLinks: Array<{ type: string; url: string; title: string }> = ws.media_links || []
@@ -44,7 +49,6 @@ export async function GET(
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-    // Load students for this grade
     let studentOptions = ""
     try {
       const { data: students } = await (supabase.from("profiles") as any)
@@ -60,7 +64,7 @@ export async function GET(
     function getEmbedUrl(url: string, type: string): string | null {
       if (type === "youtube") {
         const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/)
-        return m ? `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0` : null
+        return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null
       }
       const gDrive = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
       if (gDrive) {
@@ -86,17 +90,21 @@ export async function GET(
       }
       if (src.type === "pdf" || src.type === "slides") {
         const isSlide = src.type === "slides"
+        const isGoogleDriveEmbed = /drive\.google\.com/.test(emb || "")
+        const embedHtml = isGoogleDriveEmbed
+          ? `<iframe src="${esc(emb || "")}" class="w-full h-full" allowfullscreen style="border:0"></iframe>`
+          : `<div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${esc(emb || "")}">
+              <span class="text-3xl mb-2">${isSlide ? "📽️" : "📄"}</span>
+              <p class="text-sm font-medium">Click to preview</p>
+              <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
+            </div>`
         return `<div class="mt-3 rounded-lg overflow-hidden border">
           <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
             <p class="text-sm font-medium truncate">${esc(src.title)}</p>
             <a href="${esc(src.url)}" target="_blank" class="text-xs text-blue-600 underline shrink-0 ml-2">Open ↗</a>
           </div>
           <div style="aspect-ratio:16/9;max-height:500px">
-            <div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${esc(emb || "")}">
-              <span class="text-3xl mb-2">${isSlide ? "📽️" : "📄"}</span>
-              <p class="text-sm font-medium">Click to preview</p>
-              <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
-            </div>
+            ${embedHtml}
           </div>
         </div>`
       }
@@ -107,15 +115,34 @@ export async function GET(
     const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
 
-    const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
+    // Only show reference PDF if different from worksheet PDF
+    const extraMedia: Array<{ type: string; url: string; title: string }> = []
+    if (theoryVideoUrl) extraMedia.push({ type: "youtube", url: theoryVideoUrl, title: theoryVideoTitle || "Theory Video" })
+    if (referencePdfUrl && referencePdfUrl !== pdfUrl) extraMedia.push({ type: "pdf", url: referencePdfUrl, title: "Reference PDF (Theory Material)" })
+    const allMedia = [...extraMedia, ...mediaLinks]
+    const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
+
+    // For Google Drive URLs: use embed directly (PDF.js CORS blocked by Google Drive)
+    // For direct PDF URLs: use PDF.js for annotation canvas
+    let pdfContentHtml = ""
+    if (isGDrive && embedPdfUrl) {
+      pdfContentHtml = `<div class="rounded-xl border bg-white overflow-hidden" style="aspect-ratio:1/1.4;max-height:90vh">
+        <iframe src="${esc(embedPdfUrl)}" class="w-full h-full" allowfullscreen style="border:0"></iframe>
+      </div>
+      <div class="px-4 py-3 space-y-2 border-t bg-gray-50/50 mt-1">
+        <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="1" placeholder="Type your answer here (optional)"></textarea>
+      </div>`
+    } else {
+      // Direct PDF URL — use PDF.js with annotation canvases
+      const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden" data-page="${i + 1}">
   <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
     <span>Page ${i + 1} of ${pages}</span>
     <span class="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
   </div>
   <div class="relative" style="min-height:400px">
-    <canvas class="pdf-canvas w-full" data-page="${i + 1}" style="display:none"></canvas>
-    <canvas class="annotation-canvas absolute inset-0 w-full h-full" data-page="${i + 1}"></canvas>
+    <canvas class="pdf-canvas" data-page="${i + 1}" style="display:none"></canvas>
+    <canvas class="annotation-canvas absolute inset-0" data-page="${i + 1}"></canvas>
     <div class="pdf-loading flex items-center justify-center py-16 text-gray-400 text-sm" data-page="${i + 1}">
       <span class="animate-pulse">Loading page ${i + 1}...</span>
     </div>
@@ -136,12 +163,8 @@ export async function GET(
     </div>
   </div>
 </div>`).join("")
-
-    const extraMedia: Array<{ type: string; url: string; title: string }> = []
-    if (theoryVideoUrl) extraMedia.push({ type: "youtube", url: theoryVideoUrl, title: theoryVideoTitle || "Theory Video" })
-    if (referencePdfUrl) extraMedia.push({ type: "pdf", url: referencePdfUrl, title: "Reference PDF (Theory Material)" })
-    const allMedia = [...extraMedia, ...mediaLinks]
-    const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
+      pdfContentHtml = pdfPagesHtml
+    }
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -154,7 +177,7 @@ export async function GET(
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6}
 @media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{border:1px solid #ddd;page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important}}
 canvas{max-width:100%;height:auto}
-.pdf-canvas{width:100%!important;height:auto!important}
+.pdf-canvas{width:100%!important;height:auto!important;display:block}
 .annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none}
 .pdf-page-wrapper{position:relative;overflow:hidden}
 </style>
@@ -176,7 +199,7 @@ canvas{max-width:100%;height:auto}
 </div>
 
 ${objectivesText ? `<div class="bg-white rounded-2xl shadow-sm border p-6">
-  <h2 class="font-semibold text-gray-700 mb-2">🎯 Learning Objectives</h2>
+  <h2 class="font-semibold text-gray-700 mb-2">Learning Objectives</h2>
   <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
     ${objectivesText.split('\n').filter(Boolean).map(o => `<li>${esc(o)}</li>`).join('')}
   </ul>
@@ -188,7 +211,7 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 </div>` : ""}
 
 <div class="bg-white rounded-2xl shadow-sm border p-6">
-  ${pdfPagesHtml}
+  ${pdfContentHtml}
 </div>
 
 <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
@@ -224,15 +247,18 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const PDF_URL = ${JSON.stringify(directPdfUrl)}
 const PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 const PDF_PAGES = ${pages}
+const IS_GDRIVE = ${isGDrive}
 
 var CS = {}
 
 function initAnnotation(page) {
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+  var pdfCanvas = document.querySelector('.pdf-canvas[data-page="' + page + '"]')
   if (!c) return
-  var rect = c.parentElement.getBoundingClientRect()
-  c.width = rect.width || 800
-  c.height = rect.height || 600
+  var w = pdfCanvas ? pdfCanvas.width : 800
+  var h = pdfCanvas ? pdfCanvas.height : 600
+  c.width = w
+  c.height = h
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -288,7 +314,6 @@ async function loadPDF() {
     }
   } catch (e) {
     console.error('PDF.js failed:', e)
-    // Fallback: use Google Drive embed iframe
     if (PDF_EMBED) {
       document.querySelectorAll('.pdf-page-wrapper').forEach(function(el) {
         var page = el.dataset.page
@@ -310,7 +335,7 @@ function handlePrint() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  loadPDF()
+  if (!IS_GDRIVE) loadPDF()
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
@@ -345,7 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   document.querySelectorAll('.yt-player').forEach(function(el) {
-    el.addEventListener('click', function() { var e = this.dataset.embed; if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen style="border:0"></iframe>' })
+    el.addEventListener('click', function() {
+      var e = this.dataset.embed
+      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="border:0"></iframe>'
+    })
   })
 
   document.querySelectorAll('.doc-preview').forEach(function(el) {
