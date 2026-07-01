@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Physics Command Center",
   description: "AI-Powered Physics Teaching Platform for SHB Modernhill",
   manifest: "/manifest.json",
-  icons: { icon: "/favicon.ico", apple: "/icon-192x192.png" },
+  icons: { icon: "/api/favicon", apple: "/icon-192x192.png" },
 }
 
 export default function RootLayout({
