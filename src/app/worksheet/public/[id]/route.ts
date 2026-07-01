@@ -156,12 +156,13 @@ export async function GET(
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"></script>
 <style>
-body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6}
-@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{border:1px solid #ddd;page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important}}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
+@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
 canvas{max-width:100%;height:auto}
 .pdf-canvas{width:100%!important;height:auto!important;display:block}
-.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none}
-.pdf-page-wrapper{position:relative;overflow:hidden}
+.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block}
+.pdf-page-wrapper{position:relative}
+.answer-text{-webkit-user-select:text;user-select:text}
 </style>
 </head>
 <body>
