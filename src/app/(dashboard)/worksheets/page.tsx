@@ -149,7 +149,12 @@ export default function WorksheetsPage() {
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
-    if (!form.pdf_url && pageImages.length === 0) { toast.error("Upload a PDF or paste a PDF URL"); return }
+    const hasPdfUrl = form.pdf_url && form.pdf_url.trim().length > 0
+    const hasPageImgs = pageImages.length > 0
+    if (!hasPdfUrl && !hasPageImgs) {
+      toast.error("Upload a PDF using the button above, or paste a PDF URL in the field below")
+      return
+    }
     setSaving(true)
     try {
       const additionalLinks = form.additional_links
@@ -164,7 +169,7 @@ export default function WorksheetsPage() {
         grade: Number(form.grade),
         week_number: form.week_number ? Number(form.week_number) : null,
         topic: form.topic || null,
-        pdf_url: pageImages.length > 0 ? "" : form.pdf_url,
+        pdf_url: hasPageImgs ? "" : form.pdf_url,
         pdf_pages: Number(form.pdf_pages) || 1,
         media_links: additionalLinks,
         objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
@@ -172,7 +177,7 @@ export default function WorksheetsPage() {
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
       }
-      if (pageImages.length > 0) body.page_images = pageImages
+      if (hasPageImgs) body.page_images = pageImages
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
       const method = editingId ? "PUT" : "POST"
@@ -271,7 +276,7 @@ export default function WorksheetsPage() {
       setConvertProgress(`${totalPages} pages converted to images`)
       toast.success(`PDF converted to ${totalPages} images — ready for annotation!`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Conversion failed")
+      toast.error(e instanceof Error ? e.message : "PDF conversion failed — paste a direct PDF URL below instead")
       setConvertProgress("")
     } finally {
       setConverting(false)
@@ -393,6 +398,8 @@ export default function WorksheetsPage() {
                   {uploadedFileName && !converting && (
                     <span className="flex items-center gap-1 text-xs text-green-600">
                       <Check className="h-3 w-3" /> {uploadedFileName}
+                      <button type="button" onClick={() => { setPageImages([]); setUploadedFileName(""); setConvertProgress(""); updateForm({ pdf_url: "" }) }}
+                        className="ml-1 text-red-500 hover:text-red-700 font-medium">✕</button>
                     </span>
                   )}
                   {convertProgress && (
@@ -422,9 +429,9 @@ export default function WorksheetsPage() {
                     onChange={e => updateForm({ pdf_pages: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Or paste PDF URL <span className="text-xs text-muted-foreground">(Google Drive fallback, no annotation)</span></Label>
+                  <Label>Paste PDF URL (fallback) <span className="text-xs text-muted-foreground">(Google Drive, direct link — no annotation drawing, only text answers)</span></Label>
                   <Input value={form.pdf_url} onChange={e => updateForm({ pdf_url: e.target.value })}
-                    placeholder="docs.google.com/document/d/..." />
+                    placeholder="https://drive.google.com/file/d/... or https://example.com/file.pdf" />
                 </div>
               </div>
             </div>
