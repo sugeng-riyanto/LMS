@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createServerSupabaseClient()
+    const supabase = createAdminClient()
 
     const { data: plan } = await (supabase.from("syllabus_planning") as any)
       .select("*")

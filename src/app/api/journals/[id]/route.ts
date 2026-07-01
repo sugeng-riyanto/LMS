@@ -44,7 +44,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "student"])
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
     if (authError) return authError
 
     const { id } = await params
@@ -62,7 +62,7 @@ export async function PUT(
       }
     }
 
-    const allowedFields = user.role === "super_admin"
+    const allowedFields = user.role === "super_admin" || user.role === "teacher"
       ? ["mistake_description", "root_cause", "correct_approach", "law_or_principle", "teacher_feedback", "topic", "grade"]
       : ["mistake_description", "root_cause", "correct_approach", "law_or_principle"]
 

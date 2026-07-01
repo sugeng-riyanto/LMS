@@ -97,6 +97,7 @@ async function runOrchestration(
         worksheet: result.worksheet,
         pre_class: result.pre_class,
         lab_logistics: result.lab_logistics,
+        answer_keys: result.answer_keys,
         wa_blast: result.broadcast.wa_message,
         status: "pending_review",
       }, { onConflict: "academic_year, grade, week_number" })

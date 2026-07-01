@@ -53,7 +53,7 @@ export default function MemoryPage() {
   async function fetchMemories() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/class-memory?grade=${filterGrade}&week=${filterWeek}`)
+      const res = await fetch(`/api/memory?grade=${filterGrade}&week=${filterWeek}`)
       if (res.ok) setMemories(await res.json())
     } catch {
       toast.error("Failed to load class memory.")
@@ -76,13 +76,13 @@ export default function MemoryPage() {
       }
       let res: Response
       if (editingId) {
-        res = await fetch(`/api/class-memory/${editingId}`, {
+        res = await fetch(`/api/memory/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
       } else {
-        res = await fetch("/api/class-memory", {
+        res = await fetch("/api/memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),

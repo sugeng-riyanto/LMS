@@ -81,7 +81,7 @@ export default function LabPage() {
       if (editingId) {
         res = await fetch(`/api/lab/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       } else {
-        res = await fetch("/api/lab/new", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        res = await fetch("/api/lab", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       }
       if (res.ok) {
         toast.success(editingId ? "Updated!" : "Added!")

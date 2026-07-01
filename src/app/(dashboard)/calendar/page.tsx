@@ -128,7 +128,7 @@ export default function CalendarPage() {
     const fd = new FormData()
     fd.append("file", file)
     try {
-      const res = await fetch("/api/calendar/upload", { method: "POST", body: fd })
+      const res = await fetch("/api/admin/upload-calendar", { method: "POST", body: fd })
       if (res.ok) { toast.success("Calendar uploaded!"); e.target.value = ""; refetch() }
       else { toast.error("Upload failed.") }
     } catch { toast.error("Upload failed.") }

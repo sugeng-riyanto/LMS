@@ -4,57 +4,58 @@ import { generateWorksheet } from "./worksheet-agent"
 import { generatePreClass } from "./flipped-curator"
 import { generateLogistics } from "./logistics-agent"
 import { generateBroadcast } from "./broadcast-agent"
+import { generateAnswerKeys } from "./answer-keys-agent"
 import { callLLM, getActiveProvider } from "./call-llm"
 import { getCurrentWeek, getAcademicYear } from "../utils/week-calculator"
 
 const TOPIC_MAP: Record<number, Record<number, string>> = {
   7: {
-    1: "Kinematics", 2: "Kinematics", 3: "Forces", 4: "Forces",
-    5: "Energy", 6: "Energy", 7: "Density", 8: "Density",
-    9: "Pressure", 10: "Pressure", 11: "Thermal Physics", 12: "Thermal Physics",
-    13: "Waves", 14: "Waves", 15: "Light", 16: "Light",
-    17: "Sound", 18: "Sound", 19: "Electricity", 20: "Electricity",
-    21: "Magnetism", 22: "Magnetism"
+    1: "Forces", 2: "Forces", 3: "Kinematics", 4: "Kinematics",
+    5: "Kinematics", 6: "Forces", 7: "Forces", 8: "Forces",
+    9: "Energy", 10: "Energy", 11: "Forces", 12: "Pressure",
+    13: "Density", 14: "Thermal", 15: "Waves", 16: "Sound",
+    17: "Light", 18: "Light", 19: "Electricity", 20: "Electricity",
+    21: "Magnetism", 22: "Forces"
   },
   8: {
-    1: "Kinematics", 2: "Kinematics", 3: "Forces and Motion", 4: "Forces and Motion",
-    5: "Energy Transfers", 6: "Energy Transfers", 7: "Work and Power", 8: "Work and Power",
-    9: "Pressure in Fluids", 10: "Pressure in Fluids", 11: "Thermal Properties", 12: "Thermal Properties",
-    13: "Wave Motion", 14: "Wave Motion", 15: "Reflection and Refraction", 16: "Reflection and Refraction",
-    17: "Sound Waves", 18: "Sound Waves", 19: "Circuits", 20: "Circuits",
-    21: "Electromagnets", 22: "Electromagnets"
+    1: "Kinematics", 2: "Kinematics", 3: "Forces", 4: "Forces",
+    5: "Forces", 6: "Forces", 7: "Light", 8: "Light",
+    9: "Light", 10: "Light", 11: "Magnetism", 12: "Forces",
+    13: "Thermal", 14: "Energy", 15: "Magnetism", 16: "Pressure",
+    17: "Magnetism", 18: "Magnetism", 19: "Forces", 20: "Light",
+    21: "Forces", 22: "Forces"
   },
   9: {
-    1: "Kinematics", 2: "Kinematics", 3: "Acceleration", 4: "Acceleration",
-    5: "Forces", 6: "Forces", 7: "Momentum", 8: "Momentum",
-    9: "Energy", 10: "Energy", 11: "Work and Power", 12: "Work and Power",
-    13: "Thermal Physics", 14: "Thermal Physics", 15: "Waves", 16: "Waves",
-    17: "Light and Optics", 18: "Light and Optics", 19: "Electricity", 20: "Electricity",
-    21: "Magnetism", 22: "Magnetism"
+    1: "Kinematics", 2: "Kinematics", 3: "Kinematics", 4: "Forces",
+    5: "Forces", 6: "Forces", 7: "Energy", 8: "Energy",
+    9: "Energy", 10: "Energy", 11: "Waves", 12: "Light",
+    13: "Light", 14: "Sound", 15: "Waves", 16: "Electricity",
+    17: "Electricity", 18: "Electricity", 19: "Magnetism", 20: "Magnetism",
+    21: "Forces", 22: "Forces"
   },
   10: {
-    1: "Kinematics", 2: "Kinematics", 3: "Dynamics", 4: "Dynamics",
-    5: "Forces", 6: "Forces", 7: "Energy", 8: "Energy",
-    9: "Thermal Physics", 10: "Thermal Physics", 11: "Waves", 12: "Waves",
-    13: "Light", 14: "Light", 15: "Sound", 16: "Sound",
-    17: "Electricity", 18: "Electricity", 19: "Magnetism", 20: "Magnetism",
-    21: "Electromagnetic Induction", 22: "Electromagnetic Induction"
+    1: "Kinematics", 2: "Kinematics", 3: "Forces", 4: "Forces",
+    5: "Forces", 6: "Energy", 7: "Energy", 8: "Energy",
+    9: "Thermal", 10: "Thermal", 11: "Waves", 12: "Waves",
+    13: "Light", 14: "Light", 15: "Sound", 16: "Electricity",
+    17: "Electricity", 18: "Magnetism", 19: "Magnetism", 20: "Forces",
+    21: "Forces", 22: "Forces"
   },
   11: {
-    1: "Kinematics", 2: "Kinematics", 3: "Dynamics", 4: "Dynamics",
-    5: "Forces", 6: "Forces", 7: "Work and Energy", 8: "Work and Energy",
-    9: "Momentum", 10: "Momentum", 11: "Waves", 12: "Waves",
-    13: "Superposition", 14: "Superposition", 15: "Electric Fields", 16: "Electric Fields",
-    17: "Current Electricity", 18: "Current Electricity", 19: "DC Circuits", 20: "DC Circuits",
-    21: "Magnetism", 22: "Magnetism"
+    1: "Forces", 2: "Kinematics", 3: "Forces", 4: "Pressure",
+    5: "Energy", 6: "Forces", 7: "Waves", 8: "Waves",
+    9: "Waves", 10: "Waves", 11: "Electricity", 12: "Electricity",
+    13: "Electricity", 14: "Electricity", 15: "Forces", 16: "Forces",
+    17: "Forces", 18: "Forces", 19: "Forces", 20: "Forces",
+    21: "Forces", 22: "Forces"
   },
   12: {
-    1: "Thermal Physics", 2: "Thermal Physics", 3: "Ideal Gases", 4: "Ideal Gases",
-    5: "Oscillations", 6: "Oscillations", 7: "Gravitational Fields", 8: "Gravitational Fields",
-    9: "Electric Fields", 10: "Electric Fields", 11: "Magnetic Fields", 12: "Magnetic Fields",
-    13: "Electromagnetic Induction", 14: "Electromagnetic Induction", 15: "Alternating Current", 16: "Alternating Current",
-    17: "Quantum Physics", 18: "Quantum Physics", 19: "Nuclear Physics", 20: "Nuclear Physics",
-    21: "Particle Physics", 22: "Particle Physics"
+    1: "Forces", 2: "Forces", 3: "Thermal", 4: "Thermal",
+    5: "Waves", 6: "Waves", 7: "Electricity", 8: "Electricity",
+    9: "Electricity", 10: "Magnetism", 11: "Magnetism", 12: "Magnetism",
+    13: "Forces", 14: "Forces", 15: "Forces", 16: "Forces",
+    17: "Forces", 18: "Forces", 19: "Pressure", 20: "Electricity",
+    21: "Forces", 22: "Forces"
   }
 }
 
@@ -140,18 +141,19 @@ export async function orchestrateWeeklyGeneration(grade?: number): Promise<Weekl
     if (activeProvider) {
       try {
         const result = await generateWithLLM(input, activeProvider)
-        if (result) return result
+        if (result && validateLLMResult(result)) return result
       } catch (llmError) {
         console.warn("LLM generation failed, falling back to template agents:", llmError)
       }
     }
 
-    const [lessonPlan, worksheet, preClass, logistics, broadcast] = await Promise.all([
+    const [lessonPlan, worksheet, preClass, logistics, broadcast, answerKeys] = await Promise.all([
       generateLessonPlan(input),
       generateWorksheet(input),
       generatePreClass(input),
       generateLogistics(input),
-      generateBroadcast(input)
+      generateBroadcast(input),
+      generateAnswerKeys(input),
     ])
 
     return {
@@ -165,6 +167,7 @@ export async function orchestrateWeeklyGeneration(grade?: number): Promise<Weekl
       pre_class: preClass,
       lab_logistics: logistics,
       broadcast,
+      answer_keys: answerKeys,
       generated_at: now.toISOString(),
       agent_version: "1.0.0"
     }
@@ -174,6 +177,24 @@ export async function orchestrateWeeklyGeneration(grade?: number): Promise<Weekl
       `Failed to generate weekly package: ${error instanceof Error ? error.message : "Unknown error"}`
     )
   }
+}
+
+function validateLLMResult(result: WeeklyPackage): boolean {
+  const lp = result.lesson_plan
+  if (!lp || typeof lp !== "object" || !Array.isArray(lp.phases) || lp.phases.length < 2) return false
+  const ws = result.worksheet
+  if (!ws || typeof ws !== "object" || !Array.isArray(ws.levels)) return false
+  const hasQuestions = ws.levels.some((l: { questions?: unknown[] }) => l.questions && l.questions.length > 0)
+  if (!hasQuestions) return false
+  const pc = result.pre_class
+  if (!pc || typeof pc !== "object") return false
+  const bc = result.broadcast
+  if (!bc || typeof bc !== "object" || !bc.wa_message) return false
+  const ak = result.answer_keys
+  if (!Array.isArray(ak) || ak.length === 0) return false
+  const nonEmpty = ak.filter((k: { answer?: string }) => k.answer).length
+  if (nonEmpty === 0) return false
+  return true
 }
 
 async function generateWithLLM(
@@ -192,6 +213,8 @@ RULES:
 - Lab experiments must use available school equipment (no expensive/rare items)
 - Answer keys must include detailed step-by-step solutions
 
+CRITICAL: Every section MUST contain real, substantive content. No empty arrays, no empty objects, no placeholder text. Each lesson plan must have 4 phases with full activities. Each worksheet level must have at least 2 questions. Answer keys must have complete entries with question text and answer. WA blast must mention the correct topic.
+
 Output MUST be valid JSON matching the WeeklyPackage type exactly.`
 
   const prompt = `Generate a weekly physics teaching package for:
@@ -208,7 +231,8 @@ Return a JSON object with these keys:
   Each question: { id, type, bloom, question, mark_scheme, peer_grade?, intentional_error?, solution_steps?, options?, correct?, explanation? }
 - pre_class: { video_resource: { title, url, source, duration_minutes, key_concepts, watch_guide }, interactive_simulation: { title, url, platform, instructions, inquiry_questions }, guided_notes: { title, fill_in_blanks, completed_example }, entry_ticket_quiz: { questions: [{ question, options, correct, explanation }], passing_score } }
 - lab_logistics: { lab_required, equipment_list: [{ item, quantity, status }], setup_instructions, safety_notes, lab_technician_message }
-- broadcast: { wa_message, lms_post: { title, body }, parent_message }`
+- broadcast: { wa_message, lms_post: { title, body }, parent_message }
+- answer_keys: [{ question, answer, explanation }]`
 
   const { content } = await callLLM(prompt, {
     systemPrompt,
@@ -231,6 +255,7 @@ Return a JSON object with these keys:
       pre_class: parsed.pre_class,
       lab_logistics: parsed.lab_logistics,
       broadcast: parsed.broadcast,
+      answer_keys: parsed.answer_keys ?? [],
       generated_at: now,
       agent_version: "1.1.0-llm",
     }

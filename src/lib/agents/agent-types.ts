@@ -130,8 +130,15 @@ export interface WeeklyPackage {
   pre_class: PreClassMaterial
   lab_logistics: LabLogistics
   broadcast: BroadcastMessage
+  answer_keys: AnswerKey[]
   generated_at: string
   agent_version: string
+}
+
+export interface AnswerKey {
+  question: string
+  answer: string
+  explanation: string
 }
 
 export interface CalendarEvent {

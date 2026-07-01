@@ -79,7 +79,7 @@ export default function SettingsPage() {
   async function fetchUsers() {
     setLoadingUsers(true)
     try {
-      const res = await fetch("/api/users")
+      const res = await fetch("/api/profiles")
       if (res.ok) setUsers(await res.json())
     } catch {
       toast.error("Failed to load users.")
@@ -97,7 +97,7 @@ export default function SettingsPage() {
   async function handleEditRole() {
     if (!editingUser) return
     try {
-      const res = await fetch(`/api/users/${editingUser.id}`, {
+      const res = await fetch(`/api/profiles/${editingUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: editForm.role, grade_assigned: editForm.grade }),

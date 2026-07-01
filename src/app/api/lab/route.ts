@@ -33,6 +33,39 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const { supabase, error: authError } = await requireRole(["super_admin", "lab_assistant"])
+    if (authError) return authError
+
+    const body = await request.json()
+    if (!body.item_name) {
+      return NextResponse.json({ error: "item_name is required" }, { status: 400 })
+    }
+
+    const { data, error } = await (supabase.from("lab_inventory") as any)
+      .insert({
+        item_name: body.item_name,
+        category: body.category ?? null,
+        total_quantity: body.total_quantity ?? 1,
+        available_quantity: body.available_quantity ?? body.total_quantity ?? 1,
+        broken_quantity: body.broken_quantity ?? 0,
+        location: body.location ?? null,
+        notes: body.notes ?? null,
+      })
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data, { status: 201 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const { supabase, error: authError } = await requireRole(["super_admin", "lab_assistant"])

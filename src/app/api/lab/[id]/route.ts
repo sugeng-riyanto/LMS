@@ -106,7 +106,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, error: authError } = await requireRole(["super_admin", "lab_assistant"])
     if (authError) return authError
 
     const { id } = await params

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    if (authError) return authError
 
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")

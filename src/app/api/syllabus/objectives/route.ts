@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
-
-    const { createServerSupabaseClient } = await import("@/lib/supabase/server")
-    const supabase = await createServerSupabaseClient()
 
     let query = (supabase.from("syllabus_objectives") as any)
       .select("*")
