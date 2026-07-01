@@ -114,7 +114,7 @@ export async function GET(
 
     const extraMedia: Array<{ type: string; url: string; title: string }> = []
     if (theoryVideoUrl) extraMedia.push({ type: "youtube", url: theoryVideoUrl, title: theoryVideoTitle || "Theory Video" })
-    if (referencePdfUrl && referencePdfUrl !== pdfUrl) extraMedia.push({ type: "pdf", url: referencePdfUrl, title: "Reference PDF (Theory Material)" })
+    if (referencePdfUrl) extraMedia.push({ type: "pdf", url: referencePdfUrl, title: "Reference PDF (Theory Material)" })
     const allMedia = [...extraMedia, ...mediaLinks]
     const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
 
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.yt-player').forEach(function(el) {
     el.addEventListener('click', function() {
       var e = this.dataset.embed
-      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="border:0"></iframe>'
+      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen style="border:0"></iframe>'
     })
   })
 
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.yt-player').forEach(function(el) {
     el.addEventListener('click', function() {
       var e = this.dataset.embed
-      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="border:0"></iframe>'
+      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen style="border:0"></iframe>'
     })
   })
   document.querySelectorAll('.doc-preview').forEach(function(el) {
