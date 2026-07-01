@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
 
 export async function GET(
   _request: NextRequest,
@@ -26,12 +27,15 @@ export async function GET(
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-    // Load objectives
+    // Load objectives from database, fallback to static syllabus data
     let objectives: Array<{ topic: string; objectives: string[] }> = []
     try {
       const { data: objData } = await (supabase.from("syllabus_objectives") as any).select("topic, objectives").eq("grade", grade)
-      if (objData) objectives = objData
+      if (objData && objData.length > 0) objectives = objData
     } catch {}
+    if (objectives.length === 0) {
+      objectives = getObjectivesForGrade(grade)
+    }
 
     // Load students for this grade
     let studentOptions = ""
