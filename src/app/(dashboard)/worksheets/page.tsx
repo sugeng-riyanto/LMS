@@ -380,7 +380,7 @@ export default function WorksheetsPage() {
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <FileText className="h-4 w-4 text-blue-600" />
-                Worksheet <span className="text-xs font-normal text-muted-foreground">(PDF → page images → annotation canvas)</span>
+                Worksheet <span className="text-xs font-normal text-muted-foreground">(upload PDF → convert to images → annotation canvas)</span>
               </h3>
               <div className="space-y-2">
                 <Label>Upload PDF *</Label>
