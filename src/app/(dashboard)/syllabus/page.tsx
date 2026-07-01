@@ -547,7 +547,7 @@ export default function SyllabusPlannerPage() {
       const embedUrl = getEmbedUrl(src.url, src.type)
       const videoId = src.type === "youtube" ? (src.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/) || [])[1] : null
 
-      // YouTube: thumbnail with click-to-play
+      // YouTube: thumbnail with click-to-play + fallback link
       if (src.type === "youtube" && videoId) {
         const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`
         return `<div class="mt-3 rounded-lg overflow-hidden border bg-black relative" style="aspect-ratio:16/9">
@@ -557,11 +557,14 @@ export default function SyllabusPlannerPage() {
               <div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center border-2 border-white/80"><span class="text-white text-2xl ml-1">&#9654;</span></div>
             </div>
           </div>
-          <p class="text-xs text-gray-400 px-2 pb-1">${esc(src.title)}</p>
+          <div class="px-2 pb-1 flex items-center justify-between">
+            <span class="text-xs text-gray-400">${esc(src.title)}</span>
+            <a href="${esc(src.url)}" target="_blank" class="yt-link text-xs text-blue-400 underline" style="display:none">Watch on YouTube ↗</a>
+          </div>
         </div>`
       }
 
-      // PDF / Slides: click-to-preview
+      // PDF / Slides: click-to-preview + fallback link
       if (src.type === "pdf" || src.type === "slides") {
         const isSlide = src.type === "slides"
         return `<div class="mt-3 rounded-lg overflow-hidden border">
@@ -569,12 +572,13 @@ export default function SyllabusPlannerPage() {
             <p class="text-sm font-medium truncate">${esc(src.title)}</p>
             <a href="${src.url}" target="_blank" class="text-xs text-blue-600 underline shrink-0 ml-2">Open ↗</a>
           </div>
-          <div style="aspect-ratio:${isSlide ? '16/9' : '16/11'};max-height:500px">
-            <div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${embedUrl || ""}" data-url="${esc(src.url)}">
+          <div style="aspect-ratio:16/9;max-height:500px">
+            <div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${embedUrl || ""}">
               <span class="text-3xl mb-2">${isSlide ? '📽️' : '📄'}</span>
               <p class="text-sm font-medium">Click to preview</p>
               <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
             </div>
+            <a href="${src.url}" target="_blank" class="doc-link block text-center text-xs text-blue-600 underline py-2 bg-white" style="display:none">Open in new tab ↗</a>
           </div>
         </div>`
       }
@@ -788,10 +792,19 @@ document.addEventListener("DOMContentLoaded", function() {
   // Init all canvases
   document.querySelectorAll("canvas[id^=ans-canvas], #signature-canvas").forEach(function(c) { initCanvas(c.id) })
 
-  // YouTube click-to-play — replace placeholder with iframe
+  // Detect if running locally (file://) — embeds won't work
+  var isLocal = window.location.protocol === 'file:'
+
+  // YouTube click-to-play — embed only on HTTPS, open link on file://
   document.querySelectorAll(".yt-player").forEach(function(el) {
     el.addEventListener("click", function() {
       var embed = this.dataset.embed
+      var list = this.parentElement.querySelector('.yt-link')
+      if (isLocal) {
+        // file:// can't embed — show the link
+        if (list) list.style.display = 'block'
+        return
+      }
       if (embed) {
         this.innerHTML = '<iframe src="'+embed+'" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen style="border:0"></iframe>'
         this.classList.remove('cursor-pointer')
@@ -799,10 +812,15 @@ document.addEventListener("DOMContentLoaded", function() {
     })
   })
 
-  // Document click-to-preview (PDF/Slides)
+  // Document click-to-preview (PDF/Slides) — embed only on HTTPS
   document.querySelectorAll(".doc-preview").forEach(function(el) {
     el.addEventListener("click", function() {
       var embed = this.dataset.embed
+      var list = this.parentElement.querySelector('.doc-link')
+      if (isLocal) {
+        if (list) list.style.display = 'block'
+        return
+      }
       if (embed) {
         this.innerHTML = '<iframe src="'+embed+'" class="w-full h-full" allowfullscreen style="border:0"></iframe>'
         this.className = 'w-full h-full'
