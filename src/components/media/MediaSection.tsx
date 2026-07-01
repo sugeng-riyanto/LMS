@@ -65,7 +65,7 @@ export default function MediaSection({ packageId, section, canEdit }: { packageI
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: "", media_type: "drive", url: "", embed_code: "" })
+  const [form, setForm] = useState({ title: "", media_type: "link", url: "", embed_code: "" })
 
   useEffect(() => {
     fetch(`/api/packages/${packageId}/media?section=${section}`)
@@ -84,7 +84,7 @@ export default function MediaSection({ packageId, section, canEdit }: { packageI
       })
       if (res.ok) {
         const d = await res.json(); setItems((p) => [...p, d])
-        setForm({ title: "", media_type: "drive", url: "", embed_code: "" }); setShowForm(false)
+        setForm({ title: "", media_type: "link", url: "", embed_code: "" }); setShowForm(false)
         toast.success("Added!")
       } else toast.error("Failed")
     } catch { toast.error("Failed") }
@@ -133,11 +133,17 @@ export default function MediaSection({ packageId, section, canEdit }: { packageI
             {item.embed_code && !previewUrl && (
               <div className="w-full" dangerouslySetInnerHTML={{ __html: item.embed_code }} />
             )}
-            {item.media_type === "audio" && item.url && !previewUrl && (
+            {item.media_type === "audio" && item.url && (
               <audio controls className="w-full px-3 pb-3 h-10"><source src={item.url} /></audio>
             )}
-            {item.media_type === "video" && item.url && !previewUrl && !item.embed_code && (
+            {item.media_type === "video" && item.url && !previewUrl && (
               <video controls className="w-full max-h-64"><source src={item.url} /></video>
+            )}
+            {item.media_type === "link" && item.url && (
+              <div className="px-3 pb-3"><a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><LinkIcon className="h-4 w-4" />{item.title}</a></div>
+            )}
+            {item.media_type === "slides" && item.url && (
+              <div className="px-3 pb-3 aspect-video"><iframe src={item.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ? `https://docs.google.com/presentation/d/${item.url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)![1]}/embed` : item.url} className="w-full h-full rounded border" allowFullScreen /></div>
             )}
           </div>
         )
@@ -150,7 +156,15 @@ export default function MediaSection({ packageId, section, canEdit }: { packageI
               <p className="text-xs font-medium">Add Google Drive File</p>
               <p className="text-[10px] text-muted-foreground">Paste any Google Drive link (Doc, Slides, PDF, Sheet) — preview works automatically</p>
               <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title (e.g. Week 1 Summary)" className="h-8 text-xs" />
-              <Input value={form.url} onChange={(e) => setForm((p) => ({ ...p, url: e.target.value, media_type: "drive" }))} placeholder="Google Drive / YouTube URL" className="h-8 text-xs" />
+              <Input value={form.url} onChange={(e) => {
+                const url = e.target.value
+                let type = "link"
+                if (url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)/)) type = "video"
+                else if (url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)) type = "pdf"
+                else if (url.match(/\/presentation\/d\//)) type = "slides"
+                else if (url.match(/\.(mp3|wav|ogg)$/i)) type = "audio"
+                setForm((p) => ({ ...p, url, media_type: type }))
+              }} placeholder="Google Drive / YouTube URL" className="h-8 text-xs" />
               <div className="flex gap-1">
                 <Button size="sm" className="h-7 text-xs" onClick={addMedia}><Plus className="mr-1 h-3 w-3" />Add</Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowForm(false)}>Cancel</Button>
