@@ -91,6 +91,7 @@ export default function SyllabusPlannerPage() {
   const [mediaSources, setMediaSources] = useState<Array<{ section: string; type: string; title: string; url: string }>>([])
   const [showMediaForm, setShowMediaForm] = useState<string | null>(null)
   const [mediaForm, setMediaForm] = useState({ section: "opening", type: "youtube", title: "", url: "" })
+  const [editingMedia, setEditingMedia] = useState<{ section: string; index: number } | null>(null)
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -104,6 +105,11 @@ export default function SyllabusPlannerPage() {
 
       if (topicsRes.data) setTopics(topicsRes.data as SyllabusTopic[])
       if (eventsRes.data) setEvents(eventsRes.data as CalendarEvent[])
+      // Load objectives
+      try {
+        const objRes = await fetch(`/api/syllabus/objectives?grade=${selectedGrade}`)
+        if (objRes.ok) { const objData = await objRes.json(); if (Array.isArray(objData)) setObjectives(objData) }
+      } catch {}
       if (planRes.data) {
         const p = planRes.data as Record<string, unknown>
         setPlan({
@@ -417,10 +423,54 @@ export default function SyllabusPlannerPage() {
 
   function addMediaSource() {
     if (!mediaForm.title || !mediaForm.url) { toast.error("Title and URL are required"); return }
-    setMediaSources(prev => [...prev, { ...mediaForm }])
+    if (editingMedia) {
+      setMediaSources(prev => {
+        const sectionItems = prev.filter(s => s.section === editingMedia.section)
+        const target = sectionItems[editingMedia.index]
+        if (!target) return prev
+        const globalIdx = prev.indexOf(target)
+        const updated = [...prev]; updated[globalIdx] = { ...mediaForm }
+        return updated
+      })
+      setEditingMedia(null)
+      toast.success("Source updated!")
+    } else {
+      setMediaSources(prev => [...prev, { ...mediaForm }])
+      toast.success("Source added!")
+    }
     setMediaForm({ section: "opening", type: "youtube", title: "", url: "" })
     setShowMediaForm(null)
-    toast.success("Source added!")
+  }
+
+  function mediaPreview(src: { type: string; url: string; title: string }) {
+    const embedUrl = getEmbedUrl(src.url, src.type)
+    if (src.type === "youtube" && embedUrl) {
+      return <div className="mt-1 rounded-lg overflow-hidden border" style={{ aspectRatio: "16/9" }}><iframe src={embedUrl} className="w-full h-full" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowFullScreen /></div>
+    }
+    if (src.type === "pdf" && embedUrl) {
+      return <div className="mt-1 rounded-lg overflow-hidden border bg-gray-50" style={{ height: "400px" }}>
+        <iframe src={embedUrl} className="w-full h-full" title={src.title} />
+        <div className="text-center text-xs text-muted-foreground p-1 border-t bg-white">
+          <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open PDF in new tab ↗</a> if preview doesn't load
+        </div>
+      </div>
+    }
+    if (src.type === "slides" && embedUrl) {
+      return <div className="mt-1 rounded-lg overflow-hidden border" style={{ aspectRatio: "16/9" }}><iframe src={embedUrl} className="w-full h-full" allowFullScreen /></div>
+    }
+    if (src.type === "audio") {
+      return <audio controls className="w-full mt-1"><source src={src.url} /></audio>
+    }
+    return null
+  }
+
+  function startEditSource(section: string, index: number) {
+    const sectionItems = mediaSources.filter(s => s.section === section)
+    const item = sectionItems[index]
+    if (!item) return
+    setMediaForm({ section: item.section, type: item.type, title: item.title, url: item.url })
+    setEditingMedia({ section, index })
+    setShowMediaForm(section)
   }
 
   function removeMediaSource(section: string, idx: number) {
@@ -436,14 +486,22 @@ export default function SyllabusPlannerPage() {
   function getEmbedUrl(url: string, type: string): string | null {
     if (type === "youtube") {
       const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/)
-      return m ? `https://www.youtube.com/embed/${m[1]}` : url
+      return m ? `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0` : null
     }
     if (type === "pdf" || type === "slides") {
       const gDrive = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
-      if (gDrive) return `https://drive.google.com/file/d/${gDrive[1]}/preview`
-      return url
+      if (gDrive) {
+        const fileId = gDrive[1]
+        if (type === "slides") return `https://docs.google.com/presentation/d/${fileId}/embed`
+        // PDF: use direct Google Drive preview (most reliable)
+        return `https://drive.google.com/file/d/${fileId}/preview`
+      }
+      if (url.match(/\.pdf/i)) return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+      return null
     }
-    return url
+    if (type === "audio") return url
+    // Default: try to use as direct link
+    return url || null
   }
 
   function esc(s: string): string { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
@@ -484,16 +542,47 @@ export default function SyllabusPlannerPage() {
       ? gradeStudents.map((n: string) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")
       : ["Ahmad Fauzi", "Bunga Lestari", "Citra Dewi", "Dimas Prayoga", "Eka Putri Sari", "Farhan Maulana"].map(n => `<option value="${n}">${n}</option>`).join("")
 
-    // Render media sources (YouTube, PDF, slides, audio)
+    // Render media sources — always show embed with click-to-load
     function renderSource(src: { url: string; type: string; title: string }) {
-      const embed = (url: string, type: string) => {
-        if (type === "youtube") { const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/); return m ? `https://www.youtube.com/embed/${m[1]}` : null }
-        if (type === "pdf" || type === "slides") { const g = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/); return g ? `https://drive.google.com/file/d/${g[1]}/preview` : null }
-        return null
+      const embedUrl = getEmbedUrl(src.url, src.type)
+      const videoId = src.type === "youtube" ? (src.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/) || [])[1] : null
+
+      // YouTube: thumbnail with click-to-play
+      if (src.type === "youtube" && videoId) {
+        const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`
+        return `<div class="mt-3 rounded-lg overflow-hidden border bg-black relative" style="aspect-ratio:16/9">
+          <div class="yt-player cursor-pointer relative w-full h-full" data-embed="${embedUrl || ""}">
+            <img src="${thumb}" class="w-full h-full object-cover" alt="" loading="lazy" />
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center border-2 border-white/80"><span class="text-white text-2xl ml-1">&#9654;</span></div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 px-2 pb-1">${esc(src.title)}</p>
+        </div>`
       }
-      const e = embed(src.url, src.type)
-      if ((src.type === "youtube" || src.type === "pdf" || src.type === "slides") && e) return `<div class="mt-3 aspect-video rounded-lg overflow-hidden border"><iframe src="${e}" class="w-full h-full" allowfullscreen></iframe></div>`
-      if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio></div>`
+
+      // PDF / Slides: click-to-preview
+      if (src.type === "pdf" || src.type === "slides") {
+        const isSlide = src.type === "slides"
+        return `<div class="mt-3 rounded-lg overflow-hidden border">
+          <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
+            <p class="text-sm font-medium truncate">${esc(src.title)}</p>
+            <a href="${src.url}" target="_blank" class="text-xs text-blue-600 underline shrink-0 ml-2">Open ↗</a>
+          </div>
+          <div style="aspect-ratio:${isSlide ? '16/9' : '16/11'};max-height:500px">
+            <div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${embedUrl || ""}" data-url="${esc(src.url)}">
+              <span class="text-3xl mb-2">${isSlide ? '📽️' : '📄'}</span>
+              <p class="text-sm font-medium">Click to preview</p>
+              <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
+            </div>
+          </div>
+        </div>`
+      }
+
+      // Audio
+      if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio><p class="text-xs text-gray-400 mt-1">${esc(src.title)}</p></div>`
+
+      // Default: link
       return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
     }
 
@@ -557,6 +646,15 @@ ${allQs.map((item, idx) => {
 ${srcList.map(s => renderSource(s)).join("")}
 <div class="space-y-3">
 <textarea id="ans-text-${idx}" rows="3" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here (paste disabled)" onpaste="event.preventDefault();alert('Paste is disabled. Please type your answer manually.')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
+<div class="flex flex-wrap items-center gap-1.5 mt-1 no-print">
+<select class="tool-size text-xs border rounded px-1 py-0.5 bg-white" data-target="ans-canvas-${idx}">
+<option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option>
+</select>
+<button class="tool-pen px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="ans-canvas-${idx}" data-mode="pen">✏️ Pen</button>
+<button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="ans-canvas-${idx}" data-mode="eraser">🧹 Eraser</button>
+<button class="tool-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="ans-canvas-${idx}">🗑️ Clear</button>
+<span class="text-xs text-gray-400 ml-1" id="mode-label-${idx}">✏️ Drawing</span>
+</div>
 <canvas id="ans-canvas-${idx}" width="700" height="300" class="w-full rounded-lg border"></canvas>
 </div>
 </div>`
@@ -629,7 +727,88 @@ function clearAll() {
   document.querySelectorAll("canvas").forEach(c => clearCanvas(c.id))
 }
 document.addEventListener("DOMContentLoaded", function() {
-  document.querySelectorAll("canvas[id^=ans-canvas], #signature-canvas").forEach(c => initCanvas(c.id))
+  // Canvas drawing with tools
+  var canvasState = {}
+  function initCanvas(id) {
+    var c = document.getElementById(id); if (!c) return
+    var ctx = c.getContext("2d")
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,c.width,c.height)
+    canvasState[id] = { ctx: ctx, mode: "pen", size: 5, color: "#1a1a2e", drawing: false, last: null }
+    function pos(e) {
+      var r = c.getBoundingClientRect(), sx = c.width/r.width, sy = c.height/r.height
+      var t = e.touches ? e.touches[0] : e
+      return { x: (t.clientX-r.left)*sx, y: (t.clientY-r.top)*sy }
+    }
+    function start(e) { e.preventDefault(); var s = canvasState[id]; s.drawing = true; var p = pos(e); s.last = p; s.ctx.beginPath(); s.ctx.moveTo(p.x,p.y) }
+    function move(e) { if (!canvasState[id].drawing) return; e.preventDefault(); var s = canvasState[id]; var p = pos(e); if (s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.last.x,s.last.y); s.ctx.lineTo(p.x,p.y); s.ctx.stroke() } s.last = p }
+    function stop() { canvasState[id].drawing = false; canvasState[id].last = null }
+    c.addEventListener("mousedown",start); c.addEventListener("mousemove",move); c.addEventListener("mouseup",stop); c.addEventListener("mouseleave",stop)
+    c.addEventListener("touchstart",start,{passive:false}); c.addEventListener("touchmove",move,{passive:false}); c.addEventListener("touchend",stop)
+  }
+
+  // Apply tool settings to canvas
+  function applyTool(canvasId) {
+    var s = canvasState[canvasId]; if (!s) return
+    var sizeSel = document.querySelector('.tool-size[data-target="'+canvasId+'"]')
+    var modeBtn = document.querySelector('.tool-pen[data-target="'+canvasId+'"], .tool-eraser[data-target="'+canvasId+'"]')
+    var label = document.getElementById('mode-label-'+canvasId.replace('ans-canvas-',''))
+    if (sizeSel) s.size = parseInt(sizeSel.value)
+    s.ctx.lineWidth = s.size
+    if (s.mode === "eraser") { s.ctx.strokeStyle = "#fff"; if (label) label.textContent = "🧹 Eraser" }
+    else { s.ctx.strokeStyle = s.color; if (label) label.textContent = "✏️ Drawing" }
+  }
+
+  // Tool button events
+  document.querySelectorAll(".tool-pen, .tool-eraser").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var target = this.dataset.target
+      var mode = this.dataset.mode
+      if (canvasState[target]) canvasState[target].mode = mode
+      applyTool(target)
+      // Toggle active state
+      document.querySelectorAll('.tool-pen[data-target="'+target+'"], .tool-eraser[data-target="'+target+'"]').forEach(function(b) { b.style.background = "#fff"; b.style.borderColor = "#d1d5db" })
+      this.style.background = "#dbeafe"; this.style.borderColor = "#3b82f6"
+    })
+  })
+
+  // Size change
+  document.querySelectorAll(".tool-size").forEach(function(sel) {
+    sel.addEventListener("change", function() { applyTool(this.dataset.target) })
+  })
+
+  // Clear button
+  document.querySelectorAll(".tool-clear").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var id = this.dataset.target
+      var c = document.getElementById(id); if (!c) return
+      c.getContext("2d").fillRect(0,0,c.width,c.height)
+    })
+  })
+
+  // Init all canvases
+  document.querySelectorAll("canvas[id^=ans-canvas], #signature-canvas").forEach(function(c) { initCanvas(c.id) })
+
+  // YouTube click-to-play — replace placeholder with iframe
+  document.querySelectorAll(".yt-player").forEach(function(el) {
+    el.addEventListener("click", function() {
+      var embed = this.dataset.embed
+      if (embed) {
+        this.innerHTML = '<iframe src="'+embed+'" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen style="border:0"></iframe>'
+        this.classList.remove('cursor-pointer')
+      }
+    })
+  })
+
+  // Document click-to-preview (PDF/Slides)
+  document.querySelectorAll(".doc-preview").forEach(function(el) {
+    el.addEventListener("click", function() {
+      var embed = this.dataset.embed
+      if (embed) {
+        this.innerHTML = '<iframe src="'+embed+'" class="w-full h-full" allowfullscreen style="border:0"></iframe>'
+        this.className = 'w-full h-full'
+      }
+    })
+  })
 })
 </script>
 </body></html>`
@@ -667,16 +846,30 @@ document.addEventListener("DOMContentLoaded", function() {
           .single()
         if (saved?.media_links) {
           fetchedMedia = saved.media_links
-          setMediaSources(saved.media_links) // for UI
+          setMediaSources(saved.media_links)
         }
       } catch {}
+
+      // Save syllabus first to get an ID for the public URL
+      if (!plan.id) {
+        const saved = await handleSave(true)
+        if (!saved) { toast.error("Please save the syllabus first"); return }
+        await new Promise(r => setTimeout(r, 500))
+        await fetchData() // reload to get the new ID
+      }
+
+      const publicUrl = plan.id ? `${window.location.origin}/syllabus/public/${plan.id}` : null
 
       const html = getShareHtml(fetchedMedia)
       const blob = new Blob([html], { type: "text/html;charset=utf-8" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.html`; a.click()
       URL.revokeObjectURL(url)
-      toast.success("Share page downloaded! Open in any browser.")
+
+      if (publicUrl) {
+        try { await navigator.clipboard.writeText(publicUrl); toast.success("Public URL copied to clipboard! Share this link.") }
+        catch { toast.success(`Public URL: ${publicUrl}`) }
+      }
     } catch { toast.error("Share failed") }
   }
 
@@ -871,22 +1064,37 @@ document.addEventListener("DOMContentLoaded", function() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => (
-                    <div key={t.id} className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50/50 p-3 dark:border-green-800 dark:bg-green-950/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">✓</div>
-                      <div>
-                        <p className="font-medium text-sm">{t.topic}</p>
-                        <p className="text-xs text-muted-foreground">{t.syllabus_ref} · {t.curriculum}</p>
-                        {t.subtopics.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {t.subtopics.map((st, si) => (
-                              <span key={si} className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-1.5 py-0.5 rounded">{st}</span>
-                            ))}
+                  {topics.filter(t => selectedTopicIds.has(t.unit_id)).map(t => {
+                    const obj = objectives.find(o => o.topic.toLowerCase() === t.topic.toLowerCase())
+                    const items = obj?.objectives || []
+                    return (
+                      <div key={t.id} className="rounded-lg border border-green-200 bg-green-50/50 p-3 dark:border-green-800 dark:bg-green-950/30">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">✓</div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{t.topic}</p>
+                            <p className="text-xs text-muted-foreground mb-2">{t.syllabus_ref} · {t.curriculum}</p>
+                            {items.length > 0 ? (
+                              <ul className="space-y-1">
+                                {items.map((objText: string, oi: number) => (
+                                  <li key={oi} className="text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2">
+                                    <span className="text-green-500 mt-1">•</span>
+                                    <span>{objText}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : t.subtopics.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {t.subtopics.map((st, si) => (
+                                  <span key={si} className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 px-1.5 py-0.5 rounded">{st}</span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -919,15 +1127,19 @@ document.addEventListener("DOMContentLoaded", function() {
                   </Button>
                 </div>
                 {mediaSources.filter(s => s.section === "opening").map((s, i) => (
-                  <div key={i} className="flex items-center justify-between rounded border p-2 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
-                      <span className="truncate">{s.title}</span>
+                  <div key={i}>
+                    <div className="flex items-center justify-between rounded border p-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
+                        <span className="truncate">{s.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => startEditSource("opening", i)} className="text-primary hover:underline">Edit</button>
+                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
+                        <button onClick={() => removeMediaSource("opening", i)} className="text-destructive hover:underline ml-1">Remove</button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
-                      <button onClick={() => removeMediaSource("opening", i)} className="text-destructive hover:underline ml-1">Remove</button>
-                    </div>
+                    {mediaPreview(s)}
                   </div>
                 ))}
                 {showMediaForm === "opening" && (
@@ -939,8 +1151,11 @@ document.addEventListener("DOMContentLoaded", function() {
                       <option value="audio">Audio</option>
                     </select>
                     <input value={mediaForm.title} onChange={(e) => setMediaForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
-                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="URL" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
-                    <Button size="sm" className="h-7 text-xs" onClick={addMediaSource}>Add</Button>
+                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="YouTube: https://youtube.com/watch?v=VIDEO_ID" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <p className="text-[10px] text-muted-foreground">YouTube: <code className="bg-muted px-1">https://youtube.com/watch?v=VIDEO_ID</code> · PDF: Google Drive link or direct .pdf URL</p>
+                    <div className="flex gap-1">
+                      <Button size="sm" className="h-7 text-xs" onClick={addMediaSource}>Add</Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1007,15 +1222,19 @@ document.addEventListener("DOMContentLoaded", function() {
                   </Button>
                 </div>
                 {mediaSources.filter(s => s.section === "questions").map((s, i) => (
-                  <div key={i} className="flex items-center justify-between rounded border p-2 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
-                      <span className="truncate">{s.title}</span>
+                  <div key={i}>
+                    <div className="flex items-center justify-between rounded border p-2 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {s.type === "youtube" ? <Video className="h-3 w-3 shrink-0" /> : s.type === "audio" ? <Music className="h-3 w-3 shrink-0" /> : <LinkIcon className="h-3 w-3 shrink-0" />}
+                        <span className="truncate">{s.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => startEditSource("questions", i)} className="text-primary hover:underline">Edit</button>
+                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
+                        <button onClick={() => removeMediaSource("questions", i)} className="text-destructive hover:underline ml-1">Remove</button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Open</a>
-                      <button onClick={() => removeMediaSource("questions", i)} className="text-destructive hover:underline ml-1">Remove</button>
-                    </div>
+                    {mediaPreview(s)}
                   </div>
                 ))}
                 {showMediaForm === "questions" && (
@@ -1027,7 +1246,8 @@ document.addEventListener("DOMContentLoaded", function() {
                       <option value="audio">Audio</option>
                     </select>
                     <input value={mediaForm.title} onChange={(e) => setMediaForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
-                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="URL" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <input value={mediaForm.url} onChange={(e) => setMediaForm(p => ({ ...p, url: e.target.value }))} placeholder="YouTube: https://youtube.com/watch?v=VIDEO_ID" className="h-7 w-full rounded border border-input bg-background px-2 text-xs" />
+                    <p className="text-[10px] text-muted-foreground">YouTube: <code className="bg-muted px-1">https://youtube.com/watch?v=VIDEO_ID</code> · PDF: Google Drive link or direct .pdf URL</p>
                     <Button size="sm" className="h-7 text-xs" onClick={addMediaSource}>Add</Button>
                   </div>
                 )}
