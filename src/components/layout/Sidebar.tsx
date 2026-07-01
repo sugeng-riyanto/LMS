@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { ROUTES } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useSchoolSettings } from "@/hooks/use-school-settings"
 
 interface NavItem {
   href: string
@@ -55,6 +56,7 @@ const allNavItems: NavItem[] = [
 export default function Sidebar() {
   const pathname = usePathname()
   const { role } = useRBAC()
+  const { data: school } = useSchoolSettings()
 
   const navItems = role
     ? allNavItems.filter((item) => item.roles.includes(role))
@@ -63,8 +65,12 @@ export default function Sidebar() {
   return (
     <aside className="hidden w-64 flex-col border-r bg-sidebar lg:flex">
       <div className="flex items-center gap-2 border-b px-6 py-4">
-        <FlaskConical className="h-6 w-6 text-primary" />
-        <span className="text-sm font-semibold">Physics CC</span>
+        {school?.logo_url ? (
+          <img src={school.logo_url} alt={school.school_name} className="h-8 w-8 rounded object-contain" />
+        ) : (
+          <FlaskConical className="h-6 w-6 text-primary" />
+        )}
+        <span className="text-sm font-semibold truncate">{school?.school_name ?? "Physics CC"}</span>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {

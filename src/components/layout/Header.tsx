@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { LogOut, User, Shield, FlaskConical, Menu } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { ROLE_LABELS } from "@/lib/utils/constants"
+import { useSchoolSettings } from "@/hooks/use-school-settings"
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -13,6 +14,7 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile, signOut } = useAuth()
   const { role } = useRBAC()
+  const { data: school } = useSchoolSettings()
   const router = useRouter()
 
   async function handleSignOut() {
@@ -29,8 +31,12 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </button>
       <div className="flex items-center gap-2 lg:hidden">
-        <FlaskConical className="h-5 w-5 text-primary" />
-        <span className="text-sm font-semibold">Physics CC</span>
+        {school?.logo_url ? (
+          <img src={school.logo_url} alt={school.school_name} className="h-6 w-6 rounded object-contain" />
+        ) : (
+          <FlaskConical className="h-5 w-5 text-primary" />
+        )}
+        <span className="text-sm font-semibold truncate max-w-[120px]">{school?.school_name ?? "Physics CC"}</span>
       </div>
       <div className="flex-1" />
       <div className="flex items-center gap-4">
