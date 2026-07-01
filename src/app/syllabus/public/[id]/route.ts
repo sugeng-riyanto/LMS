@@ -19,7 +19,7 @@ export async function GET(
     const grade = plan.grade
     const week = plan.week_number
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-    const dateCode = new Date().toISOString().split("T")[0].replace(/-/g, "")
+    const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
     const origin = `https://lms-chi-orpin.vercel.app`
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -29,6 +29,19 @@ export async function GET(
     try {
       const { data: objData } = await (supabase.from("syllabus_objectives") as any).select("topic, objectives").eq("grade", grade)
       if (objData) objectives = objData
+    } catch {}
+
+    // Load students for this grade
+    let studentOptions = ""
+    try {
+      const { data: students } = await (supabase.from("profiles") as any)
+        .select("full_name")
+        .eq("role", "student")
+        .eq("grade_assigned", grade)
+        .order("full_name")
+      if (students && students.length > 0) {
+        studentOptions = students.map((s: any) => `<option value="${esc(s.full_name)}">${esc(s.full_name)}</option>`).join("")
+      }
     } catch {}
 
     // Build media sources HTML
@@ -137,8 +150,11 @@ ${objectivesHtml}
 <h3 class="font-semibold text-gray-700">Student Information</h3>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-<input id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Enter your name" /></div>
-<div><label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+<select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+<option value="">Select student...</option>
+${studentOptions}
+</select></div>
+<div><label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
 <input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" /></div>
 </div>
 </div>
