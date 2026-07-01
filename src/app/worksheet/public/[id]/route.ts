@@ -200,8 +200,22 @@ function handlePrint() {
   window.print()
 }
 
+function resizeAnnotations() {
+  for (var i = 1; i <= PAGE_COUNT; i++) {
+    var c = document.querySelector('.annotation-canvas[data-page="' + i + '"]')
+    if (!c) continue
+    var parent = c.parentElement
+    c.width = parent.offsetWidth
+    c.height = parent.offsetHeight
+    if (CS[i]) CS[i].ctx = c.getContext('2d')
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  resizeAnnotations()
   for (var i = 1; i <= PAGE_COUNT; i++) initAnnotation(i)
+  setTimeout(resizeAnnotations, 800)
+  window.addEventListener('load', resizeAnnotations)
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
