@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
-import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check } from "lucide-react"
+import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check, ImageIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
@@ -38,6 +38,7 @@ interface Worksheet {
   topic: string | null
   pdf_url: string
   pdf_pages: number
+  page_images: string[] | null
   media_links: { type: string; url: string; title: string }[]
   objectives: string | null
   reference_pdf_url: string | null
@@ -46,16 +47,34 @@ interface Worksheet {
   created_at: string
 }
 
+function loadPDFjs(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).pdfjsLib) return resolve((window as any).pdfjsLib)
+    const s = document.createElement("script")
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"
+    s.onload = () => {
+      (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js"
+      resolve((window as any).pdfjsLib)
+    }
+    s.onerror = reject
+    document.head.appendChild(s)
+  })
+}
+
 export default function WorksheetsPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const canManage = isSuperAdmin || isTeacher
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const [convertProgress, setConvertProgress] = useState("")
   const [uploadedFileName, setUploadedFileName] = useState("")
+  const [pageImages, setPageImages] = useState<string[]>([])
   const [form, setForm] = useState({
     title: "",
     grade: "10",
@@ -129,7 +148,8 @@ export default function WorksheetsPage() {
   useEffect(() => { load() }, [])
 
   async function handleSave() {
-    if (!form.title || !form.pdf_url) { toast.error("Title and Worksheet PDF URL are required"); return }
+    if (!form.title) { toast.error("Title is required"); return }
+    if (!form.pdf_url && pageImages.length === 0) { toast.error("Upload a PDF or paste a PDF URL"); return }
     setSaving(true)
     try {
       const additionalLinks = form.additional_links
@@ -139,12 +159,12 @@ export default function WorksheetsPage() {
           })
         : []
 
-      const body = {
+      const body: Record<string, any> = {
         title: form.title,
         grade: Number(form.grade),
         week_number: form.week_number ? Number(form.week_number) : null,
         topic: form.topic || null,
-        pdf_url: form.pdf_url,
+        pdf_url: pageImages.length > 0 ? "" : form.pdf_url,
         pdf_pages: Number(form.pdf_pages) || 1,
         media_links: additionalLinks,
         objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
@@ -152,6 +172,7 @@ export default function WorksheetsPage() {
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
       }
+      if (pageImages.length > 0) body.page_images = pageImages
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
       const method = editingId ? "PUT" : "POST"
@@ -193,8 +214,10 @@ export default function WorksheetsPage() {
       theory_video_title: ws.theory_video_title || "",
       additional_links: addLinks,
     })
+    setPageImages(ws.page_images || [])
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
+    setUploadedFileName(ws.page_images ? `${ws.pdf_pages} pages` : "")
     setEditingId(ws.id)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -205,26 +228,55 @@ export default function WorksheetsPage() {
     setEditingId(null)
     setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
     setSelectedObjectives(new Set())
+    setPageImages([])
     setUploadedFileName("")
+    setConvertProgress("")
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.type !== "application/pdf") { toast.error("Only PDF files allowed"); return }
-    if (file.size > 10 * 1024 * 1024) { toast.error("File too large (max 10MB)"); return }
-    setUploading(true)
+    if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return }
+    setConverting(true)
+    setConvertProgress("Loading PDF...")
     setUploadedFileName(file.name)
+    setPageImages([])
     try {
-      const fd = new FormData()
-      fd.append("file", file)
-      const res = await fetch("/api/upload", { method: "POST", body: fd })
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      const data = await res.json()
-      updateForm({ pdf_url: data.url })
-      toast.success("PDF uploaded!")
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed") }
-    finally { setUploading(false); if (e.target) e.target.value = "" }
+      const pdfjsLib = await loadPDFjs()
+      const data = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data }).promise
+      const totalPages = pdf.numPages
+      updateForm({ pdf_pages: String(totalPages) })
+      const urls: string[] = []
+      for (let i = 1; i <= totalPages; i++) {
+        setConvertProgress(`Converting page ${i} of ${totalPages}...`)
+        const page = await pdf.getPage(i)
+        const vp = page.getViewport({ scale: 1.5 })
+        const c = document.createElement("canvas")
+        c.width = vp.width
+        c.height = vp.height
+        const ctx = c.getContext("2d")!
+        await page.render({ canvasContext: ctx, viewport: vp }).promise
+        const blob = await new Promise<Blob>(r => c.toBlob(b => r(b!), "image/jpeg", 0.85))
+        const fd = new FormData()
+        fd.append("file", blob, `page_${i}.jpg`)
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        if (!res.ok) throw new Error("Image upload failed")
+        const d = await res.json()
+        urls.push(d.url)
+      }
+      setPageImages(urls)
+      updateForm({ pdf_url: "" })
+      setConvertProgress(`${totalPages} pages converted to images`)
+      toast.success(`PDF converted to ${totalPages} images — ready for annotation!`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Conversion failed")
+      setConvertProgress("")
+    } finally {
+      setConverting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
 
   if (!canManage) return <p className="p-8 text-center text-muted-foreground">Access denied.</p>
@@ -324,34 +376,55 @@ export default function WorksheetsPage() {
             {/* Separator */}
             <hr className="border-dashed" />
 
-            {/* Worksheet PDF (Canvas) */}
+            {/* Worksheet — Convert PDF → Page Images */}
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <FileText className="h-4 w-4 text-blue-600" />
-                Worksheet PDF <span className="text-xs font-normal text-muted-foreground">(for annotation canvas)</span>
+                Worksheet <span className="text-xs font-normal text-muted-foreground">(PDF → page images → annotation canvas)</span>
               </h3>
               <div className="space-y-2">
-                <Label>Upload PDF file *</Label>
-                <div className="flex items-center gap-3">
-                  <Button type="button" variant="outline" onClick={() => document.getElementById("pdf-upload-input")?.click()} disabled={uploading}>
-                    {uploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
-                    {uploading ? "Uploading..." : "Choose PDF File"}
+                <Label>Upload PDF *</Label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={converting}>
+                    {converting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
+                    {converting ? "Converting..." : "Choose PDF"}
                   </Button>
-                  <input id="pdf-upload-input" type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleUpload} />
-                  {form.pdf_url && !uploading && <span className="flex items-center gap-1 text-xs text-green-600"><Check className="h-3 w-3" /> Ready</span>}
-                  {uploadedFileName && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{uploadedFileName}</span>}
+                  <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFilePick} />
+                  {uploadedFileName && !converting && (
+                    <span className="flex items-center gap-1 text-xs text-green-600">
+                      <Check className="h-3 w-3" /> {uploadedFileName}
+                    </span>
+                  )}
+                  {convertProgress && (
+                    <span className="text-xs text-muted-foreground">{convertProgress}</span>
+                  )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {pageImages.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Or paste PDF URL</Label>
-                  <Input value={form.pdf_url} onChange={e => updateForm({ pdf_url: e.target.value })}
-                    placeholder="docs.google.com/document/d/... or direct PDF link" />
+                  <Label>Page previews ({pageImages.length} pages)</Label>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {pageImages.map((url, i) => (
+                      <div key={i} className="shrink-0 w-20 h-28 rounded border overflow-hidden bg-gray-100 relative">
+                        <img src={url} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">{i + 1}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Number of Pages</Label>
                   <Input type="number" min={1} max={50} value={form.pdf_pages}
                     onChange={e => updateForm({ pdf_pages: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Or paste PDF URL <span className="text-xs text-muted-foreground">(Google Drive fallback, no annotation)</span></Label>
+                  <Input value={form.pdf_url} onChange={e => updateForm({ pdf_url: e.target.value })}
+                    placeholder="docs.google.com/document/d/..." />
                 </div>
               </div>
             </div>
@@ -395,9 +468,9 @@ export default function WorksheetsPage() {
                 placeholder="https://docs.google.com/presentation/d/... | Notes | slides&#10;https://drive.google.com/file/d/... | Worksheet Key | pdf" />
             </div>
 
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              {saving ? "Saving..." : editingId ? "Update Worksheet" : "Save Worksheet"}
+            <Button onClick={handleSave} disabled={saving || converting}>
+              {(saving || converting) && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {saving ? "Saving..." : converting ? "Converting..." : editingId ? "Update Worksheet" : "Save Worksheet"}
             </Button>
           </CardContent>
         </Card>
@@ -432,6 +505,7 @@ export default function WorksheetsPage() {
                 <CardContent>
                   {ws.topic && <Badge variant="secondary" className="mb-2">{ws.topic}</Badge>}
                   <div className="flex flex-wrap gap-1 mb-2">
+                    {ws.page_images && <Badge variant="outline" className="text-[10px]">🖼️ Canvas Ready</Badge>}
                     {ws.reference_pdf_url && <Badge variant="outline" className="text-[10px]">📄 Ref PDF</Badge>}
                     {ws.theory_video_url && <Badge variant="outline" className="text-[10px]">🎬 Theory Video</Badge>}
                     {ws.objectives && <Badge variant="outline" className="text-[10px]">🎯 Objectives</Badge>}

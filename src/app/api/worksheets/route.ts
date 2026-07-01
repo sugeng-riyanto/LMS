@@ -27,8 +27,11 @@ export async function POST(request: NextRequest) {
     if (authError) return authError
 
     const body = await request.json()
-    if (!body.title || !body.pdf_url) {
-      return NextResponse.json({ error: "title and pdf_url are required" }, { status: 400 })
+    if (!body.title) {
+      return NextResponse.json({ error: "title is required" }, { status: 400 })
+    }
+    if (!body.pdf_url && (!body.page_images || body.page_images.length === 0)) {
+      return NextResponse.json({ error: "pdf_url or page_images is required" }, { status: 400 })
     }
 
     const { data, error } = await (supabase.from("shared_worksheets") as any)
