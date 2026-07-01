@@ -996,12 +996,30 @@ document.addEventListener("DOMContentLoaded", function() {
             ? events.map(e => e.event_name).join(", ")
             : "No events"}
         </Badge>
-        {plan.status === "planned" && (
-          <Badge variant="default" className="gap-1">
-            <BookOpen className="h-3 w-3" />
-            Planned
-          </Badge>
-        )}
+          {plan.status === "planned" && (
+            <Badge variant="default" className="gap-1">
+              <BookOpen className="h-3 w-3" />
+              Planned
+            </Badge>
+          )}
+          {plan.id && (
+            <div className="flex items-center gap-2 ml-auto">
+              <div className="text-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.origin + "/syllabus/public/" + plan.id)}`}
+                  alt="QR" className="w-14 h-14 rounded border"
+                />
+                <button
+                  className="text-[10px] text-primary hover:underline block"
+                  onClick={() => {
+                    const url = `${window.location.origin}/syllabus/public/${plan.id}`
+                    navigator.clipboard.writeText(url)
+                    toast.success("Public URL copied!")
+                  }}
+                >Copy Link</button>
+              </div>
+            </div>
+          )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

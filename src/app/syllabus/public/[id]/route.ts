@@ -20,7 +20,9 @@ export async function GET(
     const week = plan.week_number
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
-    const origin = `https://lms-chi-orpin.vercel.app`
+    const origin = _request.headers.get("x-forwarded-host")
+      ? `https://${_request.headers.get("x-forwarded-host")}`
+      : `https://lms-chi-orpin.vercel.app`
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
