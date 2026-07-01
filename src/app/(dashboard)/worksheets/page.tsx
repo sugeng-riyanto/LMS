@@ -335,15 +335,15 @@ export default function WorksheetsPage() {
       for (let i = 1; i <= totalPages; i++) {
         setConvertProgress(`Converting page ${i} of ${totalPages}...`)
         const page = await pdf.getPage(i)
-        const vp = page.getViewport({ scale: 1.5 })
+        const vp = page.getViewport({ scale: 2.0 })
         const c = document.createElement("canvas")
         c.width = vp.width
         c.height = vp.height
         const ctx = c.getContext("2d")!
         await page.render({ canvasContext: ctx, viewport: vp }).promise
-        const blob = await new Promise<Blob>(r => c.toBlob(b => r(b!), "image/jpeg", 0.85))
+        const blob = await new Promise<Blob>(r => c.toBlob(b => r(b!), "image/png"))
         const fd = new FormData()
-        fd.append("file", blob, `page_${i}.jpg`)
+        fd.append("file", blob, `page_${i}.png`)
         const res = await fetch("/api/upload", { method: "POST", body: fd })
         if (!res.ok) throw new Error("Image upload failed")
         const d = await res.json()
