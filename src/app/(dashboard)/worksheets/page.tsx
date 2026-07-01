@@ -226,7 +226,11 @@ export default function WorksheetsPage() {
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
-    if (pageImages.length === 0) { toast.error("Upload a PDF first using the Choose PDF button"); return }
+    if (pageImages.length === 0) {
+      if (uploadedFileName) toast.error("PDF conversion failed — check browser console or try a smaller PDF file")
+      else toast.error("Upload a PDF first using the Choose PDF button")
+      return
+    }
     setSaving(true)
     try {
       const additionalLinks = form.additional_links
@@ -348,7 +352,7 @@ export default function WorksheetsPage() {
       setConvertProgress(`${totalPages} pages converted to images`)
       toast.success(`PDF converted to ${totalPages} images — ready for annotation!`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "PDF conversion failed — paste a direct PDF URL below instead")
+      toast.error(e instanceof Error ? e.message : "PDF conversion failed — check console (F12) for details")
       setConvertProgress("")
     } finally {
       setConverting(false)

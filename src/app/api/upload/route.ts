@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
 
     const supabase = await createServerSupabaseClient()
+    const ext = file.name.endsWith(".jpg") || file.name.endsWith(".jpeg") ? "image/jpeg" : file.type
     const { data, error } = await supabase.storage
       .from("worksheets")
-      .upload(fileName, file, { contentType: "application/pdf", cacheControl: "3600" })
+      .upload(fileName, file, { contentType: ext, cacheControl: "3600" })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
