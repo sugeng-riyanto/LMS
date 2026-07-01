@@ -147,6 +147,81 @@ export default function WorksheetsPage() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (pageImages.length === 0) return
+    const previewData: Record<number, any> = {}
+    const wrap = document.querySelector(".preview-page:first-child")?.closest(".space-y-4")
+    if (!wrap) return
+
+    function initPreview(i: number) {
+      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
+      if (!c) return
+      const parent = c.parentElement
+      if (!parent) return
+      c.width = parent.offsetWidth || 800
+      c.height = parent.offsetHeight || 600
+      const ctx = c.getContext("2d")!
+      ctx.lineCap = "round"
+      ctx.lineJoin = "round"
+      previewData[i] = { ctx, mode: "pen", size: 5, color: "#1a1a2e", drawing: false, last: null }
+    }
+
+    function getPos(e: MouseEvent | TouchEvent, c: HTMLCanvasElement) {
+      const r = c.getBoundingClientRect()
+      const t = "touches" in e ? e.touches[0] : e
+      return { x: (t.clientX - r.left) * (c.width / r.width), y: (t.clientY - r.top) * (c.height / r.height) }
+    }
+
+    function setupCanvas(i: number) {
+      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
+      if (!c) return
+      initPreview(i)
+      const st = (e: Event) => { e.preventDefault(); const d = previewData[i]; if (!d) return; d.drawing = true; const o = getPos(e as any, c); d.last = o; d.ctx.beginPath(); d.ctx.moveTo(o.x, o.y); d.ctx.strokeStyle = d.color; d.ctx.lineWidth = d.size }
+      const mv = (e: Event) => { const d = previewData[i]; if (!d || !d.drawing) return; e.preventDefault(); const o = getPos(e as any, c); if (d.last) { d.ctx.beginPath(); d.ctx.moveTo(d.last.x, d.last.y); d.ctx.lineTo(o.x, o.y); d.ctx.stroke() } d.last = o }
+      const sp = () => { const d = previewData[i]; if (d) { d.drawing = false; d.last = null } }
+      c.addEventListener("mousedown", st); c.addEventListener("mousemove", mv); c.addEventListener("mouseup", sp); c.addEventListener("mouseleave", sp)
+      c.addEventListener("touchstart", st as any, { passive: false }); c.addEventListener("touchmove", mv as any, { passive: false }); c.addEventListener("touchend", sp)
+    }
+
+    function clearPage(i: number) {
+      const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
+      if (!c) return
+      c.getContext("2d")?.clearRect(0, 0, c.width, c.height)
+      initPreview(i)
+    }
+
+    for (let i = 1; i <= pageImages.length; i++) {
+      const img = document.querySelector(`.preview-page[data-page="${i}"] img`) as HTMLImageElement | null
+      if (img) {
+        if (img.complete) setupCanvas(i)
+        else img.onload = () => setupCanvas(i)
+      }
+    }
+
+    const h = (sel: string, fn: (i: number, e: Event) => void) => {
+      document.querySelectorAll(sel).forEach(el => el.addEventListener("click", (e) => fn(Number((el as HTMLElement).dataset.previewTarget), e)))
+    }
+    h(".preview-pen", (i) => { const d = previewData[i]; if (d) { d.mode = "pen"; d.ctx.strokeStyle = d.color; d.ctx.lineWidth = d.size; d.ctx.globalCompositeOperation = "source-over" } })
+    h(".preview-eraser", (i) => { const d = previewData[i]; if (d) { d.mode = "eraser"; d.ctx.strokeStyle = "rgba(0,0,0,0)"; d.ctx.lineWidth = d.size * 3; d.ctx.globalCompositeOperation = "destination-out" } })
+    h(".preview-clear", (i) => clearPage(i))
+    document.querySelectorAll(".preview-size").forEach(el => el.addEventListener("change", () => { const d = previewData[Number((el as HTMLElement).dataset.previewTarget)]; if (d) d.size = Number((el as HTMLSelectElement).value) }))
+    document.querySelectorAll(".preview-color").forEach(el => el.addEventListener("change", () => { const d = previewData[Number((el as HTMLElement).dataset.previewTarget)]; if (d) { d.color = (el as HTMLSelectElement).value; d.ctx.strokeStyle = d.color } }))
+
+    function resize() {
+      for (let i = 1; i <= pageImages.length; i++) {
+        const c = document.querySelector(`.preview-annotation-canvas[data-preview-page="${i}"]`) as HTMLCanvasElement | null
+        if (!c) continue
+        const p = c.parentElement
+        if (!p) continue
+        c.width = p.offsetWidth || 800
+        c.height = p.offsetHeight || 600
+      }
+    }
+    window.addEventListener("resize", resize)
+    setTimeout(resize, 500)
+    return () => window.removeEventListener("resize", resize)
+  }, [pageImages])
+
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
     const hasPdfUrl = form.pdf_url && form.pdf_url.trim().length > 0
@@ -409,13 +484,36 @@ export default function WorksheetsPage() {
               </div>
 
               {pageImages.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Page previews ({pageImages.length} pages)</Label>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="space-y-3 border rounded-lg p-4 bg-gray-50/50">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Preview — exactly what students will see</Label>
+                    <Badge variant="secondary" className="text-[10px]">{pageImages.length} pages · annotation ready</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">Try drawing below — same canvas as student view</div>
+                  <div className="space-y-4">
                     {pageImages.map((url, i) => (
-                      <div key={i} className="shrink-0 w-20 h-28 rounded border overflow-hidden bg-gray-100 relative">
-                        <img src={url} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
-                        <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">{i + 1}</span>
+                      <div key={i} className="rounded-lg border bg-white overflow-hidden preview-page" data-page={i + 1}>
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b text-xs text-gray-500">
+                          <span>Page {i + 1} of {pageImages.length}</span>
+                          <span className="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
+                        </div>
+                        <div className="relative w-full preview-canvas-wrap">
+                          <img src={url} alt={`Page ${i + 1}`} className="w-full" style={{ display: "block" }} />
+                          <canvas className="absolute inset-0 w-full h-full preview-annotation-canvas"
+                            data-preview-page={i + 1}
+                            style={{ cursor: "crosshair", touchAction: "none" }} />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-t bg-gray-50/50">
+                          <select className="preview-size text-xs border rounded px-1 py-0.5 bg-white" data-preview-target={i + 1}>
+                            <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option>
+                          </select>
+                          <button className="preview-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-preview-target={i + 1}>✏️ Pen</button>
+                          <button className="preview-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-preview-target={i + 1}>🧹 Eraser</button>
+                          <button className="preview-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-preview-target={i + 1}>🗑️ Clear</button>
+                          <select className="preview-color text-xs border rounded px-1 py-0.5 bg-white" data-preview-target={i + 1}>
+                            <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
+                          </select>
+                        </div>
                       </div>
                     ))}
                   </div>
