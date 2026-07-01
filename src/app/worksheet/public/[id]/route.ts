@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+function getGoogleDriveDirectUrl(url: string): string {
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`
+  return url
+}
+
+function getGoogleDriveEmbedUrl(url: string): string | null {
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+  if (match) return `https://drive.google.com/file/d/${match[1]}/preview`
+  return null
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,16 +28,30 @@ export async function GET(
 
     if (!ws) return new NextResponse("Worksheet not found", { status: 404 })
 
-    const title = ws.title
     const grade = ws.grade
     const pages = ws.pdf_pages || 1
     const pdfUrl = ws.pdf_url
+    const directPdfUrl = getGoogleDriveDirectUrl(pdfUrl)
+    const embedPdfUrl = getGoogleDriveEmbedUrl(pdfUrl)
     const mediaLinks: Array<{ type: string; url: string; title: string }> = ws.media_links || []
     const origin = _request.headers.get("x-forwarded-host")
       ? `https://${_request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+    // Load students for this grade
+    let studentOptions = ""
+    try {
+      const { data: students } = await (supabase.from("profiles") as any)
+        .select("full_name")
+        .eq("role", "student")
+        .eq("grade_assigned", grade)
+        .order("full_name")
+      if (students && students.length > 0) {
+        studentOptions = students.map((s: any) => `<option value="${esc(s.full_name)}">${esc(s.full_name)}</option>`).join("")
+      }
+    } catch {}
 
     function getEmbedUrl(url: string, type: string): string | null {
       if (type === "youtube") {
@@ -113,7 +139,7 @@ export async function GET(
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="/api/favicon" type="image/svg+xml" />
-<title>Worksheet: ${esc(title)} - Grade ${grade}</title>
+<title>Worksheet: ${esc(ws.title)} - Grade ${grade}</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"></script>
 <style>
@@ -131,8 +157,8 @@ canvas{max-width:100%;height:auto}
 <div class="bg-white rounded-2xl shadow-sm border p-6">
   <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl md:text-3xl font-bold">${esc(title)}</h1>
-      <p class="text-gray-500 mt-1">Grade ${grade} · ${dateStr}</p>
+      <h1 class="text-2xl md:text-3xl font-bold">${esc(ws.title)}</h1>
+      <p class="text-gray-500 mt-1">Grade ${grade}${ws.week_number ? ` · Week ${ws.week_number}` : ""}${ws.topic ? ` · ${esc(ws.topic)}` : ""} · ${dateStr}</p>
     </div>
     <div class="shrink-0 text-center">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${origin}/worksheet/public/${id}`)}" alt="QR" class="w-20 h-20 mx-auto rounded border" />
@@ -146,7 +172,7 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   ${mediaHtml}
 </div>` : ""}
 
-<div class="bg-white rounded-2xl shadow-sm border p-4">
+<div class="bg-white rounded-2xl shadow-sm border p-6">
   ${pdfPagesHtml}
 </div>
 
@@ -155,7 +181,10 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-      <input type="text" id="student-name" placeholder="Enter your full name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+      <select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+        <option value="">Select student...</option>
+        ${studentOptions}
+      </select>
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
@@ -177,7 +206,8 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js'
 
-const PDF_URL = ${JSON.stringify(pdfUrl)}
+const PDF_URL = ${JSON.stringify(directPdfUrl)}
+const PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 const PDF_PAGES = ${pages}
 
 var CS = {}
@@ -239,20 +269,28 @@ async function loadPDF() {
       await page.render({ canvasContext: ctx, viewport: viewport }).promise
 
       if (loading) loading.style.display = 'none'
-
       initAnnotation(i)
     }
   } catch (e) {
-    document.querySelectorAll('.pdf-loading').forEach(function(el) {
-      el.innerHTML = '<span class="text-red-500">Failed to load PDF. <a href="' + PDF_URL + '" target="_blank" class="underline">Open directly ↗</a></span>'
-      el.classList.remove('animate-pulse')
-    })
+    console.error('PDF.js failed:', e)
+    // Fallback: use Google Drive embed iframe
+    if (PDF_EMBED) {
+      document.querySelectorAll('.pdf-page-wrapper').forEach(function(el) {
+        var page = el.dataset.page
+        el.innerHTML = '<div style="aspect-ratio:1/1.4;max-height:90vh"><iframe src="' + PDF_EMBED + '" class="w-full h-full" style="border:0" allowfullscreen></iframe></div><div class="px-4 py-3 space-y-2 border-t bg-gray-50/50"><textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="' + page + '" placeholder="Type your answer for page ' + page + ' here (optional)"></textarea></div>'
+      })
+    } else {
+      document.querySelectorAll('.pdf-loading').forEach(function(el) {
+        el.innerHTML = '<span class="text-red-500">Failed to load PDF. <a href="' + PDF_URL + '" target="_blank" class="underline">Open directly ↗</a></span>'
+        el.classList.remove('animate-pulse')
+      })
+    }
   }
 }
 
 function handlePrint() {
   var name = document.getElementById('student-name')?.value?.trim()
-  if (!name) { alert('Please enter your Full Name before printing.'); return }
+  if (!name) { alert('Please select your Full Name before printing.'); return }
   window.print()
 }
 

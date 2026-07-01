@@ -26,6 +26,7 @@ const allMobileNavItems: NavItem[] = [
   { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LESSON_PLAN, label: "Lsn Plan", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: "/worksheets", label: "WS", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
 ]
