@@ -834,59 +834,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
   async function handleShare() {
     try {
-      let fetchedMedia: typeof mediaSources = mediaSources
-      let fetchedStudents: string[] = []
-
-      // Fetch students for the dropdown
-      try {
-        const res = await fetch("/api/profiles")
-        const profiles = await res.json()
-        fetchedStudents = (Array.isArray(profiles) ? profiles : [])
-          .filter((p: any) => p.role === "student" && p.grade_assigned === selectedGrade)
-          .map((p: any) => p.full_name)
-        ;(window as any).__SYLLABUS_STUDENTS__ = fetchedStudents
-      } catch {}
-
-      // Fetch objectives for Learning Objectives section
-      try {
-        const res = await fetch(`/api/syllabus/objectives?grade=${selectedGrade}`)
-        const data = await res.json()
-        if (Array.isArray(data)) (window as any).__SYLLABUS_OBJECTIVES__ = data
-      } catch {}
-
-      // Fetch media sources from saved syllabus plan if available
-      try {
-        const { data: saved } = await (supabase.from("syllabus_planning") as any)
-          .select("media_links")
-          .eq("academic_year", "2026-2027")
-          .eq("grade", selectedGrade)
-          .eq("week_number", selectedWeek)
-          .single()
-        if (saved?.media_links) {
-          fetchedMedia = saved.media_links
-          setMediaSources(saved.media_links)
-        }
-      } catch {}
-
-      // Save syllabus first to get an ID for the public URL
+      // Save syllabus first to get an ID
       if (!plan.id) {
         const saved = await handleSave(true)
         if (!saved) { toast.error("Please save the syllabus first"); return }
         await new Promise(r => setTimeout(r, 500))
-        await fetchData() // reload to get the new ID
+        await fetchData()
       }
 
       const publicUrl = plan.id ? `${window.location.origin}/syllabus/public/${plan.id}` : null
 
-      const html = getShareHtml(fetchedMedia)
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a"); a.href = url; a.download = `syllabus-G${selectedGrade}-W${selectedWeek}.html`; a.click()
-      URL.revokeObjectURL(url)
-
       if (publicUrl) {
-        try { await navigator.clipboard.writeText(publicUrl); toast.success("Public URL copied to clipboard! Share this link.") }
-        catch { toast.success(`Public URL: ${publicUrl}`) }
+        window.open(publicUrl, "_blank")
+        try { await navigator.clipboard.writeText(publicUrl); toast.success("Opened in new tab! Link copied to clipboard.") }
+        catch { toast.success("Opened in new tab!") }
+      } else {
+        toast.error("Save syllabus first to get a shareable link")
       }
     } catch { toast.error("Share failed") }
   }
