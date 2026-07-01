@@ -10,7 +10,7 @@ export async function GET(
     const supabase = await createServerSupabaseClient()
 
     const { data: plan } = await (supabase.from("syllabus_planning") as any)
-      .select("*, topics:syllabus_topics!inner(*)")
+      .select("*")
       .eq("id", id)
       .single()
 
@@ -62,17 +62,16 @@ canvas{touch-action:none;cursor:crosshair;border-radius:8px;max-width:100%}
 </div>
 
 <div class="space-y-8 mt-6">
-${(plan.topics || []).map((t: any, idx: number) => `
 <div class="rounded-xl border p-5 space-y-4">
 <div class="flex items-start gap-3">
-<div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">${idx + 1}</div>
-<div class="flex-1"><p class="font-medium text-gray-800">${esc(t.topic)}</p></div>
+<div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">1</div>
+<div class="flex-1"><p class="font-medium text-gray-800">${esc(plan.topic)}</p></div>
 </div>
 <div class="space-y-3">
 <textarea rows="3" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here" onpaste="event.preventDefault();alert('Paste disabled')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
-<canvas id="c${idx}" width="700" height="250" class="w-full rounded-lg border"></canvas>
+<canvas id="c0" width="700" height="250" class="w-full rounded-lg border"></canvas>
 </div>
-</div>`).join("")}
+</div>
 </div>
 
 <div class="rounded-xl border-2 border-dashed border-gray-400 p-6 space-y-3 mt-8">
