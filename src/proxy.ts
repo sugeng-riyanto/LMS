@@ -49,6 +49,8 @@ function getSupabase(request: NextRequest) {
 }
 
 function matchProtectedRoute(pathname: string): string | null {
+  // Public routes that should bypass auth
+  if (pathname.startsWith("/syllabus/public/") || pathname.startsWith("/api/syllabus/public/")) return null
   for (const route of Object.keys(ROLE_ROUTES)) {
     if (pathname === route || pathname.startsWith(route + "/")) return route
   }
