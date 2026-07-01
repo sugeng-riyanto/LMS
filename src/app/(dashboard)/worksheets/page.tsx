@@ -226,8 +226,10 @@ export default function WorksheetsPage() {
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
-    if (pageImages.length === 0) {
-      if (uploadedFileName) toast.error("PDF conversion failed — check browser console or try a smaller PDF file")
+    const hasImgs = pageImages.length > 0
+    const hasUrl = form.pdf_url && form.pdf_url.trim().length > 0
+    if (!hasImgs && !hasUrl) {
+      if (uploadedFileName) toast.error("PDF conversion failed — check browser console (F12) or try a smaller PDF file")
       else toast.error("Upload a PDF first using the Choose PDF button")
       return
     }
@@ -245,15 +247,15 @@ export default function WorksheetsPage() {
         grade: Number(form.grade),
         week_number: form.week_number ? Number(form.week_number) : null,
         topic: form.topic || null,
-        pdf_url: "",
+        pdf_url: pageImages.length > 0 ? "" : form.pdf_url,
         pdf_pages: Number(form.pdf_pages) || 1,
         media_links: additionalLinks,
         objectives: selectedObjectives.size > 0 ? Array.from(selectedObjectives).join("\n") : (form.objectives || null),
         reference_pdf_url: form.reference_pdf_url || null,
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
-        page_images: pageImages,
       }
+      if (pageImages.length > 0) body.page_images = pageImages
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
       const method = editingId ? "PUT" : "POST"
