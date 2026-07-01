@@ -34,6 +34,10 @@ export async function GET(
     const directPdfUrl = getGoogleDriveDirectUrl(pdfUrl)
     const embedPdfUrl = getGoogleDriveEmbedUrl(pdfUrl)
     const mediaLinks: Array<{ type: string; url: string; title: string }> = ws.media_links || []
+    const objectivesText: string | null = ws.objectives || null
+    const referencePdfUrl: string | null = ws.reference_pdf_url || null
+    const theoryVideoUrl: string | null = ws.theory_video_url || null
+    const theoryVideoTitle: string | null = ws.theory_video_title || null
     const origin = _request.headers.get("x-forwarded-host")
       ? `https://${_request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
@@ -133,7 +137,11 @@ export async function GET(
   </div>
 </div>`).join("")
 
-    const mediaHtml = mediaLinks.map(s => renderMedia(s)).join("")
+    const extraMedia: Array<{ type: string; url: string; title: string }> = []
+    if (theoryVideoUrl) extraMedia.push({ type: "youtube", url: theoryVideoUrl, title: theoryVideoTitle || "Theory Video" })
+    if (referencePdfUrl) extraMedia.push({ type: "pdf", url: referencePdfUrl, title: "Reference PDF (Theory Material)" })
+    const allMedia = [...extraMedia, ...mediaLinks]
+    const mediaHtml = allMedia.map(s => renderMedia(s)).join("")
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -166,6 +174,13 @@ canvas{max-width:100%;height:auto}
     </div>
   </div>
 </div>
+
+${objectivesText ? `<div class="bg-white rounded-2xl shadow-sm border p-6">
+  <h2 class="font-semibold text-gray-700 mb-2">🎯 Learning Objectives</h2>
+  <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
+    ${objectivesText.split('\n').filter(Boolean).map(o => `<li>${esc(o)}</li>`).join('')}
+  </ul>
+</div>` : ""}
 
 ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   <h2 class="font-semibold text-gray-700">Reference Materials</h2>

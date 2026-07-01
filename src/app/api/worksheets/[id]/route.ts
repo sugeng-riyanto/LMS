@@ -36,7 +36,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const allowed = ["title", "grade", "week_number", "topic", "pdf_url", "pdf_pages", "media_links"]
+    const allowed = ["title", "grade", "week_number", "topic", "pdf_url", "pdf_pages", "media_links", "objectives", "reference_pdf_url", "theory_video_url", "theory_video_title"]
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
     for (const field of allowed) {
