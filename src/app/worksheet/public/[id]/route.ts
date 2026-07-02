@@ -130,7 +130,7 @@ export async function GET(
       <option value="2" selected>•</option><option value="5">●</option><option value="10">⬤</option><option value="20">◉</option>
     </select>
     <select class="tool-fontsize text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Size" style="display:none">
-      <option value="8" selected>8</option><option value="10">10</option><option value="12">12</option><option value="16">16</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
+      <option value="16">16</option><option value="18" selected>18</option><option value="24">24</option><option value="36">36</option>
     </select>
     <button class="tool-cursor w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="cursor" title="Select / Move">
       <span class="text-base">🖱️</span>
@@ -476,7 +476,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 8 }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 18 }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -495,11 +495,11 @@ function initAnnotation(page) {
         saveTextToCanvas()
         // After save, create new text editor at new position
         setTimeout(function() {
-          createTextEditor(c, o.x, o.y, s.color, s.fontSize || 8, s.fontFamily || 'Times New Roman, serif', page)
+          createTextEditor(c, o.x, o.y, s.color, s.fontSize || 18, s.fontFamily || 'Times New Roman, serif', page)
         }, 50)
       } else {
         // No active text editor, create new one
-      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 8, s.fontFamily || 'Times New Roman, serif', page)
+      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 18, s.fontFamily || 'Times New Roman, serif', page)
     }
     return
     }
@@ -554,7 +554,7 @@ document.addEventListener('mousedown', function(e) {
     setTimeout(function() {
       var page = parseInt(canvas.dataset.page)
       var color = CS[page].color
-      var size = CS[page].fontSize || 8
+      var size = CS[page].fontSize || 18
       var fontFamily = CS[page].fontFamily || 'Times New Roman, serif'
       createTextEditor(canvas, x, y, color, size, fontFamily, page)
     }, 50)
@@ -936,7 +936,7 @@ async function loadPDF() {
           if (ctx) {
             ac.width = ac.offsetWidth || 800
             ac.height = ac.offsetHeight || 600
-            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 8 }
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 18 }
           }
         }
       }
