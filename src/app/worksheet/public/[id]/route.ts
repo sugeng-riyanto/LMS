@@ -77,7 +77,7 @@ export async function GET(
         const thumb = `https://img.youtube.com/vi/${vid}/0.jpg`
         return `<div class="mt-3 rounded-lg overflow-hidden border bg-black relative" style="aspect-ratio:16/9">
           <div class="yt-player cursor-pointer relative w-full h-full" data-embed="${esc(emb || "")}">
-            <img src="${thumb}" class="w-full h-full object-cover" alt="" loading="lazy" />
+            <img src="${thumb}" class="w-full h-full object-cover" alt="" loading="lazy" style="pointer-events:none" />
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center border-2 border-white/80"><span class="text-white text-2xl ml-1">&#9654;</span></div></div>
           </div>
           <p class="text-xs text-gray-400 px-2 pb-1">${esc(src.title)}</p>
@@ -86,13 +86,22 @@ export async function GET(
       if (src.type === "pdf" || src.type === "slides") {
         const isSlide = src.type === "slides"
         const isGoogleDriveEmbed = /drive\.google\.com/.test(emb || "")
-        const embedHtml = isGoogleDriveEmbed
-          ? `<iframe src="${esc(emb || "")}" class="w-full h-full" allowfullscreen style="border:0"></iframe>`
-          : `<div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${esc(emb || "")}">
-              <span class="text-3xl mb-2">${isSlide ? "📽️" : "📄"}</span>
-              <p class="text-sm font-medium">Click to preview</p>
-              <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
-            </div>`
+        const isFolderUrl = /drive\.google\.com\/drive\/folders/.test(src.url)
+        let embedHtml: string
+        if (isFolderUrl || !emb) {
+          embedHtml = `<div class="flex flex-col items-center justify-center py-8 bg-gray-100 text-gray-500 rounded-sm">
+            <span class="text-3xl mb-2">${isSlide ? "📽️" : "📄"}</span>
+            <p class="text-sm font-medium">Cannot preview — <a href="${esc(src.url)}" target="_blank" class="text-blue-600 underline">Open in Google Drive ↗</a></p>
+          </div>`
+        } else if (isGoogleDriveEmbed) {
+          embedHtml = `<iframe src="${esc(emb)}" class="w-full h-full" allowfullscreen style="border:0"></iframe>`
+        } else {
+          embedHtml = `<div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${esc(emb)}">
+            <span class="text-3xl mb-2">${isSlide ? "📽️" : "📄"}</span>
+            <p class="text-sm font-medium">Click to preview</p>
+            <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
+          </div>`
+        }
         return `<div class="mt-3 rounded-lg overflow-hidden border">
           <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
             <p class="text-sm font-medium truncate">${esc(src.title)}</p>
@@ -301,6 +310,9 @@ async function loadPDF() {
         el.innerHTML = '<span class="text-red-500">Failed to load PDF. <a href="' + PDF_URL + '" target="_blank" class="underline">Open directly ↗</a></span>'
         el.classList.remove('animate-pulse')
       })
+      document.querySelectorAll('.pdf-page-wrapper .relative').forEach(function(el) {
+        el.style.minHeight = 'auto'
+      })
     }
   }
 }
@@ -312,7 +324,13 @@ function handlePrint() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  loadPDF()
+  var pdfTimeout = setTimeout(function() {
+    document.querySelectorAll('.pdf-loading').forEach(function(el) {
+      el.innerHTML = '<span class="text-red-500">Taking too long. <a href="' + PDF_URL + '" target="_blank" class="underline">Open PDF directly ↗</a></span>'
+      el.classList.remove('animate-pulse')
+    })
+  }, 15000)
+  loadPDF().then(function() { clearTimeout(pdfTimeout) }).catch(function() { clearTimeout(pdfTimeout) })
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
