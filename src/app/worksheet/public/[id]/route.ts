@@ -130,24 +130,24 @@ export async function GET(
       <option value="2" selected>•</option><option value="5">●</option><option value="10">⬤</option><option value="20">◉</option>
     </select>
     <select class="tool-fontsize text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Size" style="display:none">
-      <option value="14" selected>14</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
+      <option value="16" selected>16</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
     </select>
-    <button class="tool-cursor w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">↖</button>
-    <button class="tool-pen w-full px-1 py-1.5 text-sm rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✎</button>
-    <button class="tool-line w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">╱</button>
+    <button class="tool-cursor w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">🖱️</button>
+    <button class="tool-pen w-full px-1 py-1.5 text-sm rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✏️</button>
+    <button class="tool-line w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">📏</button>
     <button class="tool-dash w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┄</button>
-    <button class="tool-eraser w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">⌫</button>
-    <button class="tool-text w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">T</button>
-    <button class="tool-clear w-full px-1 py-1.5 text-sm rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">✕</button>
+    <button class="tool-eraser w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">🧽</button>
+    <button class="tool-text w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">🅰️</button>
+    <button class="tool-clear w-full px-1 py-1.5 text-sm rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">🗑️</button>
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
       <option value="#1a1a2e" selected>●</option><option value="#dc2626">●</option><option value="#2563eb">●</option><option value="#16a34a">●</option>
     </select>
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
     </select>
-    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">▬</button>
-    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">◔</button>
-    <button class="tool-compass-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">⊙</button>
+    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📐</button>
+    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">📐</button>
+    <button class="tool-compass-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🧭</button>
     <span class="mode-label text-[8px] text-gray-500 mt-1" id="mode-label-${i + 1}">Pen</span>
   </div>
   <div class="flex-1 min-w-0">
@@ -176,11 +176,11 @@ export async function GET(
       '  div.className = "text-editor-active"',
       '  div.contentEditable = true',
       '  div.dataset.fontFamily = fontFamily || "Times New Roman, serif"',
-      '  div.dataset.fontSize = size || 14',
+      '  div.dataset.fontSize = size || 16',
       '  var rect = canvas.getBoundingClientRect()',
       '  var leftPos = rect.left + window.scrollX + x * rect.width / canvas.width',
       '  var topPos = rect.top + window.scrollY + y * rect.height / canvas.height',
-      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:80px;min-height:24px;font-family:" + (fontFamily || "Times New Roman, serif") + ";font-size:" + (size || 14) + "px;line-height:1.5;text-align:left;color:" + color + ";background:rgba(255,255,240,0.85);border:1px dashed #94a3b8;outline:none;padding:4px 6px;z-index:100;white-space:pre-wrap;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)"',
+      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:80px;min-height:24px;font-family:" + (fontFamily || "Times New Roman, serif") + ";font-size:" + (size || 16) + "px;line-height:1.5;text-align:left;color:" + color + ";background:rgba(255,255,240,0.85);border:1px dashed #94a3b8;outline:none;padding:4px 6px;z-index:100;white-space:pre-wrap;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)"',
       '  document.body.appendChild(div)',
       '  div.focus()',
       '  div.addEventListener("blur", function() { setTimeout(function() { finalizeTextEditor(div, page) }, 250) })',
@@ -195,18 +195,21 @@ export async function GET(
       '  if (!div || !div.parentNode) return',
       '  var text = (div.innerText || div.textContent || "").replace(/^\\s+|\\s+$/g, "")',
       '  var fontFamily = div.dataset.fontFamily || "Times New Roman, serif"',
-      '  var fontSize = parseInt(div.dataset.fontSize) || 14',
+      '  var fontSize = parseInt(div.dataset.fontSize) || 16',
+      '  var leftVal = parseFloat(div.style.left)',
+      '  var topVal = parseFloat(div.style.top)',
+      '  var textColor = div.style.color',
       '  div.remove()',
       '  if (!text) return',
       '  var c = document.querySelector(".annotation-canvas[data-page=" + page + "]")',
       '  if (!c) return',
       '  var s = CS[page]; if (!s) return',
       '  var rect = c.getBoundingClientRect()',
-      '  var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width',
-      '  var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height',
+      '  var x = (leftVal - rect.left) * c.width / rect.width',
+      '  var y = (topVal - rect.top) * c.height / rect.height',
       '  saveUndoState(page)',
       '  s.ctx.font = fontSize + "px " + fontFamily',
-      '  s.ctx.fillStyle = div.style.color || s.color',
+      '  s.ctx.fillStyle = textColor || s.color',
       '  s.ctx.textAlign = "left"',
       '  s.ctx.textBaseline = "top"',
       '  var lines = text.split("\\n"); var lineH = fontSize * 1.5',
@@ -381,7 +384,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 16 }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -446,15 +449,12 @@ function drawRulerCanvas(cv, w) {
     var len = isCm ? 12 : isHalf ? 8 : 4
     ctx.strokeStyle = isCm ? '#1e293b' : '#94a3b8'
     ctx.lineWidth = isCm ? 0.8 : 0.3
-    // top ticks
+    // top ticks only
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke()
-    // bottom ticks
-    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - len); ctx.stroke()
-    // cm labels
+    // cm labels on top only
     if (isCm && mm > 0) {
       ctx.fillStyle = '#1e293b'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'
       ctx.fillText((mm / 10) + '', x, len + 7)
-      ctx.fillText((mm / 10) + '', x, h - len - 2)
     }
   }
   // unit label
@@ -523,14 +523,14 @@ function createFloatingTool(type, pageWrapper) {
   el.dataset.angle = '0'
   // --- RULER ---
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 1200
+    el.className += ' floating-ruler'; var w = 2400
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
     el.style.width = w + 'px'; el.style.height = '30px'
     el.style.transformOrigin = 'left bottom'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
-    el.className += ' floating-protractor'; var d = 360
+    el.className += ' floating-protractor'; var d = 500
     el.style.width = d + 'px'; el.style.height = (d / 2 + 4) + 'px'
     el.style.borderRadius = (d/2) + 'px ' + (d/2) + 'px 0 0'
     el.style.background = 'rgba(248,250,252,0.5)'
@@ -704,7 +704,7 @@ async function loadPDF() {
           if (ctx) {
             ac.width = ac.offsetWidth || 800
             ac.height = ac.offsetHeight || 600
-            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 16 }
           }
         }
       }
