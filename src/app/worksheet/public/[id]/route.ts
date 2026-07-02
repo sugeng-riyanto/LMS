@@ -946,7 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
+      // Save text to canvas before switching tool
       if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-line').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
+      // Save text to canvas before switching tool
       if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
