@@ -200,76 +200,49 @@ export async function GET(
 
     const TEXT_EDITOR_JS = [
       'var activeTextEditor = null',
-      'var pendingCanvasClick = null',
       'function createTextEditor(canvas, x, y, color, size, fontFamily, page) {',
-      '  console.log("createTextEditor called", {x, y, page})',
       '  if (activeTextEditor) { saveTextEditor() }',
       '  var rect = canvas.getBoundingClientRect()',
       '  var leftPos = rect.left + window.scrollX + x * rect.width / canvas.width',
       '  var topPos = rect.top + window.scrollY + y * rect.height / canvas.height',
       '  var textarea = document.createElement("textarea")',
-      '  textarea.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;z-index:9999;min-width:150px;min-height:40px;width:200px;height:60px;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";background:rgba(255,255,255,0.95);border:2px solid #3b82f6;border-radius:4px;padding:6px;outline:none;resize:both;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.2);overflow:auto"',
+      '  textarea.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;z-index:9999;min-width:150px;min-height:40px;width:200px;height:60px;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";background:rgba(255,255,255,0.95);border:2px solid #3b82f6;border-radius:4px;padding:6px;outline:none;resize:both;box-shadow:0 2px 8px rgba(0,0,0,0.2);overflow:auto"',
       '  textarea.placeholder = "Type here..."',
       '  textarea.addEventListener("paste", function(e) { e.preventDefault() })',
       '  textarea.addEventListener("copy", function(e) { e.preventDefault() })',
       '  document.body.appendChild(textarea)',
       '  activeTextEditor = { textarea: textarea, page: page, canvasX: x, canvasY: y, color: color, size: size, fontFamily: fontFamily, canvas: canvas }',
       '  setTimeout(function() { textarea.focus() }, 50)',
-      '  textarea.addEventListener("blur", function() {',
-      '    console.log("blur event fired")',
-      '    setTimeout(function() {',
-      '      if (activeTextEditor && activeTextEditor.textarea === textarea) {',
-      '        console.log("calling saveTextEditor from blur")',
-      '        if (pendingCanvasClick) {',
-      '          var pc = pendingCanvasClick',
-      '          pendingCanvasClick = null',
-      '          saveTextEditor()',
-      '          setTimeout(function() {',
-      '            createTextEditor(pc.canvas, pc.x, pc.y, pc.color, pc.size, pc.fontFamily, pc.page)',
-      '          }, 100)',
-      '        } else {',
-      '          saveTextEditor()',
-      '        }',
-      '      }',
-      '    }, 150)',
-      '  })',
       '  textarea.addEventListener("keydown", function(e) {',
       '    if (e.key === "Enter" && !e.shiftKey) {',
       '      e.preventDefault()',
-      '      console.log("Enter pressed, saving")',
       '      saveTextEditor()',
       '    }',
       '    if (e.key === "Escape") {',
       '      e.preventDefault()',
       '      cancelTextEditor()',
       '    }',
+      '    e.stopPropagation()',
       '  })',
       '}',
       '',
       'function saveTextEditor() {',
-      '  console.log("saveTextEditor called", activeTextEditor)',
       '  if (!activeTextEditor) return',
       '  var text = activeTextEditor.textarea.value',
       '  var data = activeTextEditor',
-      '  console.log("text to save:", text)',
-      '  // Clear pending click to avoid conflicts',
-      '  pendingCanvasClick = null',
       '  if (!text.trim()) {',
-      '    console.log("text is empty, removing textarea")',
       '    activeTextEditor.textarea.remove()',
       '    activeTextEditor = null',
       '    return',
       '  }',
       '  var c = document.querySelector(".annotation-canvas[data-page=" + data.page + "]")',
       '  if (!c) {',
-      '    console.log("canvas not found")',
       '    activeTextEditor.textarea.remove()',
       '    activeTextEditor = null',
       '    return',
       '  }',
       '  var ctx = c.getContext("2d")',
       '  if (!ctx) {',
-      '    console.log("ctx not found")',
       '    activeTextEditor.textarea.remove()',
       '    activeTextEditor = null',
       '    return',
@@ -282,29 +255,15 @@ export async function GET(
       '  ctx.textBaseline = "top"',
       '  var lines = text.split("\\n")',
       '  var lineH = data.size * 1.5',
-      '  console.log("drawing text to canvas", {lines: lines.length, canvasX: data.canvasX, canvasY: data.canvasY})',
       '  for (var i = 0; i < lines.length; i++) {',
       '    ctx.fillText(lines[i], data.canvasX, data.canvasY + i * lineH)',
       '  }',
       '  ctx.restore()',
       '  activeTextEditor.textarea.remove()',
       '  activeTextEditor = null',
-      '  console.log("text saved to canvas successfully")',
-      '  // Keep text mode active - ensure cursor stays as text',
-      '  if (CS[data.page] && CS[data.page].mode === "text") {',
-      '    c.style.cursor = "text"',
-      '  }',
       '}',
       '',
       'function cancelTextEditor() {',
-      '  console.log("cancelTextEditor called")',
-      '  if (!activeTextEditor) return',
-      '  activeTextEditor.textarea.remove()',
-      '  activeTextEditor = null',
-      '}',
-      '',
-      'function destroyTextEditor() {',
-      '  console.log("destroyTextEditor called")',
       '  if (!activeTextEditor) return',
       '  activeTextEditor.textarea.remove()',
       '  activeTextEditor = null',
@@ -540,6 +499,29 @@ function initAnnotation(page) {
 }
 
 ${TEXT_EDITOR_JS}
+
+// Handle click outside textarea to save and create new text editor
+document.addEventListener('mousedown', function(e) {
+  if (!activeTextEditor) return
+  // Check if click is on canvas
+  var canvas = e.target.closest('.annotation-canvas')
+  if (canvas && CS[canvas.dataset.page] && CS[canvas.dataset.page].mode === 'text') {
+    // Calculate canvas coordinates
+    var rect = canvas.getBoundingClientRect()
+    var x = (e.clientX - rect.left) * canvas.width / rect.width
+    var y = (e.clientY - rect.top) * canvas.height / rect.height
+    // Save current text editor
+    saveTextEditor()
+    // Create new text editor at clicked position
+    setTimeout(function() {
+      var page = parseInt(canvas.dataset.page)
+      var color = CS[page].color
+      var size = CS[page].fontSize || 16
+      var fontFamily = CS[page].fontFamily || 'Times New Roman, serif'
+      createTextEditor(canvas, x, y, color, size, fontFamily, page)
+    }, 50)
+  }
+})
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
