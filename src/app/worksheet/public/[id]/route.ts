@@ -302,6 +302,13 @@ export async function GET(
       '  activeTextEditor.textarea.remove()',
       '  activeTextEditor = null',
       '}',
+      '',
+      'function destroyTextEditor() {',
+      '  console.log("destroyTextEditor called")',
+      '  if (!activeTextEditor) return',
+      '  activeTextEditor.textarea.remove()',
+      '  activeTextEditor = null',
+      '}',
     ].join('\n')
 
     const html = `<!DOCTYPE html>
@@ -486,10 +493,10 @@ function initAnnotation(page) {
     // Handle text mode - check if there's an active text editor
     if (s.mode === 'text') {
       if (activeTextEditor) {
-        // There's already a text editor active, save it and create new one
-        console.log("Canvas clicked while text editor active, saving and creating new")
-        pendingCanvasClick = { canvas: c, x: o.x, y: o.y, color: s.color, size: s.fontSize || 16, fontFamily: s.fontFamily || 'Times New Roman, serif', page: page }
-        activeTextEditor.textarea.blur()
+        // There's already a text editor active, destroy it and create new one
+        console.log("Canvas clicked while text editor active, destroying and creating new")
+        destroyTextEditor()
+        createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
       } else {
         // No active text editor, create new one
         createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
@@ -946,8 +953,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      // Destroy text editor if exists (don't save, user can always re-add)
+      if (activeTextEditor) { destroyTextEditor() }
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -960,8 +967,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-line').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      // Destroy text editor if exists
+      if (activeTextEditor) { destroyTextEditor() }
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -974,8 +981,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-dash').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
-      if (activeTextEditor) { saveTextEditor() }
+      // Destroy text editor if exists
+      if (activeTextEditor) { destroyTextEditor() }
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -988,8 +995,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
-      if (activeTextEditor) { saveTextEditor() }
+      // Destroy text editor if exists
+      if (activeTextEditor) { destroyTextEditor() }
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -1002,8 +1009,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
-      if (activeTextEditor) { saveTextEditor() }
+      // Destroy text editor if exists
+      if (activeTextEditor) { destroyTextEditor() }
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
