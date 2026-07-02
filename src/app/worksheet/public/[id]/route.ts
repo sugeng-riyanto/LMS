@@ -199,74 +199,68 @@ export async function GET(
 </div>`).join("")
 
     const TEXT_EDITOR_JS = [
-      'var activeTextEditor = null',
+      'var activeTextDiv = null',
       'function createTextEditor(canvas, x, y, color, size, fontFamily, page) {',
-      '  if (activeTextEditor) { saveTextEditor() }',
+      '  if (activeTextDiv) { saveTextToCanvas() }',
       '  var rect = canvas.getBoundingClientRect()',
       '  var leftPos = rect.left + window.scrollX + x * rect.width / canvas.width',
       '  var topPos = rect.top + window.scrollY + y * rect.height / canvas.height',
-      '  var textarea = document.createElement("textarea")',
-      '  textarea.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;z-index:9999;min-width:150px;min-height:40px;width:200px;height:60px;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";background:rgba(255,255,255,0.95);border:2px solid #3b82f6;border-radius:4px;padding:6px;outline:none;resize:both;box-shadow:0 2px 8px rgba(0,0,0,0.2);overflow:auto"',
-      '  textarea.placeholder = "Type here..."',
-      '  textarea.addEventListener("paste", function(e) { e.preventDefault() })',
-      '  textarea.addEventListener("copy", function(e) { e.preventDefault() })',
-      '  document.body.appendChild(textarea)',
-      '  activeTextEditor = { textarea: textarea, page: page, canvasX: x, canvasY: y, color: color, size: size, fontFamily: fontFamily, canvas: canvas }',
-      '  setTimeout(function() { textarea.focus() }, 50)',
-      '  textarea.addEventListener("keydown", function(e) {',
+      '  var div = document.createElement("div")',
+      '  div.contentEditable = "true"',
+      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:100px;min-height:20px;z-index:9999;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";background:rgba(255,255,255,0.9);border:2px dashed #3b82f6;padding:4px;outline:none;white-space:pre-wrap"',
+      '  document.body.appendChild(div)',
+      '  activeTextDiv = { div: div, page: page, canvasX: x, canvasY: y, color: color, size: size, fontFamily: fontFamily }',
+      '  setTimeout(function() { div.focus() }, 50)',
+      '  div.addEventListener("blur", function() {',
+      '    setTimeout(function() { saveTextToCanvas() }, 100)',
+      '  })',
+      '  div.addEventListener("keydown", function(e) {',
       '    if (e.key === "Enter" && !e.shiftKey) {',
       '      e.preventDefault()',
-      '      saveTextEditor()',
+      '      saveTextToCanvas()',
       '    }',
       '    if (e.key === "Escape") {',
       '      e.preventDefault()',
       '      cancelTextEditor()',
       '    }',
-      '    e.stopPropagation()',
       '  })',
       '}',
       '',
-      'function saveTextEditor() {',
-      '  if (!activeTextEditor) return',
-      '  var text = activeTextEditor.textarea.value',
-      '  var data = activeTextEditor',
-      '  if (!text.trim()) {',
-      '    activeTextEditor.textarea.remove()',
-      '    activeTextEditor = null',
+      'function saveTextToCanvas() {',
+      '  if (!activeTextDiv) return',
+      '  var text = activeTextDiv.div.innerText || activeTextDiv.div.textContent',
+      '  text = text.trim()',
+      '  if (!text) {',
+      '    activeTextDiv.div.remove()',
+      '    activeTextDiv = null',
       '    return',
       '  }',
-      '  var c = document.querySelector(".annotation-canvas[data-page=" + data.page + "]")',
+      '  var c = document.querySelector(".annotation-canvas[data-page=" + activeTextDiv.page + "]")',
       '  if (!c) {',
-      '    activeTextEditor.textarea.remove()',
-      '    activeTextEditor = null',
+      '    activeTextDiv.div.remove()',
+      '    activeTextDiv = null',
       '    return',
       '  }',
       '  var ctx = c.getContext("2d")',
-      '  if (!ctx) {',
-      '    activeTextEditor.textarea.remove()',
-      '    activeTextEditor = null',
-      '    return',
-      '  }',
       '  ctx.save()',
-      '  ctx.globalCompositeOperation = "source-over"',
-      '  ctx.font = data.size + "px " + data.fontFamily',
-      '  ctx.fillStyle = data.color',
+      '  ctx.font = activeTextDiv.size + "px " + activeTextDiv.fontFamily',
+      '  ctx.fillStyle = activeTextDiv.color',
       '  ctx.textAlign = "left"',
       '  ctx.textBaseline = "top"',
       '  var lines = text.split("\\n")',
-      '  var lineH = data.size * 1.5',
+      '  var lineH = activeTextDiv.size * 1.2',
       '  for (var i = 0; i < lines.length; i++) {',
-      '    ctx.fillText(lines[i], data.canvasX, data.canvasY + i * lineH)',
+      '    ctx.fillText(lines[i], activeTextDiv.canvasX, activeTextDiv.canvasY + i * lineH)',
       '  }',
       '  ctx.restore()',
-      '  activeTextEditor.textarea.remove()',
-      '  activeTextEditor = null',
+      '  activeTextDiv.div.remove()',
+      '  activeTextDiv = null',
       '}',
       '',
       'function cancelTextEditor() {',
-      '  if (!activeTextEditor) return',
-      '  activeTextEditor.textarea.remove()',
-      '  activeTextEditor = null',
+      '  if (!activeTextDiv) return',
+      '  activeTextDiv.div.remove()',
+      '  activeTextDiv = null',
       '}',
     ].join('\n')
 
@@ -451,10 +445,9 @@ function initAnnotation(page) {
     if (s.mode === 'cursor') { return }
     // Handle text mode - check if there's an active text editor
     if (s.mode === 'text') {
-      if (activeTextEditor) {
+      if (activeTextDiv) {
         // There's already a text editor active, SAVE it to canvas first, then create new one
-        console.log("Canvas clicked while text editor active, saving old text and creating new")
-        saveTextEditor()
+        saveTextToCanvas()
         // After save, create new text editor at new position
         setTimeout(function() {
           createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
@@ -500,9 +493,9 @@ function initAnnotation(page) {
 
 ${TEXT_EDITOR_JS}
 
-// Handle click outside textarea to save and create new text editor
+// Handle click outside text div to save and create new text editor
 document.addEventListener('mousedown', function(e) {
-  if (!activeTextEditor) return
+  if (!activeTextDiv) return
   // Check if click is on canvas
   var canvas = e.target.closest('.annotation-canvas')
   if (canvas && CS[canvas.dataset.page] && CS[canvas.dataset.page].mode === 'text') {
@@ -510,8 +503,8 @@ document.addEventListener('mousedown', function(e) {
     var rect = canvas.getBoundingClientRect()
     var x = (e.clientX - rect.left) * canvas.width / rect.width
     var y = (e.clientY - rect.top) * canvas.height / rect.height
-    // Save current text editor
-    saveTextEditor()
+    // Save current text to canvas
+    saveTextToCanvas()
     // Create new text editor at clicked position
     setTimeout(function() {
       var page = parseInt(canvas.dataset.page)
@@ -939,7 +932,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -953,7 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -967,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -981,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -995,7 +988,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save text to canvas before switching tool
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -1021,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       // Save active text editor to canvas before switching
-      if (activeTextEditor) { saveTextEditor() }
+      if (activeTextDiv) { saveTextToCanvas() }
       if (CS[target]) { CS[target].mode = 'cursor' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
