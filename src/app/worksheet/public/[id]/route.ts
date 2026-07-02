@@ -209,7 +209,6 @@ export async function GET(
       '  var lines = text.split("\\n"); var lineH = fontSize * 1.5',
       '  for (var i = 0; i < lines.length; i++) { s.ctx.fillText(lines[i], x, y + i * lineH) }',
       '}',
-      '}',
     ].join('\n')
 
     const html = `<!DOCTYPE html>
@@ -404,7 +403,6 @@ function initAnnotation(page) {
     } else if (s.mode === 'text') {
       createTextEditor(c, o.x, o.y, s.color, s.fontSize || 14, s.fontFamily || 'Times New Roman, serif', page)
     }
-  }
   }
   function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
     if (s.mode === 'pen') { s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
