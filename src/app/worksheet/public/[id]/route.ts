@@ -192,8 +192,8 @@ export async function GET(
         <span class="animate-pulse">Loading page ${i + 1}...</span>
       </div>
     </div>
-    <div class="px-4 py-2 border-t bg-gray-50/50 no-print">
-      <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)"></textarea>
+    <div class="px-4 py-2 border-t bg-gray-50/50">
+      <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-none overflow-hidden" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)" onpaste="return false" oncopy="return false"></textarea>
     </div>
   </div>
 </div>`).join("")
@@ -209,8 +209,10 @@ export async function GET(
       '  container.className = "text-editor-container"',
       '  container.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;z-index:9999;background:white;border:2px solid #3b82f6;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:8px;pointer-events:auto"',
       '  var textarea = document.createElement("textarea")',
-      '  textarea.style.cssText = "width:200px;min-height:60px;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";border:1px solid #cbd5e1;border-radius:2px;padding:4px;resize:both;outline:none;pointer-events:auto"',
+      '  textarea.style.cssText = "width:200px;min-height:60px;font-family:\'" + fontFamily + "\';font-size:" + size + "px;color:" + color + ";border:1px solid #cbd5e1;border-radius:2px;padding:4px;resize:none;outline:none;pointer-events:auto"',
       '  textarea.placeholder = "Type here..."',
+      '  textarea.addEventListener("paste", function(e) { e.preventDefault() })',
+      '  textarea.addEventListener("copy", function(e) { e.preventDefault() })',
       '  var btnRow = document.createElement("div")',
       '  btnRow.style.cssText = "margin-top:6px;display:flex;gap:4px"',
       '  var doneBtn = document.createElement("button")',
@@ -236,11 +238,11 @@ export async function GET(
       '',
       'function finalizeTextEditor() {',
       '  if (!activeTextEditor) return',
-      '  var text = activeTextEditor.textarea.value.trim()',
+      '  var text = activeTextEditor.textarea.value',
       '  var data = activeTextEditor',
       '  activeTextEditor.container.remove()',
       '  activeTextEditor = null',
-      '  if (!text) return',
+      '  if (!text.trim()) return',
       '  var c = document.querySelector(".annotation-canvas[data-page=" + data.page + "]")',
       '  if (!c) return',
       '  var ctx = c.getContext("2d")',
@@ -274,7 +276,7 @@ export async function GET(
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
-@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
+@media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}.answer-text{border:none!important;background:none!important;resize:none!important;overflow:visible!important;page-break-inside:avoid}}
 canvas{max-width:100%;height:auto}
 .annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block;z-index:5}
 .pdf-page-wrapper{position:relative}
@@ -1031,6 +1033,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') return
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoPage(activePage) }
     if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoPage(activePage) }
+  })
+  // Auto-expand answer textareas
+  document.querySelectorAll('.answer-text').forEach(function(textarea) {
+    function autoResize() {
+      textarea.style.height = 'auto'
+      textarea.style.height = textarea.scrollHeight + 'px'
+    }
+    textarea.addEventListener('input', autoResize)
+    textarea.addEventListener('focus', autoResize)
   })
 })
 </script>
