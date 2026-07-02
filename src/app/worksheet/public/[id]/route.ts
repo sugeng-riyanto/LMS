@@ -125,30 +125,60 @@ export async function GET(
     // PDF.js path — render PDF to canvas, annotation overlay
     const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden flex" data-page="${i + 1}">
-  <div class="vertical-tools no-print flex flex-col items-center gap-0.5 px-1 py-2 border-r bg-gray-50/50 shrink-0" style="width:38px">
+  <div class="vertical-tools no-print flex flex-col items-center gap-1 px-1.5 py-2 border-r bg-gray-50/50 shrink-0" style="width:52px">
     <select class="tool-size text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Pen Size">
       <option value="2" selected>•</option><option value="5">●</option><option value="10">⬤</option><option value="20">◉</option>
     </select>
     <select class="tool-fontsize text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Size" style="display:none">
       <option value="16" selected>16</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
     </select>
-    <button class="tool-cursor w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">🖱️</button>
-    <button class="tool-pen w-full px-1 py-1.5 text-sm rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✏️</button>
-    <button class="tool-line w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">📏</button>
-    <button class="tool-dash w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┄</button>
-    <button class="tool-eraser w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">🧽</button>
-    <button class="tool-text w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">🅰️</button>
-    <button class="tool-clear w-full px-1 py-1.5 text-sm rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">🗑️</button>
+    <button class="tool-cursor w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="cursor" title="Select / Move">
+      <span class="text-base">🖱️</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Select</span>
+    </button>
+    <button class="tool-pen w-full px-1 py-1 text-sm rounded border bg-blue-100 border-blue-500 flex flex-col items-center" data-target="${i + 1}" data-mode="pen" title="Pen">
+      <span class="text-base">✏️</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Pen</span>
+    </button>
+    <button class="tool-line w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="line" title="Line">
+      <span class="text-base">╱</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Line</span>
+    </button>
+    <button class="tool-dash w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="dash" title="Dash">
+      <span class="text-base">┄</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Dash</span>
+    </button>
+    <button class="tool-eraser w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="eraser" title="Eraser">
+      <span class="text-base">🧽</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Eraser</span>
+    </button>
+    <button class="tool-text w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="text" title="Text">
+      <span class="text-base">🅰️</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Text</span>
+    </button>
+    <button class="tool-clear w-full px-1 py-1 text-sm rounded border bg-red-100 hover:bg-red-200 text-red-700 flex flex-col items-center" data-target="${i + 1}" title="Clear">
+      <span class="text-base">🗑️</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Clear</span>
+    </button>
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
       <option value="#1a1a2e" selected>●</option><option value="#dc2626">●</option><option value="#2563eb">●</option><option value="#16a34a">●</option>
     </select>
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
     </select>
-    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📏</button>
-    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">⊙</button>
-    <button class="tool-compass-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🧭</button>
-    <span class="mode-label text-[8px] text-gray-500 mt-1" id="mode-label-${i + 1}">Pen</span>
+    <button class="tool-ruler-btn w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" title="Ruler">
+      <span class="text-base">📏</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Ruler</span>
+    </button>
+    <button class="tool-protractor-btn w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" title="Protractor">
+      <span class="text-base">⊙</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Protractor</span>
+    </button>
+    <button class="tool-compass-btn w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" title="Compass">
+      <span class="text-base">🧭</span>
+      <span class="text-[8px] text-gray-600 mt-0.5">Compass</span>
+    </button>
+    <span class="mode-label text-[9px] text-gray-500 mt-1 font-medium" id="mode-label-${i + 1}">Pen</span>
   </div>
   <div class="flex-1 min-w-0">
     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
@@ -434,14 +464,14 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d'), h = 40
+  var ctx = cv.getContext('2d'), h = 50
   cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, h)
   
-  // Background - transparent white
-  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(0, 0, w, h)
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, w, h)
+  // Background - transparent white with border
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(0, 0, w, h)
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, w, h)
   
   // 40px per cm, total 30cm ruler
   var pxPerCm = w / 30
@@ -454,12 +484,12 @@ function drawRulerCanvas(cv, w) {
     var isCm = mm % 10 === 0
     var isHalfCm = mm % 5 === 0
     
-    // Tick lengths
-    var tickLen = isCm ? 15 : isHalfCm ? 10 : 5
+    // Tick lengths - more prominent
+    var tickLen = isCm ? 20 : isHalfCm ? 14 : 8
     
     // Tick style
-    ctx.strokeStyle = isCm ? '#1e293b' : '#64748b'
-    ctx.lineWidth = isCm ? 1.2 : 0.6
+    ctx.strokeStyle = isCm ? '#0f172a' : '#64748b'
+    ctx.lineWidth = isCm ? 1.5 : 0.8
     
     // Top ticks
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, tickLen); ctx.stroke()
@@ -467,17 +497,17 @@ function drawRulerCanvas(cv, w) {
     // Bottom ticks (mirror)
     ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - tickLen); ctx.stroke()
     
-    // CM labels
+    // CM labels - larger and clearer
     if (isCm && mm > 0) {
-      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'
-      ctx.fillText((mm / 10).toString(), x, 22)
-      ctx.fillText((mm / 10).toString(), x, h - 12)
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'
+      ctx.fillText((mm / 10).toString(), x, 30)
+      ctx.fillText((mm / 10).toString(), x, h - 22)
     }
   }
   
   // Unit label
-  ctx.fillStyle = '#64748b'; ctx.font = 'italic 8px Arial'; ctx.textAlign = 'left'
-  ctx.fillText('cm', 5, h - 5)
+  ctx.fillStyle = '#475569'; ctx.font = 'bold italic 9px Arial'; ctx.textAlign = 'left'
+  ctx.fillText('cm', 8, h - 8)
 }
 
 function drawProtractorCanvas(cv, d) {
@@ -570,11 +600,11 @@ function createFloatingTool(type, pageWrapper) {
   el.dataset.angle = '0'
   // --- RULER ---
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 2400
+    el.className += ' floating-ruler'; var w = 1200
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '40px'
-    el.style.transformOrigin = 'left bottom'
+    el.style.width = w + 'px'; el.style.height = '50px'
+    el.style.transformOrigin = 'center center'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
     el.className += ' floating-protractor'; var d = 500
@@ -585,38 +615,42 @@ function createFloatingTool(type, pageWrapper) {
     el.style.borderBottom = 'none'
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawProtractorCanvas(cv, d) }, 50)
-    el.style.transformOrigin = 'left bottom'
+    el.style.transformOrigin = 'center bottom'
   } else return
   // Position: center in .relative div
   var relRect = rel.getBoundingClientRect()
-  el.style.left = Math.max(5, (relRect.width - parseFloat(el.style.width)) / 2) + 'px'
-  el.style.top = Math.max(5, (relRect.height - parseFloat(el.style.height)) / 2) + 'px'
+  var elWidth = parseFloat(el.style.width)
+  var elHeight = parseFloat(el.style.height)
+  el.style.left = Math.max(5, (relRect.width - elWidth) / 2) + 'px'
+  el.style.top = Math.max(5, (relRect.height - elHeight) / 2) + 'px'
   el.style.transform = 'translate(0px,0px) rotate(0deg)'
   rel.appendChild(el)
-  // Drag: full-height transparent strip
+  // Drag: full-area transparent strip (covers entire element)
   var dragStrip = document.createElement('div')
-  dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;top:0;left:0;right:30px;bottom:0;cursor:grab;background:rgba(59,130,246,0.06);border-radius:3px'
+  dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;top:0;left:0;right:0;bottom:0;cursor:grab;background:rgba(59,130,246,0.05);border-radius:3px'
   dragStrip.title = 'Drag to move'
   el.appendChild(dragStrip)
-  // Close button (left side)
+  // Close button (left-top)
   var hClose = document.createElement('div')
-  hClose.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:-11px;top:-11px'
+  hClose.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:-12px;top:-12px'
   hClose.textContent = '\u2715'
   el.appendChild(hClose)
   hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
   // Rotate button (right-top)
   var hRotate = document.createElement('div')
-  hRotate.style.cssText = 'position:absolute;z-index:27;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-11px;top:-11px'
+  hRotate.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-12px;top:-12px'
   hRotate.textContent = '\u21BB'
   el.appendChild(hRotate)
-  // Resize button (right-bottom)
-  var hResize = document.createElement('div')
-  hResize.style.cssText = 'position:absolute;z-index:27;pointer-events:auto;width:18px;height:18px;border-radius:2px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-9px;bottom:-9px'
-  hResize.textContent = '\u2921'
-  el.appendChild(hResize)
+  // Resize button (right-bottom) - only for ruler
+  if (type === 'ruler') {
+    var hResize = document.createElement('div')
+    hResize.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:20px;height:20px;border-radius:3px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-10px;bottom:-10px'
+    hResize.textContent = '\u2921'
+    el.appendChild(hResize)
+  }
   // Mode toggle button (top-center): switches between Draw (D) and Move (M)
   var modeBtn = document.createElement('div')
-  modeBtn.style.cssText = 'position:absolute;z-index:30;pointer-events:auto;width:18px;height:18px;border-radius:50%;background:#e2e8f0;border:2px solid #64748b;color:#334155;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:-9px;top:-9px;font-weight:bold'
+  modeBtn.style.cssText = 'position:absolute;z-index:30;pointer-events:auto;width:20px;height:20px;border-radius:50%;background:#e2e8f0;border:2px solid #64748b;color:#334155;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:-10px;top:-10px;font-weight:bold'
   modeBtn.textContent = 'M'
   modeBtn.title = 'Toggle Draw/Move mode'
   el.appendChild(modeBtn)
@@ -642,28 +676,82 @@ function createFloatingTool(type, pageWrapper) {
   }
   modeBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleMode() })
   // --- Drag events: updates translate(dx,dy) in transform ---
-  var offX = -1, offY = -1
-  function dragStart(e) { var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); offX = t.clientX - r.left; offY = t.clientY - r.top; e.stopPropagation() }
-  function dragMove(e) { if (offX === -1 && offY === -1) return; var t = e.touches ? e.touches[0] : e; var rr = rel.getBoundingClientRect(); var dx = t.clientX - offX - rr.left; var dy = t.clientY - offY - rr.top; el.dataset.dx = String(dx); el.dataset.dy = String(dy); el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (parseFloat(el.dataset.angle) || 0) + 'deg)' }
-  function dragEnd() { offX = -1; offY = -1 }
-  dragStrip.addEventListener('mousedown', dragStart); document.addEventListener('mousemove', dragMove); document.addEventListener('mouseup', dragEnd)
-  dragStrip.addEventListener('touchstart', dragStart, { passive: true }); document.addEventListener('touchmove', dragMove, { passive: true }); document.addEventListener('touchend', dragEnd)
+  var isDragging = false, startX = 0, startY = 0, startDx = 0, startDy = 0
+  function dragStart(e) { 
+    e.stopPropagation(); e.preventDefault()
+    isDragging = true
+    var t = e.touches ? e.touches[0] : e
+    startX = t.clientX
+    startY = t.clientY
+    startDx = parseFloat(el.dataset.dx) || 0
+    startDy = parseFloat(el.dataset.dy) || 0
+    dragStrip.style.cursor = 'grabbing'
+  }
+  function dragMove(e) { 
+    if (!isDragging) return
+    var t = e.touches ? e.touches[0] : e
+    var dx = startDx + (t.clientX - startX)
+    var dy = startDy + (t.clientY - startY)
+    el.dataset.dx = String(dx)
+    el.dataset.dy = String(dy)
+    var angle = parseFloat(el.dataset.angle) || 0
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + angle + 'deg)'
+  }
+  function dragEnd() { 
+    isDragging = false
+    dragStrip.style.cursor = 'grab'
+  }
+  dragStrip.addEventListener('mousedown', dragStart)
+  document.addEventListener('mousemove', dragMove)
+  document.addEventListener('mouseup', dragEnd)
+  dragStrip.addEventListener('touchstart', dragStart, { passive: false })
+  document.addEventListener('touchmove', dragMove, { passive: false })
+  document.addEventListener('touchend', dragEnd)
   // --- Rotate events: updates rotate(angle) in transform ---
   var rotating = false
-  function rotStart(e) { e.stopPropagation(); rotating = true }
-  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); var cx = r.left + r.width / 2, cy = r.top + r.height / 2; var angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI; el.dataset.angle = String(angle); el.style.transform = 'translate(' + (parseFloat(el.dataset.dx) || 0) + 'px,' + (parseFloat(el.dataset.dy) || 0) + 'px) rotate(' + angle + 'deg)' }
+  function rotStart(e) { e.stopPropagation(); e.preventDefault(); rotating = true }
+  function rotMove(e) { 
+    if (!rotating) return
+    var t = e.touches ? e.touches[0] : e
+    var rect = el.getBoundingClientRect()
+    var cx = rect.left + rect.width / 2
+    var cy = rect.top + rect.height / 2
+    var angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI + 90
+    el.dataset.angle = String(angle)
+    var dx = parseFloat(el.dataset.dx) || 0
+    var dy = parseFloat(el.dataset.dy) || 0
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + angle + 'deg)'
+  }
   function rotEnd() { rotating = false }
-  hRotate.addEventListener('mousedown', rotStart); document.addEventListener('mousemove', rotMove); document.addEventListener('mouseup', rotEnd)
-  hRotate.addEventListener('touchstart', rotStart, { passive: true }); document.addEventListener('touchmove', rotMove, { passive: true }); document.addEventListener('touchend', rotEnd)
-  // --- Resize events ---
-  var resizing = false, startW = 0, startX = 0
-  function resStart(e) { e.stopPropagation(); resizing = true; var t = e.touches ? e.touches[0] : e; startW = el.offsetWidth; startX = t.clientX }
-  function resMove(e) { if (!resizing) return; var t = e.touches ? e.touches[0] : e; var dw = Math.max(150, t.clientX - startX + startW); el.style.width = dw + 'px'; if (type === 'protractor') { el.style.height = (dw / 2 + 4) + 'px'; el.style.borderRadius = (dw/2) + 'px ' + (dw/2) + 'px 0 0' }; var cv = el.querySelector('canvas'); if (cv) { if (type === 'ruler') drawRulerCanvas(cv, dw); else drawProtractorCanvas(cv, dw) } }
-  function resEnd() { resizing = false }
-  hResize.addEventListener('mousedown', resStart); document.addEventListener('mousemove', resMove); document.addEventListener('mouseup', resEnd)
-  hResize.addEventListener('touchstart', resStart, { passive: true }); document.addEventListener('touchmove', resMove, { passive: true }); document.addEventListener('touchend', resEnd)
+  hRotate.addEventListener('mousedown', rotStart)
+  document.addEventListener('mousemove', rotMove)
+  document.addEventListener('mouseup', rotEnd)
+  hRotate.addEventListener('touchstart', rotStart, { passive: false })
+  document.addEventListener('touchmove', rotMove, { passive: false })
+  document.addEventListener('touchend', rotEnd)
+  // --- Resize events (ruler only) ---
+  if (type === 'ruler') {
+    var resizing = false, startW = 0, startX = 0
+    function resStart(e) { e.stopPropagation(); e.preventDefault(); resizing = true; var t = e.touches ? e.touches[0] : e; startW = el.offsetWidth; startX = t.clientX }
+    function resMove(e) { 
+      if (!resizing) return
+      var t = e.touches ? e.touches[0] : e
+      var dw = Math.max(600, Math.min(2400, t.clientX - startX + startW))
+      el.style.width = dw + 'px'
+      var cv = el.querySelector('canvas')
+      if (cv) drawRulerCanvas(cv, dw)
+    }
+    function resEnd() { resizing = false }
+    hResize.addEventListener('mousedown', resStart)
+    document.addEventListener('mousemove', resMove)
+    document.addEventListener('mouseup', resEnd)
+    hResize.addEventListener('touchstart', resStart, { passive: false })
+    document.addEventListener('touchmove', resMove, { passive: false })
+    document.addEventListener('touchend', resEnd)
+  }
   // Ensure handles stay above drag strip
-  hClose.style.zIndex = '28'; hRotate.style.zIndex = '28'; hResize.style.zIndex = '28'
+  hClose.style.zIndex = '28'
+  hRotate.style.zIndex = '28'
   return el
 }
 
