@@ -145,8 +145,8 @@ export async function GET(
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
     </select>
-    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📐</button>
-    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">📐</button>
+    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📏</button>
+    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">⊙</button>
     <button class="tool-compass-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🧭</button>
     <span class="mode-label text-[8px] text-gray-500 mt-1" id="mode-label-${i + 1}">Pen</span>
   </div>
@@ -434,80 +434,127 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d'), h = 30
+  var ctx = cv.getContext('2d'), h = 40
   cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(0, 0, w, h)
-  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, h)
-  // 40px per cm, total 30cm
+  
+  // Background - transparent white
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(0, 0, w, h)
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, w, h)
+  
+  // 40px per cm, total 30cm ruler
   var pxPerCm = w / 30
+  
+  // Draw mm, 5mm, and cm marks
   for (var mm = 0; mm <= 300; mm++) {
     var x = mm * pxPerCm / 10
     if (x > w) break
-    var isCm = mm % 10 === 0, isHalf = mm % 5 === 0
-    var len = isCm ? 12 : isHalf ? 8 : 4
-    ctx.strokeStyle = isCm ? '#1e293b' : '#94a3b8'
-    ctx.lineWidth = isCm ? 0.8 : 0.3
-    // top ticks only
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke()
-    // cm labels on top only
+    
+    var isCm = mm % 10 === 0
+    var isHalfCm = mm % 5 === 0
+    
+    // Tick lengths
+    var tickLen = isCm ? 15 : isHalfCm ? 10 : 5
+    
+    // Tick style
+    ctx.strokeStyle = isCm ? '#1e293b' : '#64748b'
+    ctx.lineWidth = isCm ? 1.2 : 0.6
+    
+    // Top ticks
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, tickLen); ctx.stroke()
+    
+    // Bottom ticks (mirror)
+    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - tickLen); ctx.stroke()
+    
+    // CM labels
     if (isCm && mm > 0) {
-      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText((mm / 10) + '', x, len + 7)
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'
+      ctx.fillText((mm / 10).toString(), x, 22)
+      ctx.fillText((mm / 10).toString(), x, h - 12)
     }
   }
-  // unit label
-  ctx.fillStyle = '#94a3b8'; ctx.font = '6px sans-serif'; ctx.textAlign = 'left'
-  ctx.fillText('cm', w - 20, h - 2)
+  
+  // Unit label
+  ctx.fillStyle = '#64748b'; ctx.font = 'italic 8px Arial'; ctx.textAlign = 'left'
+  ctx.fillText('cm', 5, h - 5)
 }
 
 function drawProtractorCanvas(cv, d) {
   var r = d / 2, ctx = cv.getContext('2d')
-  cv.width = d * 2; cv.height = (r + 20) * 2
-  ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 20)
-  // semicircle fill - thin and clean
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'
-  ctx.beginPath(); ctx.moveTo(0, r + 20); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 20); ctx.closePath(); ctx.fill()
-  // outer arc border
-  ctx.strokeStyle = '#475569'; ctx.lineWidth = 0.8
-  ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke()
-  // baseline
-  ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
-  // inner arc (55% radius)
-  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.5
-  ctx.beginPath(); ctx.arc(0, 0, r * 0.55, Math.PI, 0); ctx.stroke()
-  // degree marks - every 1 degree
+  cv.width = d * 2; cv.height = (r + 30) * 2
+  ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 30)
+  
+  // Center point at (r, r)
+  var cx = r, cy = r
+  
+  // Semicircle background
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.closePath(); ctx.fill()
+  
+  // Outer arc border
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5
+  ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.stroke()
+  
+  // Baseline
+  ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke()
+  
+  // Inner arc (for inner scale)
+  var innerR = r * 0.7
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.8
+  ctx.beginPath(); ctx.arc(cx, cy, innerR, Math.PI, 0); ctx.stroke()
+  
+  // Degree marks - every 1 degree
   for (var deg = 0; deg <= 180; deg++) {
-    var rad = deg * Math.PI / 180
+    var rad = (180 - deg) * Math.PI / 180  // Start from left (180°) to right (0°)
     var cos = Math.cos(rad), sin = -Math.sin(rad)
-    var isTen = deg % 10 === 0, isFive = deg % 5 === 0
-    var outerLen = isTen ? 10 : isFive ? 6 : 3
-    var innerLen = isTen ? 8 : 4
-    ctx.strokeStyle = isTen ? '#1e293b' : isFive ? '#64748b' : '#cbd5e1'
-    ctx.lineWidth = isTen ? 0.8 : 0.3
-    // outer tick
-    ctx.beginPath(); ctx.moveTo(cos * r, sin * r); ctx.lineTo(cos * (r - outerLen), sin * (r - outerLen)); ctx.stroke()
-    // inner tick
-    var innerR = r * 0.55
-    ctx.beginPath(); ctx.moveTo(cos * innerR, sin * innerR); ctx.lineTo(cos * (innerR + innerLen), sin * (innerR + innerLen)); ctx.stroke()
-    // labels every 10 degrees
+    
+    var isTen = deg % 10 === 0
+    var isFive = deg % 5 === 0
+    
+    // Outer tick lengths
+    var outerLen = isTen ? 12 : isFive ? 8 : 4
+    
+    // Inner tick lengths
+    var innerLen = isTen ? 10 : isFive ? 6 : 3
+    
+    // Tick style
+    ctx.strokeStyle = isTen ? '#1e293b' : isFive ? '#475569' : '#94a3b8'
+    ctx.lineWidth = isTen ? 1.2 : 0.5
+    
+    // Outer tick (from edge inward)
+    ctx.beginPath(); 
+    ctx.moveTo(cx + cos * r, cy + sin * r); 
+    ctx.lineTo(cx + cos * (r - outerLen), cy + sin * (r - outerLen)); 
+    ctx.stroke()
+    
+    // Inner tick (from inner arc outward)
+    ctx.beginPath(); 
+    ctx.moveTo(cx + cos * innerR, cy + sin * innerR); 
+    ctx.lineTo(cx + cos * (innerR + innerLen), cy + sin * (innerR + innerLen)); 
+    ctx.stroke()
+    
+    // Labels every 10 degrees - outer scale
     if (isTen) {
-      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      ctx.fillText(deg + '\u00B0', cos * (r - 14), sin * (r - 14))
-      ctx.font = '7px sans-serif'; ctx.fillStyle = '#64748b'
-      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 13), sin * (innerR + 13))
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText(deg.toString() + '°', cx + cos * (r - 18), cy + sin * (r - 18))
+    }
+    
+    // Labels every 10 degrees - inner scale (reversed)
+    if (isTen && deg > 0 && deg < 180) {
+      ctx.fillStyle = '#64748b'; ctx.font = '9px Arial'
+      ctx.fillText((180 - deg).toString() + '°', cx + cos * (innerR + 16), cy + sin * (innerR + 16))
     }
   }
-  // cardinal labels
-  ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText('0\u00B0', r - 12, 0)
-  ctx.fillText('180\u00B0', -r + 12, 0)
-  ctx.fillText('90\u00B0', 0, -r + 14)
-  // center crosshair
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.5
-  ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke()
+  
+  // Center crosshair
+  ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5
+  ctx.beginPath(); ctx.moveTo(cx - 5, cy); ctx.lineTo(cx + 5, cy); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx, cy - 5); ctx.lineTo(cx, cy + 5); ctx.stroke()
+  
+  // Center dot
+  ctx.fillStyle = '#ef4444'
+  ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill()
 }
 
 function createFloatingTool(type, pageWrapper) {
@@ -526,7 +573,7 @@ function createFloatingTool(type, pageWrapper) {
     el.className += ' floating-ruler'; var w = 2400
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '30px'
+    el.style.width = w + 'px'; el.style.height = '40px'
     el.style.transformOrigin = 'left bottom'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
