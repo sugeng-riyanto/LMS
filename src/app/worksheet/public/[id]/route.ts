@@ -160,9 +160,7 @@ export async function GET(
       <span class="text-base">🗑️</span>
       <span class="text-[8px] text-gray-600 mt-0.5">Clear</span>
     </button>
-    <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
-      <option value="#2563eb" selected>●</option><option value="#000000">●</option><option value="#16a34a">●</option><option value="#dc2626">●</option><option value="#eab308">●</option><option value="#9333ea">●</option><option value="#ffffff">●</option>
-    </select>
+    <input type="color" class="tool-color w-full h-7 rounded border bg-white cursor-pointer" data-target="${i + 1}" title="Color" value="#2563eb" style="padding:1px" />
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
     </select>
@@ -279,7 +277,7 @@ canvas{max-width:100%;height:auto}
 .annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block;z-index:5}
 .pdf-page-wrapper{position:relative}
 .pdf-canvas{width:100%!important;height:auto!important;display:block}
-.answer-text{-webkit-user-select:text;user-select:text}
+.answer-text{-webkit-user-select:text;user-select:text;color:#2563eb!important;font-size:18px!important;font-family:'Times New Roman',serif!important}
 .vertical-tools button.active-tool{background:#dbeafe;border-color:#3b82f6}
 .vertical-tools .mode-label{font-size:7px;line-height:1;color:#9ca3af;writing-mode:vertical-rl;text-orientation:mixed;margin-top:2px}
 .floating-tool{position:absolute;z-index:10;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
