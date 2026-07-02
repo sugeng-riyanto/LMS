@@ -235,12 +235,13 @@ export async function GET(
       '    activeTextDiv = null',
       '    return',
       '  }',
-      '  var c = document.querySelector(".annotation-canvas[data-page=" + activeTextDiv.page + "]")',
+      '  var c = document.querySelector(".annotation-canvas[data-page=\\"" + activeTextDiv.page + "\\"]")',
       '  if (!c) {',
       '    activeTextDiv.div.remove()',
       '    activeTextDiv = null',
       '    return',
       '  }',
+      '  saveUndoState(activeTextDiv.page)',
       '  var ctx = c.getContext("2d")',
       '  ctx.save()',
       '  ctx.font = activeTextDiv.size + "px " + activeTextDiv.fontFamily',
@@ -809,6 +810,7 @@ function clearPage(page) {
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
   if (!c) return
   var ctx = c.getContext('2d')
+  saveUndoState(page)
   ctx.clearRect(0, 0, c.width, c.height)
   CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
 }
