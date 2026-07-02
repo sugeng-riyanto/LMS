@@ -127,8 +127,9 @@ export async function GET(
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden flex" data-page="${i + 1}">
   <div class="vertical-tools no-print flex flex-col items-center gap-0.5 px-1 py-2 border-r bg-gray-50/50 shrink-0" style="width:34px">
     <select class="tool-size text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}">
-      <option value="2" selected>T</option><option value="5">M</option><option value="10">K</option><option value="20">B</option>
+      <option value="14" selected>T</option><option value="18">M</option><option value="24">K</option><option value="36">B</option>
     </select>
+    <button class="tool-cursor w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">⊹</button>
     <button class="tool-pen w-full px-0.5 py-1 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✏️</button>
     <button class="tool-line w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">📏</button>
     <button class="tool-dash w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┅</button>
@@ -138,8 +139,11 @@ export async function GET(
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
       <option value="#1a1a2e" selected>⚫</option><option value="#dc2626">🔴</option><option value="#2563eb">🔵</option><option value="#16a34a">🟢</option>
     </select>
+    <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
+      <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
+    </select>
     <button class="tool-ruler-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📏</button>
-    <button class="tool-protractor-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">📐</button>
+    <button class="tool-protractor-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">◓</button>
     <button class="tool-compass-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🌀</button>
     <span class="mode-label" id="mode-label-${i + 1}">Pen</span>
   </div>
@@ -156,48 +160,55 @@ export async function GET(
       </div>
     </div>
     <div class="px-4 py-2 border-t bg-gray-50/50 no-print">
-      <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)" onpaste="return false"></textarea>
+      <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)"></textarea>
     </div>
   </div>
 </div>`).join("")
 
     const TEXT_EDITOR_JS = [
-      'function createTextEditor(canvas, x, y, color, size, page) {',
+      'function createTextEditor(canvas, x, y, color, size, fontFamily, page) {',
       '  var existing = document.querySelector(".text-editor-active")',
       '  if (existing) finalizeTextEditor(existing, page)',
       '  var div = document.createElement("div")',
       '  div.className = "text-editor-active"',
       '  div.contentEditable = true',
+      '  div.dataset.fontFamily = fontFamily || "Times New Roman, serif"',
+      '  div.dataset.fontSize = size || 14',
       '  var rect = canvas.getBoundingClientRect()',
       '  var leftPos = rect.left + window.scrollX + x * rect.width / canvas.width',
       '  var topPos = rect.top + window.scrollY + y * rect.height / canvas.height',
-      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:50px;min-height:20px;font-family:\'Times New Roman\',serif;font-size:12px;line-height:1.4;text-align:justify;color:" + color + ";background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden"',
+      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:80px;min-height:24px;font-family:" + (fontFamily || "Times New Roman, serif") + ";font-size:" + (size || 14) + "px;line-height:1.5;text-align:left;color:" + color + ";background:rgba(255,255,240,0.85);border:1px dashed #94a3b8;outline:none;padding:4px 6px;z-index:100;white-space:pre-wrap;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1)"',
       '  document.body.appendChild(div)',
       '  div.focus()',
-      '  div.addEventListener("blur", function() { setTimeout(function() { finalizeTextEditor(div, page) }, 200) })',
+      '  div.addEventListener("blur", function() { setTimeout(function() { finalizeTextEditor(div, page) }, 250) })',
       '  div.addEventListener("keydown", function(e) {',
-      '    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.execCommand("insertLineBreak", false) }',
-      '    if (e.key === "Escape") { div.remove(); finalizeTextEditor(div, page) }',
+      '    if (e.key === "Escape") { e.preventDefault(); finalizeTextEditor(div, page) }',
+      '    e.stopPropagation()',
       '  })',
+      '  div.addEventListener("mousedown", function(e) { e.stopPropagation() })',
       '}',
       '',
       'function finalizeTextEditor(div, page) {',
       '  if (!div || !div.parentNode) return',
-      '  var text = div.innerText || div.textContent || ""',
+      '  var text = (div.innerText || div.textContent || "").replace(/^\\s+|\\s+$/g, "")',
+      '  var fontFamily = div.dataset.fontFamily || "Times New Roman, serif"',
+      '  var fontSize = parseInt(div.dataset.fontSize) || 14',
       '  div.remove()',
-      '  if (!text.trim()) return',
+      '  if (!text) return',
       '  var c = document.querySelector(".annotation-canvas[data-page=" + page + "]")',
       '  if (!c) return',
       '  var s = CS[page]; if (!s) return',
       '  var rect = c.getBoundingClientRect()',
       '  var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width',
       '  var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height',
-      '  s.ctx.font = "12px Times New Roman, serif"',
-      '  s.ctx.fillStyle = s.color',
-      '  s.ctx.textAlign = "justify"',
+      '  saveUndoState(page)',
+      '  s.ctx.font = fontSize + "px " + fontFamily',
+      '  s.ctx.fillStyle = div.style.color || s.color',
+      '  s.ctx.textAlign = "left"',
       '  s.ctx.textBaseline = "top"',
-      '  var lines = text.split("\\n"); var lineH = 16',
+      '  var lines = text.split("\\n"); var lineH = fontSize * 1.5',
       '  for (var i = 0; i < lines.length; i++) { s.ctx.fillText(lines[i], x, y + i * lineH) }',
+      '}',
       '}',
     ].join('\n')
 
@@ -218,7 +229,7 @@ canvas{max-width:100%;height:auto}
 .vertical-tools button.active-tool{background:#dbeafe;border-color:#3b82f6}
 .vertical-tools .mode-label{font-size:7px;line-height:1;color:#9ca3af;writing-mode:vertical-rl;text-orientation:mixed;margin-top:2px}
 .floating-tool{position:absolute;z-index:10;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
-.floating-tool canvas{display:block}
+.floating-tool canvas{display:block;pointer-events:none}
 .floating-tool .handle{position:absolute;z-index:25;width:20px;height:20px;border-radius:50%;border:2px solid #2563eb;background:white;opacity:0.95;pointer-events:auto;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
 .floating-tool .handle:hover{opacity:1;transform:scale(1.4)}
 .floating-tool .h-close{left:-10px;top:-10px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:20px}
@@ -301,6 +312,61 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
 
 var CS = {}
 var TOTAL_PAGES = 0
+var UNDO_STACKS = {}
+var REDO_STACKS = {}
+var MAX_UNDO = 30
+
+function saveUndoState(page) {
+  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+  if (!c) return
+  UNDO_STACKS[page] = UNDO_STACKS[page] || []
+  REDO_STACKS[page] = []
+  var data = c.getContext('2d').getImageData(0, 0, c.width, c.height)
+  UNDO_STACKS[page].push(data)
+  if (UNDO_STACKS[page].length > MAX_UNDO) UNDO_STACKS[page].shift()
+}
+function undoPage(page) {
+  var stack = UNDO_STACKS[page]
+  if (!stack || stack.length === 0) return
+  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+  if (!c) return
+  REDO_STACKS[page] = REDO_STACKS[page] || []
+  REDO_STACKS[page].push(c.getContext('2d').getImageData(0, 0, c.width, c.height))
+  var data = stack.pop()
+  c.getContext('2d').putImageData(data, 0, 0)
+}
+function redoPage(page) {
+  var stack = REDO_STACKS[page]
+  if (!stack || stack.length === 0) return
+  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+  if (!c) return
+  UNDO_STACKS[page] = UNDO_STACKS[page] || []
+  UNDO_STACKS[page].push(c.getContext('2d').getImageData(0, 0, c.width, c.height))
+  var data = stack.pop()
+  c.getContext('2d').putImageData(data, 0, 0)
+}
+
+function setFloatingToolMode(page, mode) {
+  document.querySelectorAll('.floating-tool[data-page="' + page + '"]').forEach(function(el) {
+    if (mode === 'cursor') {
+      el.style.pointerEvents = 'auto'
+      el.dataset.mode = 'move'
+      var strip = el.querySelector('[title="Drag to move"]')
+      if (strip) strip.style.display = ''
+      var modeBtn = el.querySelector('[title^="Toggle"]')
+      if (modeBtn) { modeBtn.textContent = 'M'; modeBtn.title = 'Move mode: drag/resize/rotate' }
+    } else {
+      el.style.pointerEvents = 'none'
+      el.dataset.mode = 'draw'
+      var strip2 = el.querySelector('[title="Drag to move"]')
+      if (strip2) strip2.style.display = 'none'
+      var modeBtn2 = el.querySelector('[title^="Toggle"]')
+      if (modeBtn2) { modeBtn2.textContent = 'D'; modeBtn2.title = 'Draw mode: draw through ruler' }
+    }
+  })
+}
+
+function setActivePage(page) { window._activePage = page }
 
 function initAnnotation(page) {
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
@@ -313,7 +379,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 14, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -323,7 +389,10 @@ function initAnnotation(page) {
     return { x: (t.clientX - r.left) * s, y: (t.clientY - r.top) * si }
   }
 
-  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e); s.drawing = true; s.last = o; s.lineStart = o; s.ctx.globalCompositeOperation = 'source-over';
+  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e);
+    if (s.mode === 'cursor') { return }
+    saveUndoState(page)
+    s.drawing = true; s.last = o; s.lineStart = o; s.ctx.globalCompositeOperation = 'source-over';
     if (s.mode === 'pen' || s.mode === 'line' || s.mode === 'dash') {
       s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); c.style.cursor = 'crosshair'
       if (s.mode === 'line' || s.mode === 'dash') { s.savedState = ctx.getImageData(0, 0, c.width, c.height) }
@@ -333,8 +402,9 @@ function initAnnotation(page) {
       s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash([]); c.style.cursor = 'crosshair'
       s.savedState = ctx.getImageData(0, 0, c.width, c.height)
     } else if (s.mode === 'text') {
-      createTextEditor(c, o.x, o.y, s.color, s.size, page)
+      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 14, s.fontFamily || 'Times New Roman, serif', page)
     }
+  }
   }
   function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
     if (s.mode === 'pen') { s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
@@ -360,69 +430,87 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d'), h = 40
+  var ctx = cv.getContext('2d'), h = 44
   cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(0, 0, w, h)
-  ctx.strokeStyle = '#475569'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, h)
-  // graduations: 1cm ≈ 40px, only draw every 2mm
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(0, 0, w, h)
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, h)
+  // 40px per cm, total 30cm
   var pxPerCm = w / 30
-  for (var mm = 0; mm <= 300; mm += 2) {
+  for (var mm = 0; mm <= 300; mm++) {
     var x = mm * pxPerCm / 10
     if (x > w) break
     var isCm = mm % 10 === 0, isHalf = mm % 5 === 0
-    var len = isCm ? 16 : isHalf ? 10 : 5
-    ctx.strokeStyle = isCm ? '#1e293b' : '#64748b'; ctx.lineWidth = isCm ? 0.8 : 0.4
+    var len = isCm ? 18 : isHalf ? 12 : 6
+    ctx.strokeStyle = isCm ? '#1e293b' : '#475569'
+    ctx.lineWidth = isCm ? 1 : 0.4
+    // top ticks
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke()
+    // bottom ticks
     ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - len); ctx.stroke()
+    // cm labels
     if (isCm && mm > 0) {
-      ctx.fillStyle = '#1e293b'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText((mm/10) + '', x, len + 11)
-      ctx.fillText((mm/10) + '', x, h - len - 3)
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText((mm / 10) + '', x, len + 10)
+      ctx.fillText((mm / 10) + '', x, h - len - 2)
     }
   }
+  // unit label
+  ctx.fillStyle = '#94a3b8'; ctx.font = '7px sans-serif'; ctx.textAlign = 'left'
+  ctx.fillText('cm', w - 28, h - 3)
 }
 
 function drawProtractorCanvas(cv, d) {
   var r = d / 2, ctx = cv.getContext('2d')
   cv.width = d * 2; cv.height = (r + 20) * 2
   ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 20)
-  // semicircle with gradient
+  // semicircle fill
   var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  grad.addColorStop(0, 'rgba(255,255,255,0.7)')
-  grad.addColorStop(1, 'rgba(248,250,252,0.3)')
+  grad.addColorStop(0, 'rgba(255,255,255,0.8)')
+  grad.addColorStop(1, 'rgba(248,250,252,0.4)')
   ctx.fillStyle = grad
   ctx.beginPath(); ctx.moveTo(0, r + 20); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 20); ctx.closePath(); ctx.fill()
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+  // outer arc border
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.2
   ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke()
+  // baseline
   ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
   // inner arc
   ctx.beginPath(); ctx.arc(0, 0, r * 0.55, Math.PI, 0); ctx.stroke()
-  // degree marks — outer arc 0-180, inner arc 180-0
-  for (var deg = 0; deg <= 180; deg += 2) {
+  // degree marks: every 1 degree (small), every 5 (medium), every 10 (large + label)
+  for (var deg = 0; deg <= 180; deg++) {
     var rad = deg * Math.PI / 180
     var cos = Math.cos(rad), sin = -Math.sin(rad)
-    var lenOuter = deg % 10 === 0 ? 12 : deg % 5 === 0 ? 8 : 4
-    var lenInner = 8
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = deg % 10 === 0 ? 0.8 : 0.4
-    // outer mark
-    ctx.beginPath(); ctx.moveTo(cos * r, sin * r); ctx.lineTo(cos * (r - lenOuter), sin * (r - lenOuter)); ctx.stroke()
-    // inner mark (reversed direction)
+    var isTen = deg % 10 === 0, isFive = deg % 5 === 0
+    var outerLen = isTen ? 14 : isFive ? 9 : 4
+    var innerLen = isTen ? 10 : 5
+    ctx.strokeStyle = isTen ? '#1e293b' : isFive ? '#475569' : '#94a3b8'
+    ctx.lineWidth = isTen ? 1 : 0.5
+    // outer tick (from edge inward)
+    ctx.beginPath(); ctx.moveTo(cos * r, sin * r); ctx.lineTo(cos * (r - outerLen), sin * (r - outerLen)); ctx.stroke()
+    // inner tick (from inner arc outward)
     var innerR = r * 0.55
-    ctx.beginPath(); ctx.moveTo(cos * innerR, sin * innerR); ctx.lineTo(cos * (innerR + lenInner), sin * (innerR + lenInner)); ctx.stroke()
-    // labels
-    if (deg % 10 === 0) {
-      ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText(deg + '\u00B0', cos * (r - 16), sin * (r - 16) + 3)
-      ctx.font = '6px sans-serif'
-      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 14), sin * (innerR + 14) + 2)
+    ctx.beginPath(); ctx.moveTo(cos * innerR, sin * innerR); ctx.lineTo(cos * (innerR + innerLen), sin * (innerR + innerLen)); ctx.stroke()
+    // labels every 10 degrees
+    if (isTen) {
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      // outer labels (0-180 clockwise from right)
+      ctx.fillText(deg + '\u00B0', cos * (r - 18), sin * (r - 18))
+      // inner labels (180-0 reversed)
+      ctx.font = '8px sans-serif'; ctx.fillStyle = '#64748b'
+      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 16), sin * (innerR + 16))
     }
   }
-  ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'
-  ctx.fillText('0\u00B0', r - 12, 10); ctx.fillText('180\u00B0', -r + 12, 10)
-  ctx.fillText('90\u00B0', 0, -r + 14)
-  ctx.fillText('180\u00B0', r - 12, 12); ctx.fillText('0\u00B0', -r + 12, 12)
+  // cardinal labels
+  ctx.fillStyle = '#1e293b'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('0\u00B0', r - 14, 0)
+  ctx.fillText('180\u00B0', -r + 14, 0)
+  ctx.fillText('90\u00B0', 0, -r + 16)
+  // small crosshair at center
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.8
+  ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke()
 }
 
 function createFloatingTool(type, pageWrapper) {
@@ -431,12 +519,17 @@ function createFloatingTool(type, pageWrapper) {
   var rel = wrapper.querySelector('.relative'); if (!rel) return
   var el = document.createElement('div')
   el.className = 'floating-tool'
+  el.dataset.page = wrapper.dataset.page || '1'
+  // Initialize transform state
+  el.dataset.dx = '0'
+  el.dataset.dy = '0'
+  el.dataset.angle = '0'
   // --- RULER ---
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 700
+    el.className += ' floating-ruler'; var w = 1200
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '40px'
+    el.style.width = w + 'px'; el.style.height = '44px'
     el.style.transformOrigin = 'left bottom'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
@@ -454,46 +547,67 @@ function createFloatingTool(type, pageWrapper) {
   var relRect = rel.getBoundingClientRect()
   el.style.left = Math.max(5, (relRect.width - parseFloat(el.style.width)) / 2) + 'px'
   el.style.top = Math.max(5, (relRect.height - parseFloat(el.style.height)) / 2) + 'px'
+  el.style.transform = 'translate(0px,0px) rotate(0deg)'
   rel.appendChild(el)
-  // Drag: wide strip on top edge for ruler, bottom edge for protractor
+  // Drag: full-height transparent strip
   var dragStrip = document.createElement('div')
-  dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;border-radius:3px;background:rgba(59,130,246,0.08);'
-  if (type === 'ruler') {
-    dragStrip.style.cssText += 'top:0;left:0;right:30px;height:18px;cursor:grab'
-  } else {
-    dragStrip.style.cssText += 'bottom:0;left:0;right:30px;height:18px;cursor:grab'
-  }
+  dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;top:0;left:0;right:30px;bottom:0;cursor:grab;background:rgba(59,130,246,0.06);border-radius:3px'
+  dragStrip.title = 'Drag to move'
   el.appendChild(dragStrip)
   // Close button (left side)
   var hClose = document.createElement('div')
-  hClose.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
-  hClose.style.cssText += type === 'ruler' ? ';left:-11px;top:-11px' : ';left:-11px;top:-11px'
+  hClose.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:-11px;top:-11px'
   hClose.textContent = '\u2715'
   el.appendChild(hClose)
   hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
   // Rotate button (right-top)
   var hRotate = document.createElement('div')
-  hRotate.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
-  hRotate.style.cssText += type === 'ruler' ? ';right:-11px;top:-11px' : ';right:-11px;top:-11px'
+  hRotate.style.cssText = 'position:absolute;z-index:27;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-11px;top:-11px'
   hRotate.textContent = '\u21BB'
   el.appendChild(hRotate)
   // Resize button (right-bottom)
   var hResize = document.createElement('div')
-  hResize.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:18px;height:18px;border-radius:2px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
-  hResize.style.cssText += type === 'ruler' ? ';right:-9px;bottom:-9px' : ';right:-9px;bottom:0px'
+  hResize.style.cssText = 'position:absolute;z-index:27;pointer-events:auto;width:18px;height:18px;border-radius:2px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-9px;bottom:-9px'
   hResize.textContent = '\u2921'
   el.appendChild(hResize)
-  // --- Drag events ---
-  var offX = 0, offY = 0
-  function dragStart(e) { var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); offX = t.clientX - r.left; offY = t.clientY - r.top }
-  function dragMove(e) { if (!offX && offX !== 0) return; var t = e.touches ? e.touches[0] : e; var rr = rel.getBoundingClientRect(); el.style.left = (t.clientX - offX - rr.left) + 'px'; el.style.top = (t.clientY - offY - rr.top) + 'px' }
-  function dragEnd() { offX = 0; offY = 0 }
+  // Mode toggle button (top-center): switches between Draw (D) and Move (M)
+  var modeBtn = document.createElement('div')
+  modeBtn.style.cssText = 'position:absolute;z-index:30;pointer-events:auto;width:18px;height:18px;border-radius:50%;background:#e2e8f0;border:2px solid #64748b;color:#334155;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:-9px;top:-9px;font-weight:bold'
+  modeBtn.textContent = 'M'
+  modeBtn.title = 'Toggle Draw/Move mode'
+  el.appendChild(modeBtn)
+  // Start in Draw mode by default (pointer-events:none → can draw through ruler)
+  el.dataset.mode = 'draw'
+  el.style.pointerEvents = 'none'
+  dragStrip.style.display = 'none'
+  modeBtn.textContent = 'D'
+  function toggleMode() {
+    var isDraw = el.dataset.mode === 'draw'
+    el.dataset.mode = isDraw ? 'move' : 'draw'
+    if (isDraw) {
+      el.style.pointerEvents = 'auto'
+      dragStrip.style.display = ''
+      modeBtn.textContent = 'M'
+      modeBtn.title = 'Move mode: drag/resize/rotate'
+    } else {
+      el.style.pointerEvents = 'none'
+      dragStrip.style.display = 'none'
+      modeBtn.textContent = 'D'
+      modeBtn.title = 'Draw mode: draw through ruler'
+    }
+  }
+  modeBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleMode() })
+  // --- Drag events: updates translate(dx,dy) in transform ---
+  var offX = -1, offY = -1
+  function dragStart(e) { var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); offX = t.clientX - r.left; offY = t.clientY - r.top; e.stopPropagation() }
+  function dragMove(e) { if (offX === -1 && offY === -1) return; var t = e.touches ? e.touches[0] : e; var rr = rel.getBoundingClientRect(); var dx = t.clientX - offX - rr.left; var dy = t.clientY - offY - rr.top; el.dataset.dx = String(dx); el.dataset.dy = String(dy); el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (parseFloat(el.dataset.angle) || 0) + 'deg)' }
+  function dragEnd() { offX = -1; offY = -1 }
   dragStrip.addEventListener('mousedown', dragStart); document.addEventListener('mousemove', dragMove); document.addEventListener('mouseup', dragEnd)
   dragStrip.addEventListener('touchstart', dragStart, { passive: true }); document.addEventListener('touchmove', dragMove, { passive: true }); document.addEventListener('touchend', dragEnd)
-  // --- Rotate events ---
+  // --- Rotate events: updates rotate(angle) in transform ---
   var rotating = false
   function rotStart(e) { e.stopPropagation(); rotating = true }
-  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); var cx = r.left + r.width / 2, cy = r.top + r.height / 2; var angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI; el.style.transform = 'rotate(' + angle + 'deg)' }
+  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); var cx = r.left + r.width / 2, cy = r.top + r.height / 2; var angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI; el.dataset.angle = String(angle); el.style.transform = 'translate(' + (parseFloat(el.dataset.dx) || 0) + 'px,' + (parseFloat(el.dataset.dy) || 0) + 'px) rotate(' + angle + 'deg)' }
   function rotEnd() { rotating = false }
   hRotate.addEventListener('mousedown', rotStart); document.addEventListener('mousemove', rotMove); document.addEventListener('mouseup', rotEnd)
   hRotate.addEventListener('touchstart', rotStart, { passive: true }); document.addEventListener('touchmove', rotMove, { passive: true }); document.addEventListener('touchend', rotEnd)
@@ -504,6 +618,8 @@ function createFloatingTool(type, pageWrapper) {
   function resEnd() { resizing = false }
   hResize.addEventListener('mousedown', resStart); document.addEventListener('mousemove', resMove); document.addEventListener('mouseup', resEnd)
   hResize.addEventListener('touchstart', resStart, { passive: true }); document.addEventListener('touchmove', resMove, { passive: true }); document.addEventListener('touchend', resEnd)
+  // Ensure handles stay above drag strip
+  hClose.style.zIndex = '28'; hRotate.style.zIndex = '28'; hResize.style.zIndex = '28'
   return el
 }
 
@@ -591,7 +707,7 @@ async function loadPDF() {
           if (ctx) {
             ac.width = ac.offsetWidth || 800
             ac.height = ac.offsetHeight || 600
-            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null }
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 14, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
           }
         }
       }
@@ -636,6 +752,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
   })
   document.querySelectorAll('.tool-line').forEach(function(b) {
@@ -644,6 +763,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
   })
   document.querySelectorAll('.tool-dash').forEach(function(b) {
@@ -652,6 +774,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
   })
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
@@ -659,9 +784,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]')
-      if (ac) ac.style.cursor = 'cell'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'cell'
     })
   })
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
@@ -670,6 +796,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
   })
   document.querySelectorAll('.tool-text').forEach(function(b) {
@@ -677,9 +806,21 @@ document.addEventListener('DOMContentLoaded', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'text'; CS[target].ctx.strokeStyle = CS[target].color }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Text'
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]')
-      if (ac) ac.style.cursor = 'text'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = ''
+      setFloatingToolMode(target, 'draw')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'text'
+    })
+  })
+  document.querySelectorAll('.tool-cursor').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      if (CS[target]) { CS[target].mode = 'cursor' }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      setFloatingToolMode(target, 'cursor')
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'default'
     })
   })
   document.querySelectorAll('.tool-ruler-btn').forEach(function(b) {
@@ -710,14 +851,30 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() { clearPage(parseInt(this.dataset.target)) })
   })
   document.querySelectorAll('.tool-size').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].size = parseInt(this.value) })
+    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].size = parseInt(this.value); CS[t].fontSize = parseInt(this.value) } })
   })
   document.querySelectorAll('.tool-color').forEach(function(s) {
     s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].color = this.value; CS[t].ctx.strokeStyle = this.value } })
   })
+  document.querySelectorAll('.tool-font').forEach(function(s) {
+    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].fontFamily = this.value })
+  })
   document.querySelectorAll('.doc-preview').forEach(function(el) {
     el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
    })
+  // Track active page for undo/redo
+  document.querySelectorAll('.annotation-canvas').forEach(function(c) {
+    var pg = parseInt(c.dataset.page)
+    c.addEventListener('mousedown', function() { setActivePage(pg) })
+    c.addEventListener('touchstart', function() { setActivePage(pg) })
+  })
+  // Ctrl+Z / Ctrl+Y keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    var activePage = window._activePage || 1
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') return
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoPage(activePage) }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoPage(activePage) }
+  })
 })
 </script>
 </body></html>`
