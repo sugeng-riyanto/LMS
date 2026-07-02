@@ -929,21 +929,13 @@ document.addEventListener('DOMContentLoaded', function() {
   loadPDF().then(function() { clearTimeout(pdfTimeout) }).catch(function() { clearTimeout(pdfTimeout) })
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-pen[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'draw')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
@@ -955,21 +947,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
   document.querySelectorAll('.tool-line').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-line[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'draw')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
@@ -981,21 +965,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
   document.querySelectorAll('.tool-dash').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-dash[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'draw')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
@@ -1007,21 +983,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-eraser[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'draw')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'cell'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
@@ -1033,21 +1001,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save text to canvas before switching tool
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-compass-btn[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'draw')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
@@ -1071,21 +1031,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
   document.querySelectorAll('.tool-cursor').forEach(function(b) {
-    b.addEventListener('click', function() {
+    b.addEventListener('click', function(e) {
+      e.stopPropagation()
       var target = parseInt(this.dataset.target)
-      // Save active text editor to canvas before switching
+      // Remove text editor immediately if exists
       if (activeTextDiv) { 
         saveTextToCanvas()
-        setTimeout(function() {
-          if (CS[target]) { CS[target].mode = 'cursor' }
-          var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
-          document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); document.querySelector('.tool-cursor[data-target="' + target + '"]').classList.add('active-tool')
-          var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-          var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-          setFloatingToolMode(target, 'cursor')
-          var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'default'
-        }, 100)
-        return
+        activeTextDiv = null
       }
       if (CS[target]) { CS[target].mode = 'cursor' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
