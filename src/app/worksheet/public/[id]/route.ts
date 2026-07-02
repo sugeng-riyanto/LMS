@@ -493,10 +493,13 @@ function initAnnotation(page) {
     // Handle text mode - check if there's an active text editor
     if (s.mode === 'text') {
       if (activeTextEditor) {
-        // There's already a text editor active, destroy it and create new one
-        console.log("Canvas clicked while text editor active, destroying and creating new")
-        destroyTextEditor()
-        createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
+        // There's already a text editor active, SAVE it to canvas first, then create new one
+        console.log("Canvas clicked while text editor active, saving old text and creating new")
+        saveTextEditor()
+        // After save, create new text editor at new position
+        setTimeout(function() {
+          createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
+        }, 50)
       } else {
         // No active text editor, create new one
         createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
