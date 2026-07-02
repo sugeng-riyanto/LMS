@@ -930,173 +930,96 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 30000)
   loadPDF().then(function() { clearTimeout(pdfTimeout) }).catch(function() { clearTimeout(pdfTimeout) })
 
-  document.querySelectorAll('.tool-pen').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
+  // Event delegation — works for all pages, including dynamically added ones
+  var container = document.getElementById('pdf-container')
+  if (container) {
+    container.addEventListener('click', function(e) {
+      var btn = e.target.closest('button')
+      if (!btn) return
+      var target = parseInt(btn.dataset.target)
+      if (!target) return
+
+      // Save active text editor before any tool switch
+      if (activeTextDiv) { saveTextToCanvas(); activeTextDiv = null }
+
+      if (btn.classList.contains('tool-pen')) {
+        if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
+        updateToolUI(target, 'Pen', 'crosshair', false)
+      } else if (btn.classList.contains('tool-line')) {
+        if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
+        updateToolUI(target, 'Line', 'crosshair', false)
+      } else if (btn.classList.contains('tool-dash')) {
+        if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+        updateToolUI(target, 'Dash', 'crosshair', false)
+      } else if (btn.classList.contains('tool-eraser')) {
+        if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = (parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5)) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
+        updateToolUI(target, 'Eraser', 'cell', false)
+      } else if (btn.classList.contains('tool-compass-btn')) {
+        if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
+        updateToolUI(target, 'Compass', 'crosshair', false)
+      } else if (btn.classList.contains('tool-text')) {
+        if (CS[target]) { CS[target].mode = 'text'; CS[target].ctx.strokeStyle = CS[target].color }
+        updateToolUI(target, 'Text', 'text', true)
+      } else if (btn.classList.contains('tool-cursor')) {
+        if (CS[target]) { CS[target].mode = 'cursor' }
+        updateToolUI(target, 'Select', 'default', false)
+        setFloatingToolMode(target, 'cursor')
+        return
+      } else if (btn.classList.contains('tool-clear')) {
+        clearPage(target)
+        return
+      } else if (btn.classList.contains('tool-ruler-btn')) {
+        try {
+          var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+          if (wrapper) createFloatingTool('ruler', wrapper)
+        } catch(e) { console.error('Ruler error:', e) }
+        return
+      } else if (btn.classList.contains('tool-protractor-btn')) {
+        try {
+          var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+          if (wrapper) createFloatingTool('protractor', wrapper)
+        } catch(e) { console.error('Protractor error:', e) }
+        return
       }
-      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
+      // Drawing tools (not cursor/clear/floating) → draw mode
       setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
-  })
-  document.querySelectorAll('.tool-line').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
-      }
-      if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-      setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
+    container.addEventListener('change', function(e) {
+      var sel = e.target
+      var t = parseInt(sel.dataset.target)
+      if (!t || !CS[t]) return
+      if (sel.classList.contains('tool-size')) { CS[t].size = parseInt(sel.value) }
+      else if (sel.classList.contains('tool-fontsize')) { CS[t].fontSize = parseInt(sel.value) }
+      else if (sel.classList.contains('tool-color')) { CS[t].color = sel.value; CS[t].ctx.strokeStyle = sel.value }
+      else if (sel.classList.contains('tool-font')) { CS[t].fontFamily = sel.value }
     })
+  }
+  function updateToolUI(page, label, cursor, showFont) {
+    var modeLabel = document.getElementById('mode-label-' + page)
+    if (modeLabel) modeLabel.textContent = label
+    document.querySelectorAll('.vertical-tools button[data-target="' + page + '"]').forEach(function(x) { x.classList.remove('active-tool') })
+    var btn = document.querySelector('.vertical-tools [data-target="' + page + '"]' + (label === 'Pen' ? '.tool-pen' : label === 'Line' ? '.tool-line' : label === 'Dash' ? '.tool-dash' : label === 'Eraser' ? '.tool-eraser' : label === 'Compass' ? '.tool-compass-btn' : label === 'Text' ? '.tool-text' : ''))
+    if (btn) btn.classList.add('active-tool')
+    var fontSel = document.querySelector('.tool-font[data-target="' + page + '"]'); if (fontSel) fontSel.style.display = showFont ? '' : 'none'
+    var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + page + '"]'); if (fontSizeSel) fontSizeSel.style.display = showFont ? '' : 'none'
+    var ac = document.querySelector('.annotation-canvas[data-page="' + page + '"]'); if (ac) ac.style.cursor = cursor
+  }
+  // Doc preview clicks
+  container.addEventListener('click', function(e) {
+    var el = e.target.closest('.doc-preview')
+    if (el && el.dataset.embed) {
+      el.innerHTML = '<iframe src="' + el.dataset.embed + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'
+      el.className = 'w-full h-full'
+    }
   })
-  document.querySelectorAll('.tool-dash').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
-      }
-      if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-      setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-    })
+  // Track active page for undo/redo (delegated)
+  container.addEventListener('mousedown', function(e) {
+    var c = e.target.closest('.annotation-canvas')
+    if (c) setActivePage(parseInt(c.dataset.page))
   })
-  document.querySelectorAll('.tool-eraser').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
-      }
-      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-      setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'cell'
-    })
-  })
-  document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
-      }
-      if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-      setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
-    })
-  })
-  document.querySelectorAll('.tool-text').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'text'; CS[target].ctx.strokeStyle = CS[target].color }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Text'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = ''
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = ''
-      setFloatingToolMode(target, 'draw')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'text'
-    })
-  })
-  document.querySelectorAll('.tool-cursor').forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.stopPropagation()
-      var target = parseInt(this.dataset.target)
-      // Remove text editor immediately if exists
-      if (activeTextDiv) { 
-        saveTextToCanvas()
-        activeTextDiv = null
-      }
-      if (CS[target]) { CS[target].mode = 'cursor' }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
-      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
-      var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
-      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
-      setFloatingToolMode(target, 'cursor')
-      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'default'
-    })
-  })
-  document.querySelectorAll('.tool-ruler-btn').forEach(function(b) {
-    b.addEventListener('click', function() {
-      try {
-        var target = parseInt(this.dataset.target) || 1
-        console.log('Ruler btn clicked for page', target)
-        var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
-        if (!wrapper) { console.error('Wrapper not found for page', target); return }
-        createFloatingTool('ruler', wrapper)
-        console.log('Ruler created')
-      } catch(e) { console.error('Ruler error:', e) }
-    })
-  })
-  document.querySelectorAll('.tool-protractor-btn').forEach(function(b) {
-    b.addEventListener('click', function() {
-      try {
-        var target = parseInt(this.dataset.target) || 1
-        console.log('Protractor btn clicked for page', target)
-        var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
-        if (!wrapper) { console.error('Wrapper not found for page', target); return }
-        createFloatingTool('protractor', wrapper)
-        console.log('Protractor created')
-      } catch(e) { console.error('Protractor error:', e) }
-    })
-  })
-  document.querySelectorAll('.tool-clear').forEach(function(b) {
-    b.addEventListener('click', function() { clearPage(parseInt(this.dataset.target)) })
-  })
-  document.querySelectorAll('.tool-size').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].size = parseInt(this.value) })
-  })
-  document.querySelectorAll('.tool-fontsize').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].fontSize = parseInt(this.value) })
-  })
-  document.querySelectorAll('.tool-color').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].color = this.value; CS[t].ctx.strokeStyle = this.value } })
-  })
-  document.querySelectorAll('.tool-font').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].fontFamily = this.value })
-  })
-  document.querySelectorAll('.doc-preview').forEach(function(el) {
-    el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
-   })
-  // Track active page for undo/redo
-  document.querySelectorAll('.annotation-canvas').forEach(function(c) {
-    var pg = parseInt(c.dataset.page)
-    c.addEventListener('mousedown', function() { setActivePage(pg) })
-    c.addEventListener('touchstart', function() { setActivePage(pg) })
+  container.addEventListener('touchstart', function(e) {
+    var c = e.target.closest('.annotation-canvas')
+    if (c) setActivePage(parseInt(c.dataset.page))
   })
   // Ctrl+Z / Ctrl+Y keyboard shortcuts
   document.addEventListener('keydown', function(e) {
