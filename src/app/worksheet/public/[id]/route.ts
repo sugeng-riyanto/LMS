@@ -320,7 +320,7 @@ function createTextEditor(canvas, x, y, color, size, page) {
   div.className = 'text-editor-active'
   div.contentEditable = true
   var rect = canvas.getBoundingClientRect()
-  div.style.cssText = 'position:absolute;left:' + (rect.left + x * rect.width / canvas.width) + 'px;top:' + (rect.top + y * rect.height / canvas.height) + 'px;min-width:50px;min-height:20px;font-family:\'Times New Roman\',serif;font-size:12px;line-height:1.4;text-align:justify;color:' + color + ';background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden'
+  div.style.cssText = 'position:absolute;left:' + (rect.left + x * rect.width / canvas.width) + 'px;top:' + (rect.top + y * rect.height / canvas.height) + 'px;min-width:50px;min-height:20px;font-family:\"Times New Roman\",serif;font-size:12px;line-height:1.4;text-align:justify;color:' + color + ';background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden'
   document.body.appendChild(div)
   div.focus()
   div.addEventListener('blur', function() { setTimeout(function() { finalizeTextEditor(div, page) }, 200) })
@@ -341,7 +341,7 @@ function finalizeTextEditor(div, page) {
   var rect = c.getBoundingClientRect()
   var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width
   var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height
-  s.ctx.font = '12px \'Times New Roman\', serif'
+  s.ctx.font = '12px "Times New Roman", serif'
   s.ctx.fillStyle = s.color
   s.ctx.textAlign = 'justify'
   s.ctx.textBaseline = 'top'
