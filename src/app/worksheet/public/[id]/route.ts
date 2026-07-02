@@ -143,11 +143,15 @@ export async function GET(
         <option value="2" selected>Thin</option><option value="5">Medium</option><option value="10">Thick</option><option value="20">Bold</option>
       </select>
       <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen">✏️ Pen</button>
+      <button class="tool-line px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line">📏 Line</button>
       <button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser">🧹 Eraser</button>
       <button class="tool-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}">🗑️ Clear</button>
       <select class="tool-color text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
         <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
       </select>
+      <button class="tool-ruler-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Ruler (cm)">📏</button>
+      <button class="tool-protractor-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Protractor (°)">📐</button>
+      <button class="tool-compass-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Compass">🌀</button>
       <span class="text-xs text-gray-400 ml-1" id="mode-label-${i + 1}">✏️ Drawing</span>
     </div>
   </div>
@@ -167,6 +171,18 @@ canvas{max-width:100%;height:auto}
 .pdf-page-wrapper{position:relative}
 .pdf-canvas{width:100%!important;height:auto!important;display:block}
 .answer-text{-webkit-user-select:text;user-select:text}
+.floating-tool{position:absolute;z-index:50;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}
+.floating-tool.dragging{cursor:grabbing}
+.floating-tool .handle{position:absolute;z-index:2;width:14px;height:14px;border-radius:50%;border:2px solid #3b82f6;background:white;opacity:0.8}
+.floating-tool .handle:hover{opacity:1;transform:scale(1.2)}
+.floating-tool .h-rotate{right:-7px;top:-7px;cursor:crosshair}
+.floating-tool .h-resize{right:-7px;bottom:-7px;cursor:se-resize}
+.floating-tool .h-close{left:-7px;top:-7px;cursor:pointer;background:#ef4444;border-color:#ef4444}
+.floating-tool .h-close::after{content:'✕';color:white;font-size:8px;display:flex;align-items:center;justify-content:center;line-height:14px}
+.floating-ruler{width:280px;height:36px;border:1px solid #94a3b8;border-radius:4px;background:rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.floating-ruler canvas{width:100%;height:100%;display:block;border-radius:3px}
+.floating-protractor{width:200px;height:110px;border-radius:0 0 100px 100px;border:1px solid #94a3b8;background:rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.floating-protractor canvas{width:100%;height:100%;display:block}
 </style>
 </head>
 <body>
@@ -250,7 +266,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -260,12 +276,110 @@ function initAnnotation(page) {
     return { x: (t.clientX - r.left) * s, y: (t.clientY - r.top) * si }
   }
 
-  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; s.drawing = true; var o = p(e); s.last = o; s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size }
-  function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() } s.last = o }
-  function sp() { if (CS[page]) { CS[page].drawing = false; CS[page].last = null } }
+  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e); s.drawing = true; s.last = o; s.lineStart = o;
+    if (s.mode === 'pen' || s.mode === 'line') { s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.globalCompositeOperation = 'source-over' }
+    else if (s.mode === 'eraser') { s.ctx.strokeStyle = 'rgba(0,0,0,0)'; s.ctx.lineWidth = s.size * 3; s.ctx.globalCompositeOperation = 'destination-out'; s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y) }
+  }
+  function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
+    if (s.mode === 'pen' || s.mode === 'eraser') { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
+    s.last = o
+  }
+  function sp() { var s = CS[page]; if (!s) return; s.drawing = false;
+    if (s.mode === 'line' && s.lineStart && s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke() }
+    if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke() }
+    s.last = null; s.lineStart = null
+  }
 
   c.addEventListener('mousedown', st); c.addEventListener('mousemove', mv); c.addEventListener('mouseup', sp); c.addEventListener('mouseleave', sp)
   c.addEventListener('touchstart', st, { passive: false }); c.addEventListener('touchmove', mv, { passive: false }); c.addEventListener('touchend', sp)
+}
+
+// --- Floating Tools: Ruler & Protractor ---
+function drawRulerCanvas(cv, w) {
+  var ctx = cv.getContext('2d')
+  cv.width = w * 2; cv.height = 72
+  ctx.scale(2, 2)
+  ctx.clearRect(0, 0, w, 36)
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, 36)
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5
+  // cm marks: 10px per mm, 100px per cm
+  for (var i = 0; i <= w; i += 5) {
+    var x = i, h = i % 50 === 0 ? 18 : i % 25 === 0 ? 12 : 6
+    ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, 36 - h); ctx.stroke()
+    if (i % 50 === 0) { ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(i / 10, x, 34 - h) }
+  }
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, 36)
+}
+
+function drawProtractorCanvas(cv, d) {
+  var r = d / 2, ctx = cv.getContext('2d')
+  cv.width = d * 2; cv.height = (r + 16) * 2
+  ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 16)
+  // background semicircle
+  ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.moveTo(0, r + 16); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 16); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
+  // degree marks
+  for (var deg = 0; deg <= 180; deg += 1) {
+    var rad = (180 - deg) * Math.PI / 180, len = deg % 10 === 0 ? 12 : deg % 5 === 0 ? 8 : 4
+    var x1 = Math.cos(rad) * r, y1 = -Math.sin(rad) * r, x2 = Math.cos(rad) * (r - len), y2 = -Math.sin(rad) * (r - len)
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+    if (deg % 10 === 0 && deg !== 0 && deg !== 180) {
+      ctx.fillStyle = '#334155'; ctx.font = '5px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText(deg + '°', Math.cos(rad) * (r - 16), -Math.sin(rad) * (r - 16) + 2)
+    }
+  }
+  ctx.fillStyle = '#334155'; ctx.font = '5px sans-serif'; ctx.textAlign = 'center'
+  ctx.fillText('0°', -r + 8, 8); ctx.fillText('180°', r - 8, 8); ctx.fillText('90°', 0, -r + 10)
+}
+
+function createFloatingTool(type, pageWrapper) {
+  var wrapper = pageWrapper || document.querySelector('.pdf-page-wrapper')
+  if (!wrapper) return
+  var rel = wrapper.querySelector('.relative'); if (!rel) return
+  var el = document.createElement('div')
+  el.className = 'floating-tool'
+  if (type === 'ruler') {
+    el.className += ' floating-ruler'; var w = 280
+    var cv = document.createElement('canvas'); el.appendChild(cv)
+    setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
+    el.style.width = w + 'px'; el.style.height = '36px'
+    el.style.left = '20px'; el.style.top = '20px'
+  } else if (type === 'protractor') {
+    el.className += ' floating-protractor'; var d = 200
+    var cv = document.createElement('canvas'); el.appendChild(cv)
+    setTimeout(function() { drawProtractorCanvas(cv, d) }, 50)
+    el.style.width = d + 'px'; el.style.height = (d / 2 + 16) + 'px'
+    el.style.left = '40px'; el.style.top = '40px'
+  } else return
+  // Handles
+  var hClose = document.createElement('div'); hClose.className = 'handle h-close'; el.appendChild(hClose)
+  var hRotate = document.createElement('div'); hRotate.className = 'handle h-rotate'; el.appendChild(hRotate)
+  var hResize = document.createElement('div'); hResize.className = 'handle h-resize'; el.appendChild(hResize)
+  rel.appendChild(el)
+  // Close
+  hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
+  // Drag
+  var offX = 0, offY = 0
+  function dragStart(e) { var t = e.touches ? e.touches[0] : e; offX = t.clientX - el.offsetLeft; offY = t.clientY - el.offsetTop; el.classList.add('dragging') }
+  function dragMove(e) { if (!el.classList.contains('dragging')) return; var t = e.touches ? e.touches[0] : e; el.style.left = (t.clientX - offX) + 'px'; el.style.top = (t.clientY - offY) + 'px' }
+  function dragEnd() { el.classList.remove('dragging') }
+  el.addEventListener('mousedown', dragStart); document.addEventListener('mousemove', dragMove); document.addEventListener('mouseup', dragEnd)
+  el.addEventListener('touchstart', dragStart, { passive: true }); document.addEventListener('touchmove', dragMove, { passive: true }); document.addEventListener('touchend', dragEnd)
+  // Rotate
+  var rotating = false, rotAngle = 0
+  function rotStart(e) { e.stopPropagation(); rotating = true; rotAngle = parseFloat(el.dataset.angle) || 0 }
+  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var rect = rel.getBoundingClientRect(); var cx = el.offsetLeft + el.offsetWidth / 2, cy = el.offsetTop + el.offsetHeight / 2; var angle = Math.atan2(t.clientY - (rect.top + cy), t.clientX - (rect.left + cx)) * 180 / Math.PI; el.style.transform = 'rotate(' + angle + 'deg)'; el.dataset.angle = angle }
+  function rotEnd() { rotating = false }
+  hRotate.addEventListener('mousedown', rotStart); document.addEventListener('mousemove', rotMove); document.addEventListener('mouseup', rotEnd)
+  hRotate.addEventListener('touchstart', rotStart, { passive: true }); document.addEventListener('touchmove', rotMove, { passive: true }); document.addEventListener('touchend', rotEnd)
+  // Resize
+  var resizing = false, startW = 0, startH = 0, startX = 0, startY = 0
+  function resStart(e) { e.stopPropagation(); resizing = true; var t = e.touches ? e.touches[0] : e; startW = el.offsetWidth; startH = el.offsetHeight; startX = t.clientX; startY = t.clientY }
+  function resMove(e) { if (!resizing) return; var t = e.touches ? e.touches[0] : e; var dw = t.clientX - startX + startW, dh = Math.max(36, startH * (dw / startW)); el.style.width = Math.max(100, dw) + 'px'; if (type === 'ruler') el.style.height = '36px'; else el.style.height = (Math.max(100, dw) / 2 + 16) + 'px'; var cv = el.querySelector('canvas'); if (cv) { if (type === 'ruler') { drawRulerCanvas(cv, Math.max(100, dw)) } else { drawProtractorCanvas(cv, Math.max(100, dw)) } } }
+  function resEnd() { resizing = false }
+  hResize.addEventListener('mousedown', resStart); document.addEventListener('mousemove', resMove); document.addEventListener('mouseup', resEnd)
+  hResize.addEventListener('touchstart', resStart, { passive: true }); document.addEventListener('touchmove', resMove, { passive: true }); document.addEventListener('touchend', resEnd)
+  return el
 }
 
 function clearPage(page) {
@@ -379,19 +493,43 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) }
+      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '✏️ Drawing'
-      document.querySelectorAll('.tool-pen[data-target="' + target + '"],.tool-eraser[data-target="' + target + '"]').forEach(function(x) { x.style.background = '#fff'; x.style.borderColor = '#d1d5db' })
-      this.style.background = '#dbeafe'; this.style.borderColor = '#3b82f6'
+    })
+  })
+  document.querySelectorAll('.tool-line').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '📏 Line'
     })
   })
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = 'rgba(0,0,0,0)'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3 }
+      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = 'rgba(0,0,0,0)'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🧹 Eraser'
-      document.querySelectorAll('.tool-pen[data-target="' + target + '"],.tool-eraser[data-target="' + target + '"]').forEach(function(x) { x.style.background = '#fff'; x.style.borderColor = '#d1d5db' })
-      this.style.background = '#fef3c7'; this.style.borderColor = '#f59e0b'
+    })
+  })
+  document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🌀 Compass'
+    })
+  })
+  document.querySelectorAll('.tool-ruler-btn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+      createFloatingTool('ruler', wrapper)
+    })
+  })
+  document.querySelectorAll('.tool-protractor-btn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+      createFloatingTool('protractor', wrapper)
     })
   })
   document.querySelectorAll('.tool-clear').forEach(function(b) {
