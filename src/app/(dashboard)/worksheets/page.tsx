@@ -219,6 +219,30 @@ export default function WorksheetsPage() {
     setUploading(true)
     setUploadedFileName(file.name)
     try {
+      // Detect page count from local PDF before uploading
+      try {
+        // Dynamically load PDF.js from the hosted script (avoids Node canvas dependency)
+        if (!(window as any).pdfjsLib) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script")
+            script.src = "/pdfjs/pdf.js"
+            script.onload = () => {
+              ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.js"
+              resolve()
+            }
+            script.onerror = reject
+            document.head.appendChild(script)
+          })
+        }
+        const arrayBuffer = await file.arrayBuffer()
+        const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        const pages = pdf.numPages
+        updateForm({ pdf_pages: String(pages) })
+        toast.success(`Detected ${pages} page${pages > 1 ? "s" : ""}`)
+      } catch {
+        // Fallback: keep default
+      }
+      // Upload to Supabase Storage
       const fd = new FormData()
       fd.append("file", file)
       const res = await fetch("/api/upload", { method: "POST", body: fd })
