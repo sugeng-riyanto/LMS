@@ -130,7 +130,7 @@ export async function GET(
       <option value="2" selected>•</option><option value="5">●</option><option value="10">⬤</option><option value="20">◉</option>
     </select>
     <select class="tool-fontsize text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Size" style="display:none">
-      <option value="16" selected>16</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
+      <option value="16">16</option><option value="18" selected>18</option><option value="24">24</option><option value="36">36</option>
     </select>
     <button class="tool-cursor w-full px-1 py-1 text-sm rounded border bg-white hover:bg-gray-100 flex flex-col items-center" data-target="${i + 1}" data-mode="cursor" title="Select / Move">
       <span class="text-base">🖱️</span>
@@ -161,7 +161,7 @@ export async function GET(
       <span class="text-[8px] text-gray-600 mt-0.5">Clear</span>
     </button>
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
-      <option value="#1a1a2e" selected>●</option><option value="#dc2626">●</option><option value="#2563eb">●</option><option value="#16a34a">●</option>
+      <option value="#1a1a2e">●</option><option value="#dc2626">●</option><option value="#2563eb" selected>●</option><option value="#16a34a">●</option>
     </select>
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
@@ -432,7 +432,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 16 }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 18 }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -451,13 +451,13 @@ function initAnnotation(page) {
         saveTextToCanvas()
         // After save, create new text editor at new position
         setTimeout(function() {
-          createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
+          createTextEditor(c, o.x, o.y, s.color, s.fontSize || 18, s.fontFamily || 'Times New Roman, serif', page)
         }, 50)
       } else {
         // No active text editor, create new one
-        createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
-      }
-      return
+      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 18, s.fontFamily || 'Times New Roman, serif', page)
+    }
+    return
     }
     // For other tools, save undo state and proceed
     saveUndoState(page)
@@ -510,7 +510,7 @@ document.addEventListener('mousedown', function(e) {
     setTimeout(function() {
       var page = parseInt(canvas.dataset.page)
       var color = CS[page].color
-      var size = CS[page].fontSize || 16
+      var size = CS[page].fontSize || 18
       var fontFamily = CS[page].fontFamily || 'Times New Roman, serif'
       createTextEditor(canvas, x, y, color, size, fontFamily, page)
     }, 50)
@@ -812,7 +812,7 @@ function clearPage(page) {
   var ctx = c.getContext('2d')
   saveUndoState(page)
   ctx.clearRect(0, 0, c.width, c.height)
-  CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
+  CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#2563eb', drawing: false, last: null }
 }
 
 window.clearAll = function() { for (var i = 1; i <= (TOTAL_PAGES || PDF_PAGES); i++) clearPage(i) }
@@ -891,7 +891,7 @@ async function loadPDF() {
           if (ctx) {
             ac.width = ac.offsetWidth || 800
             ac.height = ac.offsetHeight || 600
-            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 16 }
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#2563eb', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 18 }
           }
         }
       }
