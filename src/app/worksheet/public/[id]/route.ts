@@ -161,6 +161,46 @@ export async function GET(
   </div>
 </div>`).join("")
 
+    const TEXT_EDITOR_JS = [
+      'function createTextEditor(canvas, x, y, color, size, page) {',
+      '  var existing = document.querySelector(".text-editor-active")',
+      '  if (existing) finalizeTextEditor(existing, page)',
+      '  var div = document.createElement("div")',
+      '  div.className = "text-editor-active"',
+      '  div.contentEditable = true',
+      '  var rect = canvas.getBoundingClientRect()',
+      '  var leftPos = rect.left + x * rect.width / canvas.width',
+      '  var topPos = rect.top + y * rect.height / canvas.height',
+      '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:50px;min-height:20px;font-family:\'Times New Roman\',serif;font-size:12px;line-height:1.4;text-align:justify;color:" + color + ";background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden"',
+      '  document.body.appendChild(div)',
+      '  div.focus()',
+      '  div.addEventListener("blur", function() { setTimeout(function() { finalizeTextEditor(div, page) }, 200) })',
+      '  div.addEventListener("keydown", function(e) {',
+      '    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.execCommand("insertLineBreak", false) }',
+      '    if (e.key === "Escape") { div.remove(); finalizeTextEditor(div, page) }',
+      '  })',
+      '}',
+      '',
+      'function finalizeTextEditor(div, page) {',
+      '  if (!div || !div.parentNode) return',
+      '  var text = div.innerText || div.textContent || ""',
+      '  div.remove()',
+      '  if (!text.trim()) return',
+      '  var c = document.querySelector(".annotation-canvas[data-page=" + page + "]")',
+      '  if (!c) return',
+      '  var s = CS[page]; if (!s) return',
+      '  var rect = c.getBoundingClientRect()',
+      '  var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width',
+      '  var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height',
+      '  s.ctx.font = "12px Times New Roman, serif"',
+      '  s.ctx.fillStyle = s.color',
+      '  s.ctx.textAlign = "justify"',
+      '  s.ctx.textBaseline = "top"',
+      '  var lines = text.split("\\n"); var lineH = 16',
+      '  for (var i = 0; i < lines.length; i++) { s.ctx.fillText(lines[i], x, y + i * lineH) }',
+      '}',
+    ].join('\n')
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -312,42 +352,7 @@ function initAnnotation(page) {
   c.addEventListener('touchstart', st, { passive: false }); c.addEventListener('touchmove', mv, { passive: false }); c.addEventListener('touchend', sp)
 }
 
-// --- Text Editor ---
-function createTextEditor(canvas, x, y, color, size, page) {
-  var existing = document.querySelector('.text-editor-active')
-  if (existing) finalizeTextEditor(existing, page)
-  var div = document.createElement('div')
-  div.className = 'text-editor-active'
-  div.contentEditable = true
-  var rect = canvas.getBoundingClientRect()
-  div.style.cssText = 'position:absolute;left:' + (rect.left + x * rect.width / canvas.width) + 'px;top:' + (rect.top + y * rect.height / canvas.height) + 'px;min-width:50px;min-height:20px;font-family:\"Times New Roman\",serif;font-size:12px;line-height:1.4;text-align:justify;color:' + color + ';background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden'
-  document.body.appendChild(div)
-  div.focus()
-  div.addEventListener('blur', function() { setTimeout(function() { finalizeTextEditor(div, page) }, 200) })
-  div.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.execCommand('insertLineBreak', false) }
-    if (e.key === 'Escape') { div.remove(); finalizeTextEditor(div, page) }
-  })
-}
-
-function finalizeTextEditor(div, page) {
-  if (!div || !div.parentNode) return
-  var text = div.innerText || div.textContent || ''
-  div.remove()
-  if (!text.trim()) return
-  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
-  if (!c) return
-  var s = CS[page]; if (!s) return
-  var rect = c.getBoundingClientRect()
-  var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width
-  var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height
-  s.ctx.font = '12px "Times New Roman", serif'
-  s.ctx.fillStyle = s.color
-  s.ctx.textAlign = 'justify'
-  s.ctx.textBaseline = 'top'
-  var lines = text.split('\n'), lineH = 16
-  for (var i = 0; i < lines.length; i++) { s.ctx.fillText(lines[i], x, y + i * lineH) }
-}
+${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
