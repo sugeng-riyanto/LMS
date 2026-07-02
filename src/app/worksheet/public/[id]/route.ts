@@ -946,8 +946,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists (don't save, just remove)
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -960,8 +960,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-line').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -974,8 +974,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-dash').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -988,8 +988,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -1002,8 +1002,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
@@ -1028,8 +1028,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-cursor').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      // Cancel active text editor if exists
-      if (activeTextEditor) { cancelTextEditor() }
+      // Save active text editor to canvas before switching
+      if (activeTextEditor) { saveTextEditor() }
       if (CS[target]) { CS[target].mode = 'cursor' }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
