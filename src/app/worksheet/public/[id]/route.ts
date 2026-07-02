@@ -241,6 +241,7 @@ export async function GET(
       '    activeTextDiv = null',
       '    return',
       '  }',
+      '  markDirty()',
       '  saveUndoState(activeTextDiv.page)',
       '  var ctx = c.getContext("2d")',
       '  ctx.save()',
@@ -361,6 +362,9 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 var PDF_URL = ${JSON.stringify(directPdfUrl)}
 var PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 var PDF_PAGES = ${pages}
+var WORKSHEET_ID = ${JSON.stringify(id)}
+var SAVE_DIRTY = false
+function markDirty() { SAVE_DIRTY = true }
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
 
 var CS = {}
@@ -369,7 +373,47 @@ var UNDO_STACKS = {}
 var REDO_STACKS = {}
 var MAX_UNDO = 30
 
+function saveToLocalStorage() {
+  try {
+    var data = { pages: {}, savedAt: Date.now() }
+    for (var i = 1; i <= (TOTAL_PAGES || PDF_PAGES); i++) {
+      var c = document.querySelector('.annotation-canvas[data-page="' + i + '"]')
+      var ta = document.querySelector('.answer-text[data-page="' + i + '"]')
+      if (c) data.pages[i] = { img: c.toDataURL('image/png'), w: c.width, h: c.height }
+      if (ta && ta.value) { if (!data.pages[i]) data.pages[i] = {}; data.pages[i].answer = ta.value }
+    }
+    localStorage.setItem('ws_anno_' + WORKSHEET_ID, JSON.stringify(data))
+  } catch(e) { console.warn('Auto-save failed:', e) }
+}
+
+function restoreFromLocalStorage() {
+  try {
+    var raw = localStorage.getItem('ws_anno_' + WORKSHEET_ID)
+    if (!raw) return
+    var data = JSON.parse(raw)
+    if (!data.pages) return
+    Object.keys(data.pages).forEach(function(page) {
+      var p = data.pages[page]
+      // Restore annotation image
+      if (p.img) {
+        var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+        if (c && c.width === p.w && c.height === p.h) {
+          var img = new Image()
+          img.onload = function() { c.getContext('2d').drawImage(img, 0, 0) }
+          img.src = p.img
+        }
+      }
+      // Restore answer text
+      if (p.answer) {
+        var ta = document.querySelector('.answer-text[data-page="' + page + '"]')
+        if (ta) { ta.value = p.answer; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px' }
+      }
+    })
+  } catch(e) { console.warn('Restore failed:', e) }
+}
+
 function saveUndoState(page) {
+  markDirty()
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
   if (!c) return
   UNDO_STACKS[page] = UNDO_STACKS[page] || []
@@ -810,6 +854,7 @@ function clearPage(page) {
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
   if (!c) return
   var ctx = c.getContext('2d')
+  markDirty()
   saveUndoState(page)
   ctx.clearRect(0, 0, c.width, c.height)
   CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#2563eb', drawing: false, last: null }
@@ -928,8 +973,6 @@ document.addEventListener('DOMContentLoaded', function() {
       el.classList.remove('animate-pulse')
     })
   }, 30000)
-  loadPDF().then(function() { clearTimeout(pdfTimeout) }).catch(function() { clearTimeout(pdfTimeout) })
-
   // Event delegation — works for all pages, including dynamically added ones
   var container = document.getElementById('pdf-container')
   if (container) {
@@ -1028,15 +1071,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoPage(activePage) }
     if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redoPage(activePage) }
   })
-  // Auto-expand answer textareas
+  // Auto-expand answer textareas + mark dirty on change
   document.querySelectorAll('.answer-text').forEach(function(textarea) {
     function autoResize() {
       textarea.style.height = 'auto'
       textarea.style.height = textarea.scrollHeight + 'px'
+      markDirty()
     }
     textarea.addEventListener('input', autoResize)
     textarea.addEventListener('focus', autoResize)
   })
+  // Load PDF, then restore saved state
+  loadPDF().then(function() {
+    clearTimeout(pdfTimeout)
+    // Small delay to ensure all canvases are initialized
+    setTimeout(function() {
+      restoreFromLocalStorage()
+      markDirty() // ensure next save overwrites any stale data
+    }, 500)
+  }).catch(function() { clearTimeout(pdfTimeout) })
+  // Auto-save every 1 second
+  setInterval(function() {
+    if (SAVE_DIRTY) {
+      saveToLocalStorage()
+      SAVE_DIRTY = false
+    }
+  }, 1000)
 })
 </script>
 </body></html>`
