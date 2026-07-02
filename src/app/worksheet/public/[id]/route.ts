@@ -1097,6 +1097,30 @@ document.addEventListener('DOMContentLoaded', function() {
       SAVE_DIRTY = false
     }
   }, 1000)
+  // beforeprint/afterprint — convert canvases to images for reliable print
+  var PRINT_IMGS = {}
+  window.addEventListener('beforeprint', function() {
+    document.querySelectorAll('.annotation-canvas').forEach(function(c) {
+      var page = c.dataset.page
+      try {
+        var img = new Image()
+        img.src = c.toDataURL('image/png')
+        img.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;pointer-events:none'
+        img.className = 'print-anno-img'
+        img.dataset.page = page
+        c.parentNode.appendChild(img)
+        c.style.display = 'none'
+        PRINT_IMGS[page] = c
+      } catch(e) { console.warn('beforeprint error page ' + page, e) }
+    })
+  })
+  window.addEventListener('afterprint', function() {
+    document.querySelectorAll('.print-anno-img').forEach(function(img) {
+      var c = PRINT_IMGS[img.dataset.page]
+      if (c) { c.style.display = ''; delete PRINT_IMGS[img.dataset.page] }
+      img.remove()
+    })
+  })
 })
 </script>
 </body></html>`
