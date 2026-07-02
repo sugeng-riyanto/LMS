@@ -437,7 +437,7 @@ function initAnnotation(page) {
       s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash([]); c.style.cursor = 'crosshair'
       s.savedState = ctx.getImageData(0, 0, c.width, c.height)
     } else if (s.mode === 'text') {
-      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 14, s.fontFamily || 'Times New Roman, serif', page)
+      createTextEditor(c, o.x, o.y, s.color, s.fontSize || 16, s.fontFamily || 'Times New Roman, serif', page)
     }
   }
   function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
@@ -452,7 +452,7 @@ function initAnnotation(page) {
   }
   function sp() { var s = CS[page]; if (!s) return; s.drawing = false; s.savedState = null;
     if ((s.mode === 'line' || s.mode === 'dash') && s.lineStart && s.last) { s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke(); s.ctx.setLineDash([]) }
-    if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke(); var pxPerCm = c.width / (c.offsetWidth / 2.54 * 10); var radiusCm = (r / pxPerCm / 10).toFixed(1); s.ctx.fillStyle = s.color; s.ctx.font = '10px sans-serif'; s.ctx.textAlign = 'left'; s.ctx.fillText('r = ' + radiusCm + ' cm', s.lineStart.x + 5, s.lineStart.y - 5) }
+    if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke(); var radiusCm = (r / 40).toFixed(1); s.ctx.fillStyle = s.color; s.ctx.font = '11px sans-serif'; s.ctx.textAlign = 'left'; s.ctx.fillText('r = ' + radiusCm + ' cm', s.lineStart.x + 5, s.lineStart.y - 5) }
     s.last = null; s.lineStart = null
   }
 
@@ -464,7 +464,7 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d'), h = 50
+  var ctx = cv.getContext('2d'), h = 75
   cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, h)
@@ -473,11 +473,11 @@ function drawRulerCanvas(cv, w) {
   ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(0, 0, w, h)
   ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, w, h)
   
-  // 40px per cm, total 30cm ruler
-  var pxPerCm = w / 30
+  // 40px per cm (actual measurement)
+  var pxPerCm = 40
   
   // Draw mm, 5mm, and cm marks
-  for (var mm = 0; mm <= 300; mm++) {
+  for (var mm = 0; mm <= w / pxPerCm * 10; mm++) {
     var x = mm * pxPerCm / 10
     if (x > w) break
     
@@ -485,29 +485,25 @@ function drawRulerCanvas(cv, w) {
     var isHalfCm = mm % 5 === 0
     
     // Tick lengths - more prominent
-    var tickLen = isCm ? 20 : isHalfCm ? 14 : 8
+    var tickLen = isCm ? 25 : isHalfCm ? 18 : 10
     
     // Tick style
     ctx.strokeStyle = isCm ? '#0f172a' : '#64748b'
     ctx.lineWidth = isCm ? 1.5 : 0.8
     
-    // Top ticks
+    // Top ticks only (removed bottom to avoid overlap)
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, tickLen); ctx.stroke()
     
-    // Bottom ticks (mirror)
-    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - tickLen); ctx.stroke()
-    
-    // CM labels - larger and clearer
+    // CM labels - top only, larger and clearer
     if (isCm && mm > 0) {
-      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'
-      ctx.fillText((mm / 10).toString(), x, 30)
-      ctx.fillText((mm / 10).toString(), x, h - 22)
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'
+      ctx.fillText((mm / 10).toString(), x, 35)
     }
   }
   
   // Unit label
-  ctx.fillStyle = '#475569'; ctx.font = 'bold italic 9px Arial'; ctx.textAlign = 'left'
-  ctx.fillText('cm', 8, h - 8)
+  ctx.fillStyle = '#475569'; ctx.font = 'bold italic 10px Arial'; ctx.textAlign = 'left'
+  ctx.fillText('cm', 8, h - 10)
 }
 
 function drawProtractorCanvas(cv, d) {
@@ -600,10 +596,10 @@ function createFloatingTool(type, pageWrapper) {
   el.dataset.angle = '0'
   // --- RULER ---
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 1200
+    el.className += ' floating-ruler'; var w = 800  // 20cm default (1cm = 40px)
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '50px'
+    el.style.width = w + 'px'; el.style.height = '75px'
     el.style.transformOrigin = 'center center'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
@@ -630,21 +626,21 @@ function createFloatingTool(type, pageWrapper) {
   dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;top:0;left:0;right:0;bottom:0;cursor:grab;background:rgba(59,130,246,0.05);border-radius:3px'
   dragStrip.title = 'Drag to move'
   el.appendChild(dragStrip)
-  // Close button (left-top)
+  // Close button (near M/D button, left side)
   var hClose = document.createElement('div')
-  hClose.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:-12px;top:-12px'
+  hClose.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:20px;height:20px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:-35px;top:-10px'
   hClose.textContent = '\u2715'
   el.appendChild(hClose)
   hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
-  // Rotate button (right-top)
+  // Rotate button (near M/D button, right side)
   var hRotate = document.createElement('div')
-  hRotate.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:24px;height:24px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-12px;top:-12px'
+  hRotate.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:20px;height:20px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:15px;top:-10px'
   hRotate.textContent = '\u21BB'
   el.appendChild(hRotate)
-  // Resize button (right-bottom) - only for ruler
+  // Resize button (near M/D button, far right) - only for ruler
   if (type === 'ruler') {
     var hResize = document.createElement('div')
-    hResize.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:20px;height:20px;border-radius:3px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3);right:-10px;bottom:-10px'
+    hResize.style.cssText = 'position:absolute;z-index:28;pointer-events:auto;width:18px;height:18px;border-radius:3px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3);left:50%;margin-left:40px;top:-9px'
     hResize.textContent = '\u2921'
     el.appendChild(hResize)
   }
@@ -736,7 +732,7 @@ function createFloatingTool(type, pageWrapper) {
     function resMove(e) { 
       if (!resizing) return
       var t = e.touches ? e.touches[0] : e
-      var dw = Math.max(600, Math.min(2400, t.clientX - startX + startW))
+      var dw = Math.max(800, Math.min(2000, t.clientX - startX + startW))  // 20-50cm
       el.style.width = dw + 'px'
       var cv = el.querySelector('canvas')
       if (cv) drawRulerCanvas(cv, dw)
