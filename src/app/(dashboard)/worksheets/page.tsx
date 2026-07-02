@@ -43,6 +43,7 @@ interface Worksheet {
   reference_pdf_url: string | null
   theory_video_url: string | null
   theory_video_title: string | null
+  published: boolean
   created_at: string
 }
 
@@ -480,6 +481,19 @@ export default function WorksheetsPage() {
                       toast.success("Link copied!")
                     }}>
                       <Share2 className="mr-1 h-3 w-3" /> Share
+                    </Button>
+                    <Button size="sm" variant={ws.published ? "default" : "secondary"} onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/worksheets/${ws.id}`, {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ published: !ws.published }),
+                        })
+                        if (res.ok) { ws.published = !ws.published; toast.success(ws.published ? "Published to dashboard!" : "Unpublished"); load() }
+                        else toast.error("Failed")
+                      } catch { toast.error("Failed") }
+                    }}>
+                      {ws.published ? "✓ Published" : "Publish"}
                     </Button>
                   </div>
                   <div className="mt-2 text-center">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { usePackages } from "@/hooks/use-packages"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useAuth } from "@/hooks/use-auth"
@@ -15,8 +16,10 @@ import {
   BookOpen,
   PenSquare,
   GraduationCap,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
+import { Badge } from "@/components/ui/badge"
 import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS } from "@/lib/utils/constants"
 import type { WeeklyPackage } from "@/types/package"
 
@@ -76,6 +79,15 @@ export default function DashboardPage() {
   const { data: packages, isLoading } = usePackages()
   const { role, canManagePackages, isStudent } = useRBAC()
 
+  const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[] }>({ worksheets: [], syllabi: [] })
+
+  useEffect(() => {
+    if (isStudent && profile?.grade_assigned) {
+      fetch(`/api/published-items?grade=${profile.grade_assigned}`)
+        .then(r => r.json()).then(d => setPublished(d)).catch(() => {})
+    }
+  }, [isStudent, profile?.grade_assigned])
+
   if (isStudent) {
     return (
       <div className="space-y-6">
@@ -118,6 +130,42 @@ export default function DashboardPage() {
             </div>
           </Link>
         </div>
+
+        {/* Published Worksheets */}
+        {published.worksheets.length > 0 && (
+          <div className="rounded-xl border bg-card p-6">
+            <h2 className="mb-3 text-lg font-semibold">Published Worksheets</h2>
+            <div className="space-y-2">
+              {published.worksheets.map((ws: any) => (
+                <a key={ws.id} href={`/worksheet/public/${ws.id}`} target="_blank" className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors">
+                  <div>
+                    <p className="text-sm font-medium">{ws.title}</p>
+                    <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}{ws.topic ? ` · ${ws.topic}` : ""}</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Published Syllabi */}
+        {published.syllabi.length > 0 && (
+          <div className="rounded-xl border bg-card p-6">
+            <h2 className="mb-3 text-lg font-semibold">Published Syllabus Documents</h2>
+            <div className="space-y-2">
+              {published.syllabi.map((doc: any) => (
+                <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">{doc.file_name}</span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{doc.file_type?.toUpperCase()}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl border bg-card p-6">
           <h2 className="mb-2 text-lg font-semibold">Grade {profile?.grade_assigned}</h2>

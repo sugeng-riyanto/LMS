@@ -146,7 +146,25 @@ export default function SyllabusManagerPage() {
                           <p className="text-[10px] text-muted-foreground">{doc.file_type?.toUpperCase()} · {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "—"} · {new Date(doc.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] shrink-0">G{doc.grade}</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="text-[10px]">G{doc.grade}</Badge>
+                        <Button size="sm" variant={doc.published ? "default" : "outline"} className="h-7 text-[10px] px-2" onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/syllabus/documents/${doc.id}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ published: !doc.published }),
+                            })
+                            if (res.ok) {
+                              doc.published = !doc.published
+                              toast.success(doc.published ? "Published to dashboard!" : "Unpublished")
+                              fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs)
+                            } else toast.error("Failed")
+                          } catch { toast.error("Failed") }
+                        }}>
+                          {doc.published ? "✓ Published" : "Publish"}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
