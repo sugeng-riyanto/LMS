@@ -74,13 +74,9 @@ export async function GET(
       const emb = getEmbedUrl(src.url, src.type)
       const vid = src.type === "youtube" ? (src.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/) || [])[1] : null
       if (src.type === "youtube" && vid) {
-        const thumb = `https://img.youtube.com/vi/${vid}/0.jpg`
         return `<div class="mt-3 rounded-lg overflow-hidden border bg-black relative" style="aspect-ratio:16/9">
-          <div class="yt-player cursor-pointer relative w-full h-full" data-embed="${esc(emb || "")}">
-            <img src="${thumb}" class="w-full h-full object-cover" alt="" loading="lazy" style="pointer-events:none" />
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center border-2 border-white/80"><span class="text-white text-2xl ml-1">&#9654;</span></div></div>
-          </div>
-          <p class="text-xs text-gray-400 px-2 pb-1">${esc(src.title)}</p>
+          <iframe src="${esc(emb || "")}" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen style="border:0"></iframe>
+          <p class="absolute bottom-0 left-0 right-0 text-xs text-gray-400 px-2 pb-1 bg-black/50">${esc(src.title)}</p>
         </div>`
       }
       if (src.type === "pdf" || src.type === "slides") {
@@ -141,10 +137,10 @@ export async function GET(
     </div>
   </div>
   <div class="px-4 py-3 space-y-2 border-t bg-gray-50/50">
-    <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)"></textarea>
+    <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)" onpaste="return false"></textarea>
     <div class="flex flex-wrap items-center gap-1.5 no-print">
       <select class="tool-size text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
-        <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option>
+        <option value="2" selected>Thin</option><option value="5">Medium</option><option value="10">Thick</option><option value="20">Bold</option>
       </select>
       <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen">✏️ Pen</button>
       <button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser">🧹 Eraser</button>
@@ -201,7 +197,7 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   ${mediaHtml}
 </div>` : ""}
 
-<div class="bg-white rounded-2xl shadow-sm border p-6">
+<div id="pdf-container" class="bg-white rounded-2xl shadow-sm border p-6">
   ${pdfPagesHtml}
 </div>
 
@@ -232,15 +228,16 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.js"></script>
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.js'
+<script type="module">
+import { getDocument, GlobalWorkerOptions } from '/pdfjs/pdf.min.mjs'
+GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs'
 
 const PDF_URL = ${JSON.stringify(directPdfUrl)}
 const PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 const PDF_PAGES = ${pages}
 
 var CS = {}
+var TOTAL_PAGES = 0
 
 function initAnnotation(page) {
   var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
@@ -253,7 +250,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -279,31 +276,78 @@ function clearPage(page) {
   CS[page] = CS[page] || { ctx: ctx, mode: 'pen', size: 5, color: '#1a1a2e', drawing: false, last: null }
 }
 
-function clearAll() { for (var i = 1; i <= PDF_PAGES; i++) clearPage(i) }
+window.clearAll = function() { for (var i = 1; i <= (TOTAL_PAGES || PDF_PAGES); i++) clearPage(i) }
 
 async function loadPDF() {
   try {
-    var pdf = await pdfjsLib.getDocument({ url: PDF_URL, useSystemFonts: true }).promise
-    for (var i = 1; i <= Math.min(pdf.numPages, PDF_PAGES); i++) {
+    var pdf = await getDocument({ url: PDF_URL }).promise
+    var total = pdf.numPages
+    TOTAL_PAGES = total
+    var container = document.getElementById('pdf-container')
+
+    // Dynamically add page wrappers if PDF has more pages than HTML
+    function addPageWrapper(pageNum) {
+      if (!container) return null
+      var tmpl = container.querySelector('.pdf-page-wrapper')
+      if (!tmpl) return null
+      var clone = tmpl.cloneNode(true)
+      clone.dataset.page = pageNum
+      clone.querySelector('.pdf-canvas').dataset.page = pageNum
+      clone.querySelector('.annotation-canvas').dataset.page = pageNum
+      clone.querySelector('.pdf-loading').dataset.page = pageNum
+      clone.querySelector('.pdf-loading').innerHTML = '<span class="animate-pulse">Loading page ' + pageNum + '...</span>'
+      clone.querySelector('.answer-text').dataset.page = pageNum
+      clone.querySelector('.answer-text').placeholder = 'Type your answer for page ' + pageNum + ' here (optional)'
+      // Update header
+      var header = clone.querySelector('.flex.items-center.justify-between')
+      if (header) header.innerHTML = '<span>Page ' + pageNum + ' of ' + total + '</span><span class="text-[10px] text-gray-400">Draw directly on the worksheet below</span>'
+      // Update tools
+      clone.querySelectorAll('[data-target]').forEach(function(el) { el.dataset.target = pageNum })
+      clone.querySelectorAll('[id^="mode-label-"]').forEach(function(el) { el.id = 'mode-label-' + pageNum })
+      container.appendChild(clone)
+      return clone
+    }
+
+    for (var i = 1; i <= total; i++) {
+      try {
+        var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + i + '"]')
+        if (!wrapper) wrapper = addPageWrapper(i)
+        if (!wrapper) continue
+        var loading = wrapper.querySelector('.pdf-loading')
+        var canvas = wrapper.querySelector('.pdf-canvas')
+        if (!canvas) continue
+        var page = await pdf.getPage(i)
+        var viewport = page.getViewport({ scale: 1.5 })
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        canvas.style.display = 'block'
+        var ctx = canvas.getContext('2d')
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise
+        if (loading) { loading.style.display = 'none' }
+        initAnnotation(i)
+      } catch (pageErr) {
+        console.error('Page ' + i + ' failed:', pageErr)
+        var loading = document.querySelector('.pdf-loading[data-page="' + i + '"]')
+        if (loading) {
+          loading.innerHTML = '<span class="text-red-500">Page ' + i + ' failed to render</span>'
+          loading.classList.remove('animate-pulse')
+        }
+      }
+    }
+    // Hide remaining loading for pages beyond actual page count
+    for (var i = total + 1; i <= PDF_PAGES; i++) {
       var loading = document.querySelector('.pdf-loading[data-page="' + i + '"]')
-      var canvas = document.querySelector('.pdf-canvas[data-page="' + i + '"]')
-      if (!canvas) continue
-      var page = await pdf.getPage(i)
-      var viewport = page.getViewport({ scale: 1.5 })
-      canvas.width = viewport.width
-      canvas.height = viewport.height
-      canvas.style.display = 'block'
-      var ctx = canvas.getContext('2d')
-      await page.render({ canvasContext: ctx, viewport: viewport }).promise
-      if (loading) loading.style.display = 'none'
-      initAnnotation(i)
+      if (loading) {
+        loading.innerHTML = '<span class="text-gray-400">No content</span>'
+        loading.classList.remove('animate-pulse')
+      }
     }
   } catch (e) {
     console.error('PDF.js failed:', e)
     if (PDF_EMBED) {
       document.querySelectorAll('.pdf-page-wrapper').forEach(function(el) {
         var page = el.dataset.page
-        el.innerHTML = '<div style="aspect-ratio:1/1.4;max-height:90vh"><iframe src="' + PDF_EMBED + '" class="w-full h-full" style="border:0" allowfullscreen></iframe></div><div class="px-4 py-3 space-y-2 border-t bg-gray-50/50"><textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="' + page + '" placeholder="Type your answer for page ' + page + ' here (optional)"></textarea></div>'
+        el.innerHTML = '<div style="aspect-ratio:1/1.4;max-height:90vh"><iframe src="' + PDF_EMBED + '" class="w-full h-full" style="border:0" allowfullscreen></iframe></div><div class="px-4 py-3 space-y-2 border-t bg-gray-50/50"><textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="' + page + '" placeholder="Type your answer for page ' + page + ' here (optional)" onpaste="return false"></textarea></div>'
       })
     } else {
       document.querySelectorAll('.pdf-loading').forEach(function(el) {
@@ -317,7 +361,7 @@ async function loadPDF() {
   }
 }
 
-function handlePrint() {
+window.handlePrint = function() {
   var name = document.getElementById('student-name')?.value?.trim()
   if (!name) { alert('Please select your Full Name before printing.'); return }
   window.print()
@@ -329,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
       el.innerHTML = '<span class="text-red-500">Taking too long. <a href="' + PDF_URL + '" target="_blank" class="underline">Open PDF directly ↗</a></span>'
       el.classList.remove('animate-pulse')
     })
-  }, 15000)
+  }, 30000)
   loadPDF().then(function() { clearTimeout(pdfTimeout) }).catch(function() { clearTimeout(pdfTimeout) })
 
   document.querySelectorAll('.tool-pen').forEach(function(b) {
@@ -358,12 +402,6 @@ document.addEventListener('DOMContentLoaded', function() {
   })
   document.querySelectorAll('.tool-color').forEach(function(s) {
     s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].color = this.value; CS[t].ctx.strokeStyle = this.value } })
-  })
-  document.querySelectorAll('.yt-player').forEach(function(el) {
-    el.addEventListener('click', function() {
-      var e = this.dataset.embed
-      if (e) this.innerHTML = '<iframe src="' + e + '" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen style="border:0"></iframe>'
-    })
   })
   document.querySelectorAll('.doc-preview').forEach(function(el) {
     el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
