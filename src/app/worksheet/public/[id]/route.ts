@@ -144,15 +144,16 @@ export async function GET(
       </select>
       <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen">✏️ Pen</button>
       <button class="tool-line px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line">📏 Line</button>
+      <button class="tool-dash px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash">┅ Dash</button>
       <button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser">🧹 Eraser</button>
       <button class="tool-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}">🗑️ Clear</button>
       <select class="tool-color text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
         <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
       </select>
-      <button class="tool-ruler-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Ruler (cm)">📏</button>
-      <button class="tool-protractor-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Protractor (°)">📐</button>
-      <button class="tool-compass-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" title="Compass">🌀</button>
-      <span class="text-xs text-gray-400 ml-1" id="mode-label-${i + 1}">✏️ Drawing</span>
+      <button class="tool-ruler-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler (cm)">📏</button>
+      <button class="tool-protractor-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor (°)">📐</button>
+      <button class="tool-compass-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🌀</button>
+      <span class="text-xs text-gray-400 ml-1" id="mode-label-${i + 1}">✏️ Pen</span>
     </div>
   </div>
 </div>`).join("")
@@ -167,22 +168,20 @@ export async function GET(
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
 @media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
 canvas{max-width:100%;height:auto}
-.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block}
+.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block;z-index:20}
 .pdf-page-wrapper{position:relative}
 .pdf-canvas{width:100%!important;height:auto!important;display:block}
 .answer-text{-webkit-user-select:text;user-select:text}
-.floating-tool{position:absolute;z-index:50;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}
-.floating-tool.dragging{cursor:grabbing}
-.floating-tool .handle{position:absolute;z-index:2;width:14px;height:14px;border-radius:50%;border:2px solid #3b82f6;background:white;opacity:0.8}
+.floating-tool{position:absolute;z-index:10;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
+.floating-tool canvas{display:block}
+.floating-tool .handle{position:absolute;z-index:12;width:14px;height:14px;border-radius:50%;border:2px solid #3b82f6;background:white;opacity:0.7;pointer-events:auto}
 .floating-tool .handle:hover{opacity:1;transform:scale(1.2)}
 .floating-tool .h-rotate{right:-7px;top:-7px;cursor:crosshair}
 .floating-tool .h-resize{right:-7px;bottom:-7px;cursor:se-resize}
-.floating-tool .h-close{left:-7px;top:-7px;cursor:pointer;background:#ef4444;border-color:#ef4444}
-.floating-tool .h-close::after{content:'✕';color:white;font-size:8px;display:flex;align-items:center;justify-content:center;line-height:14px}
-.floating-ruler{width:280px;height:36px;border:1px solid #94a3b8;border-radius:4px;background:rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-.floating-ruler canvas{width:100%;height:100%;display:block;border-radius:3px}
-.floating-protractor{width:200px;height:110px;border-radius:0 0 100px 100px;border:1px solid #94a3b8;background:rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-.floating-protractor canvas{width:100%;height:100%;display:block}
+.floating-tool .h-close{left:-7px;top:-7px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;line-height:14px}
+.floating-tool .h-close::after{content:'✕'}
+.floating-ruler{background:rgba(255,255,255,0.7);border:1px solid #94a3b8;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.floating-protractor{background:rgba(255,255,255,0.7);border:1px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
@@ -266,7 +265,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -276,16 +275,21 @@ function initAnnotation(page) {
     return { x: (t.clientX - r.left) * s, y: (t.clientY - r.top) * si }
   }
 
-  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e); s.drawing = true; s.last = o; s.lineStart = o;
-    if (s.mode === 'pen' || s.mode === 'line') { s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.globalCompositeOperation = 'source-over' }
-    else if (s.mode === 'eraser') { s.ctx.strokeStyle = 'rgba(0,0,0,0)'; s.ctx.lineWidth = s.size * 3; s.ctx.globalCompositeOperation = 'destination-out'; s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y) }
+  function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e); s.drawing = true; s.last = o; s.lineStart = o; s.ctx.globalCompositeOperation = 'source-over';
+    if (s.mode === 'pen' || s.mode === 'line' || s.mode === 'dash') {
+      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y)
+    } else if (s.mode === 'eraser') {
+      s.ctx.strokeStyle = '#000000'; s.ctx.lineWidth = s.size * 3; s.ctx.globalCompositeOperation = 'destination-out'; s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y)
+    } else if (s.mode === 'compass') {
+      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash([])
+    }
   }
   function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
     if (s.mode === 'pen' || s.mode === 'eraser') { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
     s.last = o
   }
   function sp() { var s = CS[page]; if (!s) return; s.drawing = false;
-    if (s.mode === 'line' && s.lineStart && s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke() }
+    if ((s.mode === 'line' || s.mode === 'dash') && s.lineStart && s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke(); s.ctx.setLineDash([]) }
     if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke() }
     s.last = null; s.lineStart = null
   }
@@ -315,21 +319,21 @@ function drawProtractorCanvas(cv, d) {
   var r = d / 2, ctx = cv.getContext('2d')
   cv.width = d * 2; cv.height = (r + 16) * 2
   ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 16)
-  // background semicircle
-  ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.moveTo(0, r + 16); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 16); ctx.closePath(); ctx.fill()
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
-  // degree marks
-  for (var deg = 0; deg <= 180; deg += 1) {
-    var rad = (180 - deg) * Math.PI / 180, len = deg % 10 === 0 ? 12 : deg % 5 === 0 ? 8 : 4
+  // background semicircle (transparent)
+  ctx.fillStyle = 'rgba(248,250,252,0.4)'; ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
+  // degree marks — 0 on right, 180 on left, 90 on top
+  for (var deg = 0; deg <= 180; deg += 2) {
+    var rad = deg * Math.PI / 180, len = deg % 10 === 0 ? 10 : deg % 5 === 0 ? 6 : 3
     var x1 = Math.cos(rad) * r, y1 = -Math.sin(rad) * r, x2 = Math.cos(rad) * (r - len), y2 = -Math.sin(rad) * (r - len)
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
-    if (deg % 10 === 0 && deg !== 0 && deg !== 180) {
-      ctx.fillStyle = '#334155'; ctx.font = '5px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText(deg + '°', Math.cos(rad) * (r - 16), -Math.sin(rad) * (r - 16) + 2)
+    if (deg % 10 === 0) {
+      ctx.fillStyle = '#334155'; ctx.font = '6px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText(deg + '°', Math.cos(rad) * (r - 14), -Math.sin(rad) * (r - 14) + 2)
     }
   }
-  ctx.fillStyle = '#334155'; ctx.font = '5px sans-serif'; ctx.textAlign = 'center'
-  ctx.fillText('0°', -r + 8, 8); ctx.fillText('180°', r - 8, 8); ctx.fillText('90°', 0, -r + 10)
+  ctx.fillStyle = '#334155'; ctx.font = '6px sans-serif'; ctx.textAlign = 'center'
+  ctx.fillText('0°', r - 10, 8); ctx.fillText('180°', -r + 10, 8); ctx.fillText('90°', 0, -r + 10)
 }
 
 function createFloatingTool(type, pageWrapper) {
@@ -339,32 +343,24 @@ function createFloatingTool(type, pageWrapper) {
   var el = document.createElement('div')
   el.className = 'floating-tool'
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 280
+    el.className += ' floating-ruler'; var w = 500
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
     el.style.width = w + 'px'; el.style.height = '36px'
-    el.style.left = '20px'; el.style.top = '20px'
   } else if (type === 'protractor') {
-    el.className += ' floating-protractor'; var d = 200
+    el.className += ' floating-protractor'; var d = 300
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawProtractorCanvas(cv, d) }, 50)
     el.style.width = d + 'px'; el.style.height = (d / 2 + 16) + 'px'
-    el.style.left = '40px'; el.style.top = '40px'
   } else return
+  // Position at center of page wrapper
+  var wr = wrapper.getBoundingClientRect()
+  el.style.left = (wr.width / 2 - parseFloat(el.style.width) / 2) + 'px'
+  el.style.top = '20px'
   // Handles
   var hClose = document.createElement('div'); hClose.className = 'handle h-close'; el.appendChild(hClose)
   var hRotate = document.createElement('div'); hRotate.className = 'handle h-rotate'; el.appendChild(hRotate)
   var hResize = document.createElement('div'); hResize.className = 'handle h-resize'; el.appendChild(hResize)
-  rel.appendChild(el)
-  // Close
-  hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
-  // Drag
-  var offX = 0, offY = 0
-  function dragStart(e) { var t = e.touches ? e.touches[0] : e; offX = t.clientX - el.offsetLeft; offY = t.clientY - el.offsetTop; el.classList.add('dragging') }
-  function dragMove(e) { if (!el.classList.contains('dragging')) return; var t = e.touches ? e.touches[0] : e; el.style.left = (t.clientX - offX) + 'px'; el.style.top = (t.clientY - offY) + 'px' }
-  function dragEnd() { el.classList.remove('dragging') }
-  el.addEventListener('mousedown', dragStart); document.addEventListener('mousemove', dragMove); document.addEventListener('mouseup', dragEnd)
-  el.addEventListener('touchstart', dragStart, { passive: true }); document.addEventListener('touchmove', dragMove, { passive: true }); document.addEventListener('touchend', dragEnd)
   // Rotate
   var rotating = false, rotAngle = 0
   function rotStart(e) { e.stopPropagation(); rotating = true; rotAngle = parseFloat(el.dataset.angle) || 0 }
@@ -493,28 +489,35 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-pen').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '✏️ Drawing'
+      if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '✏️ Pen'
     })
   })
   document.querySelectorAll('.tool-line').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+      if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '📏 Line'
+    })
+  })
+  document.querySelectorAll('.tool-dash').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '┅ Dash'
     })
   })
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = 'rgba(0,0,0,0)'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out' }
+      if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🧹 Eraser'
     })
   })
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
-      if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
+      if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🌀 Compass'
     })
   })
