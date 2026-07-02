@@ -161,7 +161,7 @@ export async function GET(
       <span class="text-[8px] text-gray-600 mt-0.5">Clear</span>
     </button>
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
-      <option value="#1a1a2e">●</option><option value="#dc2626">●</option><option value="#2563eb" selected>●</option><option value="#16a34a">●</option>
+      <option value="#2563eb" selected>●</option><option value="#000000">●</option><option value="#16a34a">●</option><option value="#dc2626">●</option><option value="#eab308">●</option><option value="#9333ea">●</option><option value="#ffffff">●</option>
     </select>
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
