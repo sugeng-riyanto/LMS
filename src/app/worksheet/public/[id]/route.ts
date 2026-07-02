@@ -124,36 +124,39 @@ export async function GET(
     // Generate page HTML — use pageImages if available, else PDF.js/embed fallback
     // PDF.js path — render PDF to canvas, annotation overlay
     const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
-<div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden" data-page="${i + 1}">
-  <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
-    <span>Page ${i + 1} of ${pages}</span>
-    <span class="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
+<div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden flex" data-page="${i + 1}">
+  <div class="vertical-tools no-print flex flex-col items-center gap-0.5 px-1 py-2 border-r bg-gray-50/50 shrink-0" style="width:34px">
+    <select class="tool-size text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}">
+      <option value="2" selected>T</option><option value="5">M</option><option value="10">K</option><option value="20">B</option>
+    </select>
+    <button class="tool-pen w-full px-0.5 py-1 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✏️</button>
+    <button class="tool-line w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">📏</button>
+    <button class="tool-dash w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┅</button>
+    <button class="tool-eraser w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">🧹</button>
+    <button class="tool-text w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">🅰️</button>
+    <button class="tool-clear w-full px-0.5 py-1 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">🗑️</button>
+    <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
+      <option value="#1a1a2e" selected>⚫</option><option value="#dc2626">🔴</option><option value="#2563eb">🔵</option><option value="#16a34a">🟢</option>
+    </select>
+    <button class="tool-ruler-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📏</button>
+    <button class="tool-protractor-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">📐</button>
+    <button class="tool-compass-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🌀</button>
+    <span class="mode-label" id="mode-label-${i + 1}">Pen</span>
   </div>
-  <div class="relative" style="min-height:400px">
-    <canvas class="pdf-canvas" data-page="${i + 1}" style="display:none"></canvas>
-    <canvas class="annotation-canvas absolute inset-0" data-page="${i + 1}"></canvas>
-    <div class="pdf-loading flex items-center justify-center py-16 text-gray-400 text-sm" data-page="${i + 1}">
-      <span class="animate-pulse">Loading page ${i + 1}...</span>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
+      <span>Page ${i + 1} of ${pages}</span>
+      <span class="text-[10px] text-gray-400">Draw directly on the worksheet below</span>
     </div>
-  </div>
-  <div class="px-4 py-3 space-y-2 border-t bg-gray-50/50">
-    <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)" onpaste="return false"></textarea>
-    <div class="flex flex-wrap items-center gap-1.5 no-print">
-      <select class="tool-size text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
-        <option value="2" selected>Thin</option><option value="5">Medium</option><option value="10">Thick</option><option value="20">Bold</option>
-      </select>
-      <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen">✏️ Pen</button>
-      <button class="tool-line px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line">📏 Line</button>
-      <button class="tool-dash px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash">┅ Dash</button>
-      <button class="tool-eraser px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser">🧹 Eraser</button>
-      <button class="tool-clear px-2 py-0.5 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}">🗑️ Clear</button>
-      <select class="tool-color text-xs border rounded px-1 py-0.5 bg-white" data-target="${i + 1}">
-        <option value="#1a1a2e" selected>Black</option><option value="#dc2626">Red</option><option value="#2563eb">Blue</option><option value="#16a34a">Green</option>
-      </select>
-      <button class="tool-ruler-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler (cm)">📏</button>
-      <button class="tool-protractor-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor (°)">📐</button>
-      <button class="tool-compass-btn px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🌀</button>
-      <span class="text-xs text-gray-400 ml-1" id="mode-label-${i + 1}">✏️ Pen</span>
+    <div class="relative" style="min-height:400px">
+      <canvas class="pdf-canvas" data-page="${i + 1}" style="display:none"></canvas>
+      <canvas class="annotation-canvas absolute inset-0" data-page="${i + 1}"></canvas>
+      <div class="pdf-loading flex items-center justify-center py-16 text-gray-400 text-sm" data-page="${i + 1}">
+        <span class="animate-pulse">Loading page ${i + 1}...</span>
+      </div>
+    </div>
+    <div class="px-4 py-2 border-t bg-gray-50/50 no-print">
+      <textarea rows="2" class="answer-text w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" data-page="${i + 1}" placeholder="Type your answer for page ${i + 1} here (optional)" onpaste="return false"></textarea>
     </div>
   </div>
 </div>`).join("")
@@ -168,20 +171,22 @@ export async function GET(
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;background:#f3f4f6;-webkit-user-select:text;user-select:text}
 @media print{body{background:#fff;padding:0}.no-print{display:none!important}.pdf-page-wrapper{page-break-after:always;break-inside:avoid;margin:0!important;border-radius:0!important;overflow:visible!important}}
 canvas{max-width:100%;height:auto}
-.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block;z-index:20}
+.annotation-canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;cursor:crosshair;touch-action:none;pointer-events:auto;display:block;z-index:5}
 .pdf-page-wrapper{position:relative}
 .pdf-canvas{width:100%!important;height:auto!important;display:block}
 .answer-text{-webkit-user-select:text;user-select:text}
+.vertical-tools button.active-tool{background:#dbeafe;border-color:#3b82f6}
+.vertical-tools .mode-label{font-size:7px;line-height:1;color:#9ca3af;writing-mode:vertical-rl;text-orientation:mixed;margin-top:2px}
 .floating-tool{position:absolute;z-index:10;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
 .floating-tool canvas{display:block}
-.floating-tool .handle{position:absolute;z-index:12;width:14px;height:14px;border-radius:50%;border:2px solid #3b82f6;background:white;opacity:0.7;pointer-events:auto}
-.floating-tool .handle:hover{opacity:1;transform:scale(1.2)}
-.floating-tool .h-rotate{right:-7px;top:-7px;cursor:crosshair}
-.floating-tool .h-resize{right:-7px;bottom:-7px;cursor:se-resize}
-.floating-tool .h-close{left:-7px;top:-7px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:8px;display:flex;align-items:center;justify-content:center;line-height:14px}
+.floating-tool .handle{position:absolute;z-index:25;width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:white;opacity:0.85;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.floating-tool .handle:hover{opacity:1;transform:scale(1.25)}
+.floating-tool .h-rotate{right:-8px;top:-8px;cursor:crosshair}
+.floating-tool .h-resize{right:-8px;bottom:-8px;cursor:se-resize}
+.floating-tool .h-close{left:-8px;top:-8px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;line-height:16px}
 .floating-tool .h-close::after{content:'✕'}
-.floating-ruler{background:rgba(255,255,255,0.7);border:1px solid #94a3b8;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
-.floating-protractor{background:rgba(255,255,255,0.7);border:1px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.floating-ruler{background:rgba(255,255,255,0.5);border:1px solid #94a3b8;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.floating-protractor{background:rgba(255,255,255,0.3);border:1px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
@@ -243,13 +248,12 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 </div>
 </div>
 
-<script type="module">
-import { getDocument, GlobalWorkerOptions } from '/pdfjs/pdf.min.mjs'
-GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs'
-
-const PDF_URL = ${JSON.stringify(directPdfUrl)}
-const PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
-const PDF_PAGES = ${pages}
+<script src="/pdfjs/pdf.js"></script>
+<script>
+var PDF_URL = ${JSON.stringify(directPdfUrl)}
+var PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
+var PDF_PAGES = ${pages}
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
 
 var CS = {}
 var TOTAL_PAGES = 0
@@ -265,7 +269,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -277,25 +281,72 @@ function initAnnotation(page) {
 
   function st(e) { e.preventDefault(); var s = CS[page]; if (!s) return; var o = p(e); s.drawing = true; s.last = o; s.lineStart = o; s.ctx.globalCompositeOperation = 'source-over';
     if (s.mode === 'pen' || s.mode === 'line' || s.mode === 'dash') {
-      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y)
+      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); c.style.cursor = 'crosshair'
+      if (s.mode === 'line' || s.mode === 'dash') { s.savedState = ctx.getImageData(0, 0, c.width, c.height) }
     } else if (s.mode === 'eraser') {
-      s.ctx.strokeStyle = '#000000'; s.ctx.lineWidth = s.size * 3; s.ctx.globalCompositeOperation = 'destination-out'; s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y)
+      s.ctx.strokeStyle = '#000000'; s.ctx.lineWidth = s.size * 3; s.ctx.globalCompositeOperation = 'destination-out'; s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.moveTo(o.x, o.y); c.style.cursor = 'cell'
     } else if (s.mode === 'compass') {
-      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash([])
+      s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash([]); c.style.cursor = 'crosshair'
+      s.savedState = ctx.getImageData(0, 0, c.width, c.height)
+    } else if (s.mode === 'text') {
+      createTextEditor(c, o.x, o.y, s.color, s.size, page)
     }
   }
   function mv(e) { if (!CS[page] || !CS[page].drawing) return; e.preventDefault(); var s = CS[page]; var o = p(e); if (!s.last) return;
-    if (s.mode === 'pen' || s.mode === 'eraser') { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
+    if (s.mode === 'pen') { s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
+    else if (s.mode === 'eraser') { s.ctx.beginPath(); s.ctx.moveTo(s.last.x, s.last.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke() }
+    else if (s.mode === 'line' || s.mode === 'dash') {
+      if (s.savedState) { ctx.putImageData(s.savedState, 0, 0); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(o.x, o.y); s.ctx.stroke(); s.ctx.setLineDash([]) }
+    } else if (s.mode === 'compass') {
+      if (s.savedState) { ctx.putImageData(s.savedState, 0, 0); s.ctx.strokeStyle = s.color; s.ctx.lineWidth = s.size; s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, Math.sqrt(Math.pow(o.x - s.lineStart.x, 2) + Math.pow(o.y - s.lineStart.y, 2)), 0, 2 * Math.PI); s.ctx.stroke() }
+    }
     s.last = o
   }
-  function sp() { var s = CS[page]; if (!s) return; s.drawing = false;
-    if ((s.mode === 'line' || s.mode === 'dash') && s.lineStart && s.last) { s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke(); s.ctx.setLineDash([]) }
-    if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke() }
+  function sp() { var s = CS[page]; if (!s) return; s.drawing = false; s.savedState = null;
+    if ((s.mode === 'line' || s.mode === 'dash') && s.lineStart && s.last) { s.ctx.setLineDash(s.mode === 'dash' ? [s.size * 3, s.size * 3] : []); s.ctx.beginPath(); s.ctx.moveTo(s.lineStart.x, s.lineStart.y); s.ctx.lineTo(s.last.x, s.last.y); s.ctx.stroke(); s.ctx.setLineDash([]) }
+    if (s.mode === 'compass' && s.lineStart && s.last) { var dx = s.last.x - s.lineStart.x, dy = s.last.y - s.lineStart.y, r = Math.sqrt(dx*dx + dy*dy); s.ctx.setLineDash([]); s.ctx.beginPath(); s.ctx.arc(s.lineStart.x, s.lineStart.y, r, 0, 2 * Math.PI); s.ctx.stroke(); var pxPerCm = c.width / (c.offsetWidth / 2.54 * 10); var radiusCm = (r / pxPerCm / 10).toFixed(1); s.ctx.fillStyle = s.color; s.ctx.font = '10px sans-serif'; s.ctx.textAlign = 'left'; s.ctx.fillText('r = ' + radiusCm + ' cm', s.lineStart.x + 5, s.lineStart.y - 5) }
     s.last = null; s.lineStart = null
   }
 
   c.addEventListener('mousedown', st); c.addEventListener('mousemove', mv); c.addEventListener('mouseup', sp); c.addEventListener('mouseleave', sp)
   c.addEventListener('touchstart', st, { passive: false }); c.addEventListener('touchmove', mv, { passive: false }); c.addEventListener('touchend', sp)
+}
+
+// --- Text Editor ---
+function createTextEditor(canvas, x, y, color, size, page) {
+  var existing = document.querySelector('.text-editor-active')
+  if (existing) finalizeTextEditor(existing, page)
+  var div = document.createElement('div')
+  div.className = 'text-editor-active'
+  div.contentEditable = true
+  var rect = canvas.getBoundingClientRect()
+  div.style.cssText = 'position:absolute;left:' + (rect.left + x * rect.width / canvas.width) + 'px;top:' + (rect.top + y * rect.height / canvas.height) + 'px;min-width:50px;min-height:20px;font-family:\'Times New Roman\',serif;font-size:12px;line-height:1.4;text-align:justify;color:' + color + ';background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden'
+  document.body.appendChild(div)
+  div.focus()
+  div.addEventListener('blur', function() { setTimeout(function() { finalizeTextEditor(div, page) }, 200) })
+  div.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.execCommand('insertLineBreak', false) }
+    if (e.key === 'Escape') { div.remove(); finalizeTextEditor(div, page) }
+  })
+}
+
+function finalizeTextEditor(div, page) {
+  if (!div || !div.parentNode) return
+  var text = div.innerText || div.textContent || ''
+  div.remove()
+  if (!text.trim()) return
+  var c = document.querySelector('.annotation-canvas[data-page="' + page + '"]')
+  if (!c) return
+  var s = CS[page]; if (!s) return
+  var rect = c.getBoundingClientRect()
+  var x = (parseFloat(div.style.left) - rect.left) * c.width / rect.width
+  var y = (parseFloat(div.style.top) - rect.top) * c.height / rect.height
+  s.ctx.font = '12px \'Times New Roman\', serif'
+  s.ctx.fillStyle = s.color
+  s.ctx.textAlign = 'justify'
+  s.ctx.textBaseline = 'top'
+  var lines = text.split('\n'), lineH = 16
+  for (var i = 0; i < lines.length; i++) { s.ctx.fillText(lines[i], x, y + i * lineH) }
 }
 
 // --- Floating Tools: Ruler & Protractor ---
@@ -304,13 +355,18 @@ function drawRulerCanvas(cv, w) {
   cv.width = w * 2; cv.height = 72
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, 36)
-  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, 36)
+  ctx.fillStyle = 'rgba(248,250,252,0.3)'; ctx.fillRect(0, 0, w, 36)
   ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5
-  // cm marks: 10px per mm, 100px per cm
-  for (var i = 0; i <= w; i += 5) {
-    var x = i, h = i % 50 === 0 ? 18 : i % 25 === 0 ? 12 : 6
+  // 30cm scale: 1cm = 10px, 1mm = 1px
+  var totalCm = 30
+  var pxPerCm = w / totalCm
+  for (var i = 0; i <= totalCm * 10; i++) {
+    var x = i * pxPerCm / 10
+    if (x > w) break
+    var isCm = i % 10 === 0, isHalf = i % 5 === 0
+    var h = isCm ? 18 : isHalf ? 12 : 6
     ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, 36 - h); ctx.stroke()
-    if (i % 50 === 0) { ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(i / 10, x, 34 - h) }
+    if (isCm) { ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText((i / 10) + 'cm', x, 34 - h) }
   }
   ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, 36)
 }
@@ -343,15 +399,18 @@ function createFloatingTool(type, pageWrapper) {
   var el = document.createElement('div')
   el.className = 'floating-tool'
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 500
+    el.className += ' floating-ruler'; var w = 300
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '36px'
+    el.style.width = w + 'px'; el.style.height = '36px'; el.style.minWidth = '100px'
   } else if (type === 'protractor') {
-    el.className += ' floating-protractor'; var d = 300
+    el.className += ' floating-protractor'; var d = 240
     var cv = document.createElement('canvas'); el.appendChild(cv)
+    // Protractor shape via clip-path: semicircle
+    el.style.clipPath = 'polygon(0 100%, 0 0, 100% 0, 100% 100%, 50% 100%)'
+    el.style.borderRadius = '0 0 50% 50%'
     setTimeout(function() { drawProtractorCanvas(cv, d) }, 50)
-    el.style.width = d + 'px'; el.style.height = (d / 2 + 16) + 'px'
+    el.style.width = d + 'px'; el.style.height = (d / 2 + 20) + 'px'; el.style.minWidth = '120px'
   } else return
   // Position at center of page wrapper
   var wr = wrapper.getBoundingClientRect()
@@ -390,7 +449,7 @@ window.clearAll = function() { for (var i = 1; i <= (TOTAL_PAGES || PDF_PAGES); 
 
 async function loadPDF() {
   try {
-    var pdf = await getDocument({ url: PDF_URL }).promise
+    var pdf = await pdfjsLib.getDocument({ url: PDF_URL }).promise
     var total = pdf.numPages
     TOTAL_PAGES = total
     var container = document.getElementById('pdf-container')
@@ -490,49 +549,70 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'pen'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '✏️ Pen'
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
     })
   })
   document.querySelectorAll('.tool-line').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'line'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '📏 Line'
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
     })
   })
   document.querySelectorAll('.tool-dash').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'dash'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over' }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '┅ Dash'
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
     })
   })
   document.querySelectorAll('.tool-eraser').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'eraser'; CS[target].ctx.strokeStyle = '#000000'; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5) * 3; CS[target].ctx.globalCompositeOperation = 'destination-out'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🧹 Eraser'
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]')
+      if (ac) ac.style.cursor = 'cell'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
     })
   })
   document.querySelectorAll('.tool-compass-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       var target = parseInt(this.dataset.target)
       if (CS[target]) { CS[target].mode = 'compass'; CS[target].ctx.strokeStyle = CS[target].color; CS[target].ctx.lineWidth = parseInt(document.querySelector('.tool-size[data-target="' + target + '"]')?.value || 5); CS[target].ctx.globalCompositeOperation = 'source-over'; CS[target].ctx.setLineDash([]) }
-      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = '🌀 Compass'
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
+    })
+  })
+  document.querySelectorAll('.tool-text').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var target = parseInt(this.dataset.target)
+      if (CS[target]) { CS[target].mode = 'text'; CS[target].ctx.strokeStyle = CS[target].color }
+      var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Text'
+      var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]')
+      if (ac) ac.style.cursor = 'text'
+      document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
     })
   })
   document.querySelectorAll('.tool-ruler-btn').forEach(function(b) {
     b.addEventListener('click', function() {
-      var target = parseInt(this.dataset.target)
-      var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
-      createFloatingTool('ruler', wrapper)
+      try {
+        var target = parseInt(this.dataset.target)
+        var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+        createFloatingTool('ruler', wrapper)
+      } catch(e) { console.error('Ruler error:', e) }
     })
   })
   document.querySelectorAll('.tool-protractor-btn').forEach(function(b) {
     b.addEventListener('click', function() {
-      var target = parseInt(this.dataset.target)
-      var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
-      createFloatingTool('protractor', wrapper)
+      try {
+        var target = parseInt(this.dataset.target)
+        var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+        createFloatingTool('protractor', wrapper)
+      } catch(e) { console.error('Protractor error:', e) }
     })
   })
   document.querySelectorAll('.tool-clear').forEach(function(b) {
@@ -546,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function() {
   })
   document.querySelectorAll('.doc-preview').forEach(function(el) {
     el.addEventListener('click', function() { var e = this.dataset.embed; if (e) { this.innerHTML = '<iframe src="' + e + '" class="w-full h-full" allowfullscreen style="border:0"></iframe>'; this.className = 'w-full h-full' } })
-  })
+   })
 })
 </script>
 </body></html>`
