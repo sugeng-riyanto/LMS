@@ -169,8 +169,8 @@ export async function GET(
       '  div.className = "text-editor-active"',
       '  div.contentEditable = true',
       '  var rect = canvas.getBoundingClientRect()',
-      '  var leftPos = rect.left + x * rect.width / canvas.width',
-      '  var topPos = rect.top + y * rect.height / canvas.height',
+      '  var leftPos = rect.left + window.scrollX + x * rect.width / canvas.width',
+      '  var topPos = rect.top + window.scrollY + y * rect.height / canvas.height',
       '  div.style.cssText = "position:absolute;left:" + leftPos + "px;top:" + topPos + "px;min-width:50px;min-height:20px;font-family:\'Times New Roman\',serif;font-size:12px;line-height:1.4;text-align:justify;color:" + color + ";background:rgba(255,255,240,0.8);border:1px dashed #94a3b8;outline:none;padding:2px 4px;z-index:100;white-space:pre-wrap;overflow:hidden"',
       '  document.body.appendChild(div)',
       '  div.focus()',
@@ -219,12 +219,16 @@ canvas{max-width:100%;height:auto}
 .vertical-tools .mode-label{font-size:7px;line-height:1;color:#9ca3af;writing-mode:vertical-rl;text-orientation:mixed;margin-top:2px}
 .floating-tool{position:absolute;z-index:10;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
 .floating-tool canvas{display:block}
-.floating-tool .handle{position:absolute;z-index:25;width:16px;height:16px;border-radius:50%;border:2px solid #2563eb;background:white;opacity:0.85;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
-.floating-tool .handle:hover{opacity:1;transform:scale(1.25)}
-.floating-tool .h-rotate{right:-8px;top:-8px;cursor:crosshair}
-.floating-tool .h-resize{right:-8px;bottom:-8px;cursor:se-resize}
-.floating-tool .h-close{left:-8px;top:-8px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;line-height:16px}
+.floating-tool .handle{position:absolute;z-index:25;width:20px;height:20px;border-radius:50%;border:2px solid #2563eb;background:white;opacity:0.95;pointer-events:auto;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.floating-tool .handle:hover{opacity:1;transform:scale(1.4)}
+.floating-tool .h-close{left:-10px;top:-10px;cursor:pointer;background:#ef4444;border-color:#ef4444;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:20px}
 .floating-tool .h-close::after{content:'✕'}
+.floating-tool .h-drag{left:50%;bottom:-10px;margin-left:-10px;cursor:grab;background:#dbeafe;border-color:#3b82f6;color:#2563eb;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:20px}
+.floating-tool .h-drag::after{content:'⣿'}
+.floating-tool .h-rotate{right:-10px;top:-10px;cursor:crosshair;background:#fef3c7;border-color:#f59e0b;color:#d97706;font-size:14px;display:flex;align-items:center;justify-content:center;line-height:20px}
+.floating-tool .h-rotate::after{content:'↻'}
+.floating-tool .h-resize{right:-10px;bottom:-10px;cursor:se-resize;background:#dbeafe;border-color:#3b82f6;color:#2563eb;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:20px}
+.floating-tool .h-resize::after{content:'⤡'}
 .floating-ruler{background:rgba(255,255,255,0.5);border:1px solid #94a3b8;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 .floating-protractor{background:rgba(255,255,255,0.3);border:1px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 </style>
@@ -356,45 +360,69 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d')
-  cv.width = w * 2; cv.height = 72
+  var ctx = cv.getContext('2d'), h = 40
+  cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
-  ctx.clearRect(0, 0, w, 36)
-  ctx.fillStyle = 'rgba(248,250,252,0.3)'; ctx.fillRect(0, 0, w, 36)
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5
-  // 30cm scale: 1cm = 10px, 1mm = 1px
-  var totalCm = 30
-  var pxPerCm = w / totalCm
-  for (var i = 0; i <= totalCm * 10; i++) {
-    var x = i * pxPerCm / 10
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(0, 0, w, h)
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, h)
+  // graduations: 1cm ≈ 40px, only draw every 2mm
+  var pxPerCm = w / 30
+  for (var mm = 0; mm <= 300; mm += 2) {
+    var x = mm * pxPerCm / 10
     if (x > w) break
-    var isCm = i % 10 === 0, isHalf = i % 5 === 0
-    var h = isCm ? 18 : isHalf ? 12 : 6
-    ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, 36 - h); ctx.stroke()
-    if (isCm) { ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText((i / 10) + 'cm', x, 34 - h) }
+    var isCm = mm % 10 === 0, isHalf = mm % 5 === 0
+    var len = isCm ? 16 : isHalf ? 10 : 5
+    ctx.strokeStyle = isCm ? '#1e293b' : '#64748b'; ctx.lineWidth = isCm ? 0.8 : 0.4
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - len); ctx.stroke()
+    if (isCm && mm > 0) {
+      ctx.fillStyle = '#1e293b'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText((mm/10) + '', x, len + 11)
+      ctx.fillText((mm/10) + '', x, h - len - 3)
+    }
   }
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, 36)
 }
 
 function drawProtractorCanvas(cv, d) {
   var r = d / 2, ctx = cv.getContext('2d')
-  cv.width = d * 2; cv.height = (r + 16) * 2
-  ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 16)
-  // background semicircle (transparent)
-  ctx.fillStyle = 'rgba(248,250,252,0.4)'; ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.closePath(); ctx.fill()
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
-  // degree marks — 0 on right, 180 on left, 90 on top
+  cv.width = d * 2; cv.height = (r + 20) * 2
+  ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 20)
+  // semicircle with gradient
+  var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+  grad.addColorStop(0, 'rgba(255,255,255,0.7)')
+  grad.addColorStop(1, 'rgba(248,250,252,0.3)')
+  ctx.fillStyle = grad
+  ctx.beginPath(); ctx.moveTo(0, r + 20); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 20); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
+  // inner arc
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.55, Math.PI, 0); ctx.stroke()
+  // degree marks — outer arc 0-180, inner arc 180-0
   for (var deg = 0; deg <= 180; deg += 2) {
-    var rad = deg * Math.PI / 180, len = deg % 10 === 0 ? 10 : deg % 5 === 0 ? 6 : 3
-    var x1 = Math.cos(rad) * r, y1 = -Math.sin(rad) * r, x2 = Math.cos(rad) * (r - len), y2 = -Math.sin(rad) * (r - len)
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+    var rad = deg * Math.PI / 180
+    var cos = Math.cos(rad), sin = -Math.sin(rad)
+    var lenOuter = deg % 10 === 0 ? 12 : deg % 5 === 0 ? 8 : 4
+    var lenInner = 8
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = deg % 10 === 0 ? 0.8 : 0.4
+    // outer mark
+    ctx.beginPath(); ctx.moveTo(cos * r, sin * r); ctx.lineTo(cos * (r - lenOuter), sin * (r - lenOuter)); ctx.stroke()
+    // inner mark (reversed direction)
+    var innerR = r * 0.55
+    ctx.beginPath(); ctx.moveTo(cos * innerR, sin * innerR); ctx.lineTo(cos * (innerR + lenInner), sin * (innerR + lenInner)); ctx.stroke()
+    // labels
     if (deg % 10 === 0) {
-      ctx.fillStyle = '#334155'; ctx.font = '6px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText(deg + '°', Math.cos(rad) * (r - 14), -Math.sin(rad) * (r - 14) + 2)
+      ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText(deg + '\u00B0', cos * (r - 16), sin * (r - 16) + 3)
+      ctx.font = '6px sans-serif'
+      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 14), sin * (innerR + 14) + 2)
     }
   }
-  ctx.fillStyle = '#334155'; ctx.font = '6px sans-serif'; ctx.textAlign = 'center'
-  ctx.fillText('0°', r - 10, 8); ctx.fillText('180°', -r + 10, 8); ctx.fillText('90°', 0, -r + 10)
+  ctx.fillStyle = '#334155'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center'
+  ctx.fillText('0\u00B0', r - 12, 10); ctx.fillText('180\u00B0', -r + 12, 10)
+  ctx.fillText('90\u00B0', 0, -r + 14)
+  ctx.fillText('180\u00B0', r - 12, 12); ctx.fillText('0\u00B0', -r + 12, 12)
 }
 
 function createFloatingTool(type, pageWrapper) {
@@ -403,39 +431,76 @@ function createFloatingTool(type, pageWrapper) {
   var rel = wrapper.querySelector('.relative'); if (!rel) return
   var el = document.createElement('div')
   el.className = 'floating-tool'
+  // --- RULER ---
   if (type === 'ruler') {
-    el.className += ' floating-ruler'; var w = 300
+    el.className += ' floating-ruler'; var w = 700
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '36px'; el.style.minWidth = '100px'
+    el.style.width = w + 'px'; el.style.height = '40px'
+    el.style.transformOrigin = 'left bottom'
+  // --- PROTRACTOR ---
   } else if (type === 'protractor') {
-    el.className += ' floating-protractor'; var d = 240
+    el.className += ' floating-protractor'; var d = 360
+    el.style.width = d + 'px'; el.style.height = (d / 2 + 4) + 'px'
+    el.style.borderRadius = (d/2) + 'px ' + (d/2) + 'px 0 0'
+    el.style.background = 'rgba(248,250,252,0.5)'
+    el.style.border = '1px solid #94a3b8'
+    el.style.borderBottom = 'none'
     var cv = document.createElement('canvas'); el.appendChild(cv)
-    // Protractor shape via clip-path: semicircle
-    el.style.clipPath = 'polygon(0 100%, 0 0, 100% 0, 100% 100%, 50% 100%)'
-    el.style.borderRadius = '0 0 50% 50%'
     setTimeout(function() { drawProtractorCanvas(cv, d) }, 50)
-    el.style.width = d + 'px'; el.style.height = (d / 2 + 20) + 'px'; el.style.minWidth = '120px'
+    el.style.transformOrigin = 'left bottom'
   } else return
-  // Position at center of page wrapper
-  var wr = wrapper.getBoundingClientRect()
-  el.style.left = (wr.width / 2 - parseFloat(el.style.width) / 2) + 'px'
-  el.style.top = '20px'
-  // Handles
-  var hClose = document.createElement('div'); hClose.className = 'handle h-close'; el.appendChild(hClose)
-  var hRotate = document.createElement('div'); hRotate.className = 'handle h-rotate'; el.appendChild(hRotate)
-  var hResize = document.createElement('div'); hResize.className = 'handle h-resize'; el.appendChild(hResize)
-  // Rotate
-  var rotating = false, rotAngle = 0
-  function rotStart(e) { e.stopPropagation(); rotating = true; rotAngle = parseFloat(el.dataset.angle) || 0 }
-  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var rect = rel.getBoundingClientRect(); var cx = el.offsetLeft + el.offsetWidth / 2, cy = el.offsetTop + el.offsetHeight / 2; var angle = Math.atan2(t.clientY - (rect.top + cy), t.clientX - (rect.left + cx)) * 180 / Math.PI; el.style.transform = 'rotate(' + angle + 'deg)'; el.dataset.angle = angle }
+  // Position: center in .relative div
+  var relRect = rel.getBoundingClientRect()
+  el.style.left = Math.max(5, (relRect.width - parseFloat(el.style.width)) / 2) + 'px'
+  el.style.top = Math.max(5, (relRect.height - parseFloat(el.style.height)) / 2) + 'px'
+  rel.appendChild(el)
+  // Drag: wide strip on top edge for ruler, bottom edge for protractor
+  var dragStrip = document.createElement('div')
+  dragStrip.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;border-radius:3px;background:rgba(59,130,246,0.08);'
+  if (type === 'ruler') {
+    dragStrip.style.cssText += 'top:0;left:0;right:30px;height:18px;cursor:grab'
+  } else {
+    dragStrip.style.cssText += 'bottom:0;left:0;right:30px;height:18px;cursor:grab'
+  }
+  el.appendChild(dragStrip)
+  // Close button (left side)
+  var hClose = document.createElement('div')
+  hClose.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#ef4444;border:2px solid #dc2626;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
+  hClose.style.cssText += type === 'ruler' ? ';left:-11px;top:-11px' : ';left:-11px;top:-11px'
+  hClose.textContent = '\u2715'
+  el.appendChild(hClose)
+  hClose.addEventListener('click', function(e) { e.stopPropagation(); el.remove() })
+  // Rotate button (right-top)
+  var hRotate = document.createElement('div')
+  hRotate.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:22px;height:22px;border-radius:50%;background:#fef3c7;border:2px solid #f59e0b;color:#d97706;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:crosshair;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
+  hRotate.style.cssText += type === 'ruler' ? ';right:-11px;top:-11px' : ';right:-11px;top:-11px'
+  hRotate.textContent = '\u21BB'
+  el.appendChild(hRotate)
+  // Resize button (right-bottom)
+  var hResize = document.createElement('div')
+  hResize.style.cssText = 'position:absolute;z-index:26;pointer-events:auto;width:18px;height:18px;border-radius:2px;background:#dbeafe;border:2px solid #3b82f6;color:#2563eb;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.3)'
+  hResize.style.cssText += type === 'ruler' ? ';right:-9px;bottom:-9px' : ';right:-9px;bottom:0px'
+  hResize.textContent = '\u2921'
+  el.appendChild(hResize)
+  // --- Drag events ---
+  var offX = 0, offY = 0
+  function dragStart(e) { var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); offX = t.clientX - r.left; offY = t.clientY - r.top }
+  function dragMove(e) { if (!offX && offX !== 0) return; var t = e.touches ? e.touches[0] : e; var rr = rel.getBoundingClientRect(); el.style.left = (t.clientX - offX - rr.left) + 'px'; el.style.top = (t.clientY - offY - rr.top) + 'px' }
+  function dragEnd() { offX = 0; offY = 0 }
+  dragStrip.addEventListener('mousedown', dragStart); document.addEventListener('mousemove', dragMove); document.addEventListener('mouseup', dragEnd)
+  dragStrip.addEventListener('touchstart', dragStart, { passive: true }); document.addEventListener('touchmove', dragMove, { passive: true }); document.addEventListener('touchend', dragEnd)
+  // --- Rotate events ---
+  var rotating = false
+  function rotStart(e) { e.stopPropagation(); rotating = true }
+  function rotMove(e) { if (!rotating) return; var t = e.touches ? e.touches[0] : e; var r = el.getBoundingClientRect(); var cx = r.left + r.width / 2, cy = r.top + r.height / 2; var angle = Math.atan2(t.clientY - cy, t.clientX - cx) * 180 / Math.PI; el.style.transform = 'rotate(' + angle + 'deg)' }
   function rotEnd() { rotating = false }
   hRotate.addEventListener('mousedown', rotStart); document.addEventListener('mousemove', rotMove); document.addEventListener('mouseup', rotEnd)
   hRotate.addEventListener('touchstart', rotStart, { passive: true }); document.addEventListener('touchmove', rotMove, { passive: true }); document.addEventListener('touchend', rotEnd)
-  // Resize
-  var resizing = false, startW = 0, startH = 0, startX = 0, startY = 0
-  function resStart(e) { e.stopPropagation(); resizing = true; var t = e.touches ? e.touches[0] : e; startW = el.offsetWidth; startH = el.offsetHeight; startX = t.clientX; startY = t.clientY }
-  function resMove(e) { if (!resizing) return; var t = e.touches ? e.touches[0] : e; var dw = t.clientX - startX + startW, dh = Math.max(36, startH * (dw / startW)); el.style.width = Math.max(100, dw) + 'px'; if (type === 'ruler') el.style.height = '36px'; else el.style.height = (Math.max(100, dw) / 2 + 16) + 'px'; var cv = el.querySelector('canvas'); if (cv) { if (type === 'ruler') { drawRulerCanvas(cv, Math.max(100, dw)) } else { drawProtractorCanvas(cv, Math.max(100, dw)) } } }
+  // --- Resize events ---
+  var resizing = false, startW = 0, startX = 0
+  function resStart(e) { e.stopPropagation(); resizing = true; var t = e.touches ? e.touches[0] : e; startW = el.offsetWidth; startX = t.clientX }
+  function resMove(e) { if (!resizing) return; var t = e.touches ? e.touches[0] : e; var dw = Math.max(150, t.clientX - startX + startW); el.style.width = dw + 'px'; if (type === 'protractor') { el.style.height = (dw / 2 + 4) + 'px'; el.style.borderRadius = (dw/2) + 'px ' + (dw/2) + 'px 0 0' }; var cv = el.querySelector('canvas'); if (cv) { if (type === 'ruler') drawRulerCanvas(cv, dw); else drawProtractorCanvas(cv, dw) } }
   function resEnd() { resizing = false }
   hResize.addEventListener('mousedown', resStart); document.addEventListener('mousemove', resMove); document.addEventListener('mouseup', resEnd)
   hResize.addEventListener('touchstart', resStart, { passive: true }); document.addEventListener('touchmove', resMove, { passive: true }); document.addEventListener('touchend', resEnd)
@@ -508,7 +573,7 @@ async function loadPDF() {
         }
       }
     }
-    // Hide remaining loading for pages beyond actual page count
+    // Hide remaining loading and init CS for pages beyond actual page count
     for (var i = total + 1; i <= PDF_PAGES; i++) {
       var loading = document.querySelector('.pdf-loading[data-page="' + i + '"]')
       if (loading) {
@@ -516,6 +581,21 @@ async function loadPDF() {
         loading.classList.remove('animate-pulse')
       }
     }
+    // Ensure ALL page wrappers have CS initialized (for tool buttons to work)
+    document.querySelectorAll('.pdf-page-wrapper').forEach(function(w) {
+      var pg = parseInt(w.dataset.page)
+      if (pg && !CS[pg]) {
+        var ac = w.querySelector('.annotation-canvas')
+        if (ac) {
+          var ctx = ac.getContext('2d')
+          if (ctx) {
+            ac.width = ac.offsetWidth || 800
+            ac.height = ac.offsetHeight || 600
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null }
+          }
+        }
+      }
+    })
   } catch (e) {
     console.error('PDF.js failed:', e)
     if (PDF_EMBED) {
@@ -605,18 +685,24 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tool-ruler-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       try {
-        var target = parseInt(this.dataset.target)
+        var target = parseInt(this.dataset.target) || 1
+        console.log('Ruler btn clicked for page', target)
         var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+        if (!wrapper) { console.error('Wrapper not found for page', target); return }
         createFloatingTool('ruler', wrapper)
+        console.log('Ruler created')
       } catch(e) { console.error('Ruler error:', e) }
     })
   })
   document.querySelectorAll('.tool-protractor-btn').forEach(function(b) {
     b.addEventListener('click', function() {
       try {
-        var target = parseInt(this.dataset.target)
+        var target = parseInt(this.dataset.target) || 1
+        console.log('Protractor btn clicked for page', target)
         var wrapper = document.querySelector('.pdf-page-wrapper[data-page="' + target + '"]')
+        if (!wrapper) { console.error('Wrapper not found for page', target); return }
         createFloatingTool('protractor', wrapper)
+        console.log('Protractor created')
       } catch(e) { console.error('Protractor error:', e) }
     })
   })
