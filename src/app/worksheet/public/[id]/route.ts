@@ -125,27 +125,30 @@ export async function GET(
     // PDF.js path — render PDF to canvas, annotation overlay
     const pdfPagesHtml = Array.from({ length: pages }, (_, i) => `
 <div class="pdf-page-wrapper mb-8 rounded-xl border bg-white overflow-hidden flex" data-page="${i + 1}">
-  <div class="vertical-tools no-print flex flex-col items-center gap-0.5 px-1 py-2 border-r bg-gray-50/50 shrink-0" style="width:34px">
-    <select class="tool-size text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}">
-      <option value="14" selected>T</option><option value="18">M</option><option value="24">K</option><option value="36">B</option>
+  <div class="vertical-tools no-print flex flex-col items-center gap-0.5 px-1 py-2 border-r bg-gray-50/50 shrink-0" style="width:38px">
+    <select class="tool-size text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Pen Size">
+      <option value="2" selected>•</option><option value="5">●</option><option value="10">⬤</option><option value="20">◉</option>
     </select>
-    <button class="tool-cursor w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">⊹</button>
-    <button class="tool-pen w-full px-0.5 py-1 text-xs rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✏️</button>
-    <button class="tool-line w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">📏</button>
-    <button class="tool-dash w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┅</button>
-    <button class="tool-eraser w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">🧹</button>
-    <button class="tool-text w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">🅰️</button>
-    <button class="tool-clear w-full px-0.5 py-1 text-xs rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">🗑️</button>
+    <select class="tool-fontsize text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Size" style="display:none">
+      <option value="14" selected>14</option><option value="18">18</option><option value="24">24</option><option value="36">36</option>
+    </select>
+    <button class="tool-cursor w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="cursor" title="Select / Move">↖</button>
+    <button class="tool-pen w-full px-1 py-1.5 text-sm rounded border bg-blue-100 border-blue-500" data-target="${i + 1}" data-mode="pen" title="Pen">✎</button>
+    <button class="tool-line w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="line" title="Line">╱</button>
+    <button class="tool-dash w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="dash" title="Dash">┄</button>
+    <button class="tool-eraser w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="eraser" title="Eraser">⌫</button>
+    <button class="tool-text w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" data-mode="text" title="Text">T</button>
+    <button class="tool-clear w-full px-1 py-1.5 text-sm rounded border bg-red-100 hover:bg-red-200 text-red-700" data-target="${i + 1}" title="Clear">✕</button>
     <select class="tool-color text-[10px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Color">
-      <option value="#1a1a2e" selected>⚫</option><option value="#dc2626">🔴</option><option value="#2563eb">🔵</option><option value="#16a34a">🟢</option>
+      <option value="#1a1a2e" selected>●</option><option value="#dc2626">●</option><option value="#2563eb">●</option><option value="#16a34a">●</option>
     </select>
     <select class="tool-font text-[9px] border rounded px-0.5 py-0.5 bg-white w-full text-center" data-target="${i + 1}" title="Font Family" style="display:none">
       <option value="Times New Roman, serif" selected>TR</option><option value="Arial, sans-serif">Ar</option><option value="Courier New, monospace">CN</option><option value="Georgia, serif">Ge</option><option value="Verdana, sans-serif">Vr</option>
     </select>
-    <button class="tool-ruler-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">📏</button>
-    <button class="tool-protractor-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">◓</button>
-    <button class="tool-compass-btn w-full px-0.5 py-1 text-xs rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">🌀</button>
-    <span class="mode-label" id="mode-label-${i + 1}">Pen</span>
+    <button class="tool-ruler-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Ruler">▬</button>
+    <button class="tool-protractor-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Protractor">◔</button>
+    <button class="tool-compass-btn w-full px-1 py-1.5 text-sm rounded border bg-white hover:bg-gray-100" data-target="${i + 1}" title="Compass">⊙</button>
+    <span class="mode-label text-[8px] text-gray-500 mt-1" id="mode-label-${i + 1}">Pen</span>
   </div>
   <div class="flex-1 min-w-0">
     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b text-xs text-gray-500">
@@ -378,7 +381,7 @@ function initAnnotation(page) {
   var ctx = c.getContext('2d')
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  CS[page] = { ctx: ctx, mode: 'pen', size: 14, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
+  CS[page] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
 
   function p(e) {
     var r = c.getBoundingClientRect()
@@ -428,11 +431,11 @@ ${TEXT_EDITOR_JS}
 
 // --- Floating Tools: Ruler & Protractor ---
 function drawRulerCanvas(cv, w) {
-  var ctx = cv.getContext('2d'), h = 44
+  var ctx = cv.getContext('2d'), h = 30
   cv.width = w * 2; cv.height = h * 2
   ctx.scale(2, 2)
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(0, 0, w, h)
   ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.5; ctx.strokeRect(0, 0, w, h)
   // 40px per cm, total 30cm
   var pxPerCm = w / 30
@@ -440,75 +443,71 @@ function drawRulerCanvas(cv, w) {
     var x = mm * pxPerCm / 10
     if (x > w) break
     var isCm = mm % 10 === 0, isHalf = mm % 5 === 0
-    var len = isCm ? 18 : isHalf ? 12 : 6
-    ctx.strokeStyle = isCm ? '#1e293b' : '#475569'
-    ctx.lineWidth = isCm ? 1 : 0.4
+    var len = isCm ? 12 : isHalf ? 8 : 4
+    ctx.strokeStyle = isCm ? '#1e293b' : '#94a3b8'
+    ctx.lineWidth = isCm ? 0.8 : 0.3
     // top ticks
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke()
     // bottom ticks
     ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - len); ctx.stroke()
     // cm labels
     if (isCm && mm > 0) {
-      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText((mm / 10) + '', x, len + 10)
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText((mm / 10) + '', x, len + 7)
       ctx.fillText((mm / 10) + '', x, h - len - 2)
     }
   }
   // unit label
-  ctx.fillStyle = '#94a3b8'; ctx.font = '7px sans-serif'; ctx.textAlign = 'left'
-  ctx.fillText('cm', w - 28, h - 3)
+  ctx.fillStyle = '#94a3b8'; ctx.font = '6px sans-serif'; ctx.textAlign = 'left'
+  ctx.fillText('cm', w - 20, h - 2)
 }
 
 function drawProtractorCanvas(cv, d) {
   var r = d / 2, ctx = cv.getContext('2d')
   cv.width = d * 2; cv.height = (r + 20) * 2
   ctx.scale(2, 2); ctx.clearRect(0, 0, d, r + 20)
-  // semicircle fill
-  var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  grad.addColorStop(0, 'rgba(255,255,255,0.8)')
-  grad.addColorStop(1, 'rgba(248,250,252,0.4)')
-  ctx.fillStyle = grad
+  // semicircle fill - thin and clean
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'
   ctx.beginPath(); ctx.moveTo(0, r + 20); ctx.lineTo(0, 0); ctx.arc(0, 0, r, 0, Math.PI); ctx.lineTo(-r, r + 20); ctx.closePath(); ctx.fill()
   // outer arc border
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.2
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 0.8
   ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.stroke()
   // baseline
   ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke()
-  // inner arc
+  // inner arc (55% radius)
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 0.5
   ctx.beginPath(); ctx.arc(0, 0, r * 0.55, Math.PI, 0); ctx.stroke()
-  // degree marks: every 1 degree (small), every 5 (medium), every 10 (large + label)
+  // degree marks - every 1 degree
   for (var deg = 0; deg <= 180; deg++) {
     var rad = deg * Math.PI / 180
     var cos = Math.cos(rad), sin = -Math.sin(rad)
     var isTen = deg % 10 === 0, isFive = deg % 5 === 0
-    var outerLen = isTen ? 14 : isFive ? 9 : 4
-    var innerLen = isTen ? 10 : 5
-    ctx.strokeStyle = isTen ? '#1e293b' : isFive ? '#475569' : '#94a3b8'
-    ctx.lineWidth = isTen ? 1 : 0.5
-    // outer tick (from edge inward)
+    var outerLen = isTen ? 10 : isFive ? 6 : 3
+    var innerLen = isTen ? 8 : 4
+    ctx.strokeStyle = isTen ? '#1e293b' : isFive ? '#64748b' : '#cbd5e1'
+    ctx.lineWidth = isTen ? 0.8 : 0.3
+    // outer tick
     ctx.beginPath(); ctx.moveTo(cos * r, sin * r); ctx.lineTo(cos * (r - outerLen), sin * (r - outerLen)); ctx.stroke()
-    // inner tick (from inner arc outward)
+    // inner tick
     var innerR = r * 0.55
     ctx.beginPath(); ctx.moveTo(cos * innerR, sin * innerR); ctx.lineTo(cos * (innerR + innerLen), sin * (innerR + innerLen)); ctx.stroke()
     // labels every 10 degrees
     if (isTen) {
-      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      // outer labels (0-180 clockwise from right)
-      ctx.fillText(deg + '\u00B0', cos * (r - 18), sin * (r - 18))
-      // inner labels (180-0 reversed)
-      ctx.font = '8px sans-serif'; ctx.fillStyle = '#64748b'
-      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 16), sin * (innerR + 16))
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText(deg + '\u00B0', cos * (r - 14), sin * (r - 14))
+      ctx.font = '7px sans-serif'; ctx.fillStyle = '#64748b'
+      ctx.fillText((180 - deg) + '\u00B0', cos * (innerR + 13), sin * (innerR + 13))
     }
   }
   // cardinal labels
-  ctx.fillStyle = '#1e293b'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText('0\u00B0', r - 14, 0)
-  ctx.fillText('180\u00B0', -r + 14, 0)
-  ctx.fillText('90\u00B0', 0, -r + 16)
-  // small crosshair at center
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.8
-  ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke()
+  ctx.fillStyle = '#1e293b'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('0\u00B0', r - 12, 0)
+  ctx.fillText('180\u00B0', -r + 12, 0)
+  ctx.fillText('90\u00B0', 0, -r + 14)
+  // center crosshair
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 0.5
+  ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke()
 }
 
 function createFloatingTool(type, pageWrapper) {
@@ -527,7 +526,7 @@ function createFloatingTool(type, pageWrapper) {
     el.className += ' floating-ruler'; var w = 1200
     var cv = document.createElement('canvas'); el.appendChild(cv)
     setTimeout(function() { drawRulerCanvas(cv, w) }, 50)
-    el.style.width = w + 'px'; el.style.height = '44px'
+    el.style.width = w + 'px'; el.style.height = '30px'
     el.style.transformOrigin = 'left bottom'
   // --- PROTRACTOR ---
   } else if (type === 'protractor') {
@@ -705,7 +704,7 @@ async function loadPDF() {
           if (ctx) {
             ac.width = ac.offsetWidth || 800
             ac.height = ac.offsetHeight || 600
-            CS[pg] = { ctx: ctx, mode: 'pen', size: 14, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
+            CS[pg] = { ctx: ctx, mode: 'pen', size: 2, color: '#1a1a2e', drawing: false, last: null, lineStart: null, dashed: false, savedState: null, radiusLabel: null, fontFamily: 'Times New Roman, serif', fontSize: 14 }
           }
         }
       }
@@ -751,6 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Pen'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
@@ -762,6 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Line'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
@@ -773,6 +774,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Dash'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
@@ -784,6 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Eraser'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'cell'
     })
@@ -795,6 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Compass'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'crosshair'
     })
@@ -806,6 +810,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Text'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = ''
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = ''
       setFloatingToolMode(target, 'draw')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'text'
     })
@@ -817,6 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var label = document.getElementById('mode-label-' + target); if (label) label.textContent = 'Select'
       document.querySelectorAll('.vertical-tools button[data-target="' + target + '"]').forEach(function(x) { x.classList.remove('active-tool') }); this.classList.add('active-tool')
       var fontSel = document.querySelector('.tool-font[data-target="' + target + '"]'); if (fontSel) fontSel.style.display = 'none'
+      var fontSizeSel = document.querySelector('.tool-fontsize[data-target="' + target + '"]'); if (fontSizeSel) fontSizeSel.style.display = 'none'
       setFloatingToolMode(target, 'cursor')
       var ac = document.querySelector('.annotation-canvas[data-page="' + target + '"]'); if (ac) ac.style.cursor = 'default'
     })
@@ -849,7 +855,10 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() { clearPage(parseInt(this.dataset.target)) })
   })
   document.querySelectorAll('.tool-size').forEach(function(s) {
-    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].size = parseInt(this.value); CS[t].fontSize = parseInt(this.value) } })
+    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].size = parseInt(this.value) })
+  })
+  document.querySelectorAll('.tool-fontsize').forEach(function(s) {
+    s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) CS[t].fontSize = parseInt(this.value) })
   })
   document.querySelectorAll('.tool-color').forEach(function(s) {
     s.addEventListener('change', function() { var t = parseInt(this.dataset.target); if (CS[t]) { CS[t].color = this.value; CS[t].ctx.strokeStyle = this.value } })
