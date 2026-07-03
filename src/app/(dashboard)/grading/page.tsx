@@ -501,7 +501,13 @@ export default function GradingPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredGroups.map((g) => (
+              {filteredGroups.map((g) => {
+                const rowCat = g.items.find((i: any) => i._score_category)?.score_category || g.category
+                const rowScore = g.items.every((i: any) => i._score !== undefined || i.score !== null)
+                  ? g.items.reduce((s: number, i: any) => s + (parseFloat(i._score ?? i.score) || 0), 0)
+                  : null
+                const rowMax = g.items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
+                return (
                 <tr key={g.key} className="border-b hover:bg-muted/30 transition-colors">
                   <td className="p-3">
                     <button onClick={() => toggleSelect(g.key)}>
@@ -509,21 +515,75 @@ export default function GradingPage() {
                     </button>
                   </td>
                   <td className="p-3 font-medium">{g.student_name}</td>
-                  <td className="p-3 text-xs text-muted-foreground max-w-[180px] truncate">{g.sourceLabel}</td>
-                  <td className="p-3 text-center">
-                    {g.category ? (
-                      <Badge variant="outline" className="text-[10px]">{CATEGORIES.find(c => c.value === g.category)?.label || g.category}</Badge>
-                    ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                  <td className="p-3 text-xs text-muted-foreground max-w-[160px] truncate">{g.sourceLabel}</td>
+                  <td className="p-3">
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {CATEGORIES.map(cat => (
+                        <button key={cat.value}
+                          onClick={async () => {
+                            const newCat = g.category === cat.value ? "" : cat.value
+                            for (const item of g.items) {
+                              updateField(item.id, "_score_category", newCat)
+                              await fetch(`/api/teacher/grading/${item.id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ score_category: newCat || null }),
+                              })
+                            }
+                            toast.success(newCat ? `Set ${cat.label}` : "Category cleared")
+                            fetchData()
+                          }}
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium transition-colors ${
+                            g.category === cat.value || rowCat === cat.value
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-input hover:bg-accent"
+                          }`}>
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
                   </td>
-                  <td className="p-3 text-center font-mono text-sm font-semibold">
-                    {g.allGraded ? <span className="text-green-600">{g.totalScore.toFixed(1)}/{g.totalMax.toFixed(0)}</span> : "—"}
+                  <td className="p-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <input type="number" min={0} max={rowMax} step={0.5}
+                        value={g.items.map((i: any) => i._score ?? i.score ?? "").join(",")}
+                        onChange={e => {
+                          const vals = e.target.value.split(",")
+                          g.items.forEach((item: any, idx: number) => {
+                            const v = vals[idx]
+                            if (v !== undefined) updateField(item.id, "_score", v)
+                          })
+                          setSubmissions(prev => [...prev])
+                        }}
+                        className="w-14 h-7 text-xs text-center rounded border border-input bg-background" />
+                      <span className="text-[10px] text-muted-foreground">/{rowMax}</span>
+                    </div>
+                    <div className="flex gap-1 mt-1 justify-center">
+                      <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5"
+                        onClick={() => handleGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+                        <Save className="h-2.5 w-2.5 mr-0.5" />Grade
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5"
+                        onClick={() => handleAutoGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+                        <Sparkles className="h-2.5 w-2.5 mr-0.5" />Auto
+                      </Button>
+                    </div>
                   </td>
                   <td className="p-3 text-center text-xs text-muted-foreground">{g.items.length}</td>
                   <td className="p-3 text-center">{getStatusBadge(g)}</td>
                   <td className="p-3 text-center">
-                    {g.published_at
-                      ? <Badge variant="outline" className="text-[10px] text-green-600 border-green-300">{new Date(g.published_at).toLocaleDateString()}</Badge>
-                      : <span className="text-[10px] text-muted-foreground">—</span>}
+                    {g.allGraded && (
+                      g.allReturned
+                        ? <Button size="sm" variant="outline" className="h-6 text-[9px] px-1.5 text-amber-600"
+                            onClick={async () => { await handleBulkPublish("unpublish"); fetchData() }} disabled={publishing}>
+                            <RotateCcw className="h-2.5 w-2.5 mr-0.5" />Unpub
+                          </Button>
+                        : <Button size="sm" className="h-6 text-[9px] px-1.5 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={async () => { await handleBulkPublish("publish"); fetchData() }} disabled={publishing || !g.category}>
+                            <Send className="h-2.5 w-2.5 mr-0.5" />Pub
+                          </Button>
+                    )}
+                    {g.published_at && <p className="text-[9px] text-green-600 mt-0.5">{new Date(g.published_at).toLocaleDateString()}</p>}
                   </td>
                   <td className="p-3 text-center">
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openReview(g)}>
@@ -531,7 +591,7 @@ export default function GradingPage() {
                     </Button>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

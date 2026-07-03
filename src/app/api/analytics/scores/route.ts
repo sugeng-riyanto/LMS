@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
 
       const breakdown = CATEGORIES.map((cat) => {
         const c = categoryScores[cat]
+        const pct = c.max > 0 ? c.total / c.max : 0
         return {
           category: cat,
           label: LABELS[cat],
@@ -63,7 +64,8 @@ export async function GET(request: NextRequest) {
           average: c.count > 0 ? Math.round((c.total / c.count) * 10) / 10 : 0,
           total: Math.round(c.total * 10) / 10,
           max: c.max,
-          weighted: Math.round(c.total * WEIGHTS[cat] * 10) / 10,
+          pct: Math.round(pct * 1000) / 10,
+          weighted: Math.round(pct * WEIGHTS[cat] * 1000) / 10,
           weight: WEIGHTS[cat],
         }
       })
@@ -95,6 +97,7 @@ export async function GET(request: NextRequest) {
 
     const summary = CATEGORIES.map((cat) => {
       const c = gradeSummary[cat]
+      const pct = c.max > 0 ? c.total / c.max : 0
       return {
         category: cat,
         label: LABELS[cat],
@@ -102,7 +105,8 @@ export async function GET(request: NextRequest) {
         average: c.count > 0 ? Math.round((c.total / c.count) * 10) / 10 : 0,
         total: Math.round(c.total * 10) / 10,
         max: c.max,
-        weighted: Math.round(c.total * WEIGHTS[cat] * 10) / 10,
+        pct: Math.round(pct * 1000) / 10,
+        weighted: Math.round(pct * WEIGHTS[cat] * 1000) / 10,
         weight: WEIGHTS[cat],
       }
     })
