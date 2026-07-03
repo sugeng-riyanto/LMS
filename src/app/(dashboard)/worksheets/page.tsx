@@ -44,6 +44,7 @@ interface Worksheet {
   theory_video_url: string | null
   theory_video_title: string | null
   published: boolean
+  score_category: string | null
   created_at: string
 }
 
@@ -69,7 +70,8 @@ export default function WorksheetsPage() {
     reference_pdf_url: "",
     theory_video_url: "",
     theory_video_title: "",
-    additional_links: ""
+    additional_links: "",
+    score_category: ""
   })
 
   const weeks = useMemo(() => {
@@ -154,6 +156,7 @@ export default function WorksheetsPage() {
         reference_pdf_url: form.reference_pdf_url || null,
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
+        score_category: form.score_category || null,
       }
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
@@ -195,6 +198,7 @@ export default function WorksheetsPage() {
       theory_video_url: ws.theory_video_url || "",
       theory_video_title: ws.theory_video_title || "",
       additional_links: addLinks,
+      score_category: ws.score_category || "",
     })
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
@@ -207,7 +211,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
@@ -422,6 +426,21 @@ export default function WorksheetsPage() {
               </div>
             </div>
 
+            {/* Assessment Category */}
+            <div className="space-y-2">
+              <Label>Assessment Category</Label>
+              <select value={form.score_category} onChange={e => updateForm({ score_category: e.target.value })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">— Select category —</option>
+                <option value="classwork">Classwork (40%)</option>
+                <option value="unit_test">Unit Test (20%)</option>
+                <option value="project">Project (10%)</option>
+                <option value="homework">Homework (10%)</option>
+                <option value="mid_semester">Mid Semester (10%)</option>
+                <option value="final_semester">Final Semester (10%)</option>
+              </select>
+            </div>
+
             {/* Additional Links */}
             <div className="space-y-2">
               <Label>Additional Embed Links <span className="text-xs text-muted-foreground font-normal">(one per line: url | title | type)</span></Label>
@@ -467,6 +486,7 @@ export default function WorksheetsPage() {
                 </CardHeader>
                 <CardContent>
                   {ws.topic && <Badge variant="secondary" className="mb-2">{ws.topic}</Badge>}
+                  {ws.score_category && <Badge variant="outline" className="mb-2 text-[10px] border-primary/30 text-primary">{ws.score_category.replace(/_/g, " ")}</Badge>}
                   <div className="flex flex-wrap gap-1 mb-2">
                     {ws.reference_pdf_url && <Badge variant="outline" className="text-[10px]">📄 Ref PDF</Badge>}
                     {ws.theory_video_url && <Badge variant="outline" className="text-[10px]">🎬 Theory Video</Badge>}

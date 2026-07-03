@@ -146,24 +146,46 @@ export default function SyllabusManagerPage() {
                           <p className="text-[10px] text-muted-foreground">{doc.file_type?.toUpperCase()} · {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "—"} · {new Date(doc.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-[10px]">G{doc.grade}</Badge>
-                        <Button size="sm" variant={doc.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (doc.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/syllabus/documents/${doc.id}`, {
+                      <div className="flex flex-col gap-1 items-end">
+                        <div className="flex items-center gap-2">
+                          <select value={doc.score_category || ""} onChange={async (e) => {
+                            const cat = e.target.value || null
+                            await fetch(`/api/syllabus/documents/${doc.id}`, {
                               method: "PUT",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ published: !doc.published }),
+                              body: JSON.stringify({ score_category: cat }),
                             })
-                            if (res.ok) {
-                              doc.published = !doc.published
-                              toast.success(doc.published ? "Published to dashboard!" : "Unpublished")
-                              fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs)
-                            } else toast.error("Failed")
-                          } catch { toast.error("Failed") }
-                        }}>
-                          {doc.published ? "✓ Published" : "Publish"}
-                        </Button>
+                            doc.score_category = cat
+                            setDocs(prev => [...prev])
+                            toast.success(cat ? `Category set` : "Category cleared")
+                          }} className="h-7 text-[10px] rounded border border-input bg-background px-1">
+                            <option value="">Type</option>
+                            <option value="classwork" selected={doc.score_category === "classwork"}>Classwork</option>
+                            <option value="unit_test" selected={doc.score_category === "unit_test"}>Unit Test</option>
+                            <option value="project" selected={doc.score_category === "project"}>Project</option>
+                            <option value="homework" selected={doc.score_category === "homework"}>Homework</option>
+                            <option value="mid_semester" selected={doc.score_category === "mid_semester"}>Mid Semester</option>
+                            <option value="final_semester" selected={doc.score_category === "final_semester"}>Final Semester</option>
+                          </select>
+                          <Badge variant="outline" className="text-[10px]">G{doc.grade}</Badge>
+                          <Button size="sm" variant={doc.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (doc.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/syllabus/documents/${doc.id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ published: !doc.published }),
+                              })
+                              if (res.ok) {
+                                doc.published = !doc.published
+                                toast.success(doc.published ? "Published to dashboard!" : "Unpublished")
+                                fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs)
+                              } else toast.error("Failed")
+                            } catch { toast.error("Failed") }
+                          }}>
+                            {doc.published ? "✓ Published" : "Publish"}
+                          </Button>
+                        </div>
+                        {doc.score_category && <span className="text-[9px] text-muted-foreground">{doc.score_category.replace(/_/g, " ")}</span>}
                       </div>
                     </div>
                   ))}

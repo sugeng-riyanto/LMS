@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "pdf_url or page_images is required" }, { status: 400 })
     }
 
+    const validCats = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
+    if (body.score_category && !validCats.includes(body.score_category)) {
+      return NextResponse.json({ error: "Invalid score_category" }, { status: 400 })
+    }
+
     const { data, error } = await (supabase.from("shared_worksheets") as any)
       .insert({ ...body, created_by: user.id })
       .select()

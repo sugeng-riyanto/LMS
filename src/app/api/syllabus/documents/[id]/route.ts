@@ -11,7 +11,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const allowed = ["published", "file_name", "file_type"]
+    const allowed = ["published", "file_name", "file_type", "score_category"]
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
     for (const field of allowed) {

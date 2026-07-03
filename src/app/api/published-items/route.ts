@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
 
     const [wsResult, sylResult] = await Promise.all([
       (supabase.from("shared_worksheets") as any)
-        .select("id,title,grade,week_number,topic,pdf_url,published,created_at")
+        .select("id,title,grade,week_number,topic,pdf_url,published,created_at,score_category")
         .eq("grade", parseInt(grade))
         .eq("published", true)
         .order("created_at", { ascending: false }),
       (supabase.from("syllabus_documents") as any)
-        .select("id,grade,file_name,file_type,published,created_at")
+        .select("id,grade,file_name,file_type,published,created_at,score_category")
         .eq("grade", parseInt(grade))
         .eq("published", true)
         .order("created_at", { ascending: false }),
