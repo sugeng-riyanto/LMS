@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, ChevronDown, ChevronUp, Filter, Send, RotateCcw, Eye, X, Download, FileSpreadsheet, FileText } from "lucide-react"
+import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter, Send, RotateCcw, Eye, X, Download, FileText } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -29,7 +29,7 @@ export default function GradingPage() {
   const canView = isSuperAdmin || isTeacher
 
   const [assignedGrades, setAssignedGrades] = useState<number[]>([...GRADES])
-  const [grade, setGrade] = useState(10)
+  const [grade, setGrade] = useState(0) // 0 = all
   const [filterCat, setFilterCat] = useState("all")
   const [submissions, setSubmissions] = useState<any[]>([])
   const [sourceMap, setSourceMap] = useState<Record<string, string>>({})
@@ -47,7 +47,6 @@ export default function GradingPage() {
         if (Array.isArray(data) && data.length) {
           const grades = [...new Set(data.map((a: any) => a.grade))].sort()
           setAssignedGrades(grades)
-          if (!grades.includes(grade)) setGrade(grades[0] || 10)
         }
       }).catch(() => {})
   }, [canView, profile])
@@ -57,7 +56,8 @@ export default function GradingPage() {
   async function fetchData() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/teacher/grading?grade=${grade}&status=all`)
+      const gradeParam = grade > 0 ? grade : "all"
+      const res = await fetch(`/api/teacher/grading?grade=${gradeParam}&status=all`)
       const data = res.ok ? await res.json() : []
       setSubmissions(Array.isArray(data) ? data : [])
       const sm: Record<string, string> = {}
@@ -67,11 +67,9 @@ export default function GradingPage() {
         const wsRes = await fetch(`/api/worksheets?ids=${Array.from(wsIds).join(",")}`)
         if (wsRes.ok) { const ws = await wsRes.json(); (Array.isArray(ws) ? ws : []).forEach((w: any) => { sm[`ws_${w.id}`] = w.title }) }
       }
-      if (syIds.size > 0) {
-        for (const id of syIds) {
-          const syRes = await fetch(`/api/syllabus/documents/${id}`)
-          if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = sy.file_name || "Syllabus" }
-        }
+      for (const id of syIds) {
+        const syRes = await fetch(`/api/syllabus/documents/${id}`)
+        if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = sy.file_name || "Syllabus" }
       }
       setSourceMap(sm)
     } catch {} finally { setLoading(false) }
@@ -80,11 +78,9 @@ export default function GradingPage() {
   function getSourceLabel(s: any): string {
     if (s.worksheet_id) return sourceMap[`ws_${s.worksheet_id}`] || "Worksheet"
     if (s.syllabus_id) return sourceMap[`sy_${s.syllabus_id}`] || "Syllabus"
-    if (s.package_id) return s.question_text || "Weekly Work"
-    return "Assignment"
+    return s.question_text || "Assignment"
   }
 
-  // Group submissions by (worksheet_id|syllabus_id|package_id, student_id)
   const groups = useMemo(() => {
     const map = new Map<string, any[]>()
     for (const s of submissions) {
@@ -93,14 +89,13 @@ export default function GradingPage() {
       map.get(key)!.push(s)
     }
     return Array.from(map.entries()).map(([key, items]) => ({
-      key,
-      student_id: items[0].student_id,
+      key, student_id: items[0].student_id,
       student_name: items[0].student?.full_name || "Unknown",
+      student_grade: items[0].student?.grade_assigned || "",
       sourceId: items[0].worksheet_id || items[0].syllabus_id || items[0].package_id,
       sourceType: items[0].worksheet_id ? "worksheet" : items[0].syllabus_id ? "syllabus" : "weekly",
       sourceLabel: getSourceLabel(items[0]),
-      items,
-      category: items.find((i: any) => i.score_category)?.score_category || "",
+      items, category: items.find((i: any) => i.score_category)?.score_category || "",
       totalScore: items.reduce((sum: number, i: any) => sum + (i.score || 0), 0),
       totalMax: items.reduce((sum: number, i: any) => sum + (i.max_score || 10), 0),
       allGraded: items.every((i: any) => i.status === "graded" || i.status === "returned"),
@@ -128,269 +123,315 @@ export default function GradingPage() {
     setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
 
-  function toggleSelectAll(ids: string[]) {
-    setSelected(prev => {
-      const all = ids.every(id => prev.has(id))
-      if (all) { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n }
-      const n = new Set(prev); ids.forEach(id => n.add(id)); return n
-    })
-  }
-
-  async function handleBulkPublish(action: "publish" | "unpublish") {
-    const ids: string[] = []
-    for (const gid of Array.from(selected)) {
-      const g = groups.find(x => x.key === gid)
-      if (g) ids.push(...g.items.filter((i: any) => i.status === "graded" || (action === "unpublish" && i.status === "returned")).map((i: any) => i.id))
-    }
-    if (ids.length === 0) { toast.error("No eligible submissions selected"); return }
-    setPublishing(true)
-    try {
-      const res = await fetch("/api/teacher/grading/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submission_ids: ids, action }),
-      })
-      if (res.ok) { toast.success(action === "publish" ? "Published!" : "Unpublished!"); setSelected(new Set()); fetchData() }
-      else { const e = await res.json().catch(() => ({ error: "Error" })); toast.error(e.error) }
-    } catch { toast.error("Error") }
-    finally { setPublishing(false) }
-  }
-
-  async function updateField(workId: string, field: string, val: any) {
+  function updateField(workId: string, field: string, val: any) {
     setSubmissions(prev => prev.map(w => w.id === workId ? { ...w, [field]: val } : w))
   }
 
-  async function handleGrade(submissionIds: string[], groupKey: string) {
-    const g = groups.find(x => x.key === groupKey)
-    if (!g) return
+  async function saveGrade(workIds: string[], groupKey: string) {
     setSaving(groupKey)
     let success = 0
-    for (const workId of submissionIds) {
+    for (const workId of workIds) {
       const w = submissions.find((x: any) => x.id === workId)
       if (!w) continue
-      const score = w._score !== undefined ? parseFloat(w._score) : (w.score ?? null)
-      const feedback = w._feedback !== undefined ? w._feedback : (w.feedback ?? "")
-      const cat = w._score_category ?? w.score_category ?? null
       try {
         const body: Record<string, unknown> = {}
-        if (score !== null) body.score = score
-        if (feedback) body.feedback = feedback
-        if (cat) body.score_category = cat
+        if (w._score !== undefined) body.score = parseFloat(w._score)
+        else if (w.score !== null) body.score = w.score
+        if (w._feedback !== undefined) body.feedback = w._feedback
+        else if (w.feedback) body.feedback = w.feedback
+        if (w._score_category) body.score_category = w._score_category
+        else if (w.score_category) body.score_category = w.score_category
         const res = await fetch(`/api/teacher/grading/${workId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          method: "PUT", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
         if (res.ok) success++
       } catch {}
     }
-    toast.success(`Graded ${success}/${submissionIds.length} items`)
+    toast.success(`Graded ${success}/${workIds.length}`)
     setSaving(null)
     fetchData()
   }
 
-  async function handleAutoGrade(submissionIds: string[], groupKey: string) {
+  async function autoGrade(workIds: string[], groupKey: string) {
     setSaving(groupKey)
     let success = 0
-    for (const workId of submissionIds) {
+    for (const workId of workIds) {
       try {
         const w = submissions.find((x: any) => x.id === workId)
-        const cat = w?._score_category ?? w?.score_category ?? undefined
         const body: Record<string, unknown> = {}
+        const cat = w?._score_category ?? w?.score_category
         if (cat) body.score_category = cat
         const res = await fetch(`/api/teacher/grading/${workId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
         if (res.ok) success++
       } catch {}
     }
-    toast.success(`Auto-graded ${success}/${submissionIds.length}`)
+    toast.success(`Auto-graded ${success}/${workIds.length}`)
     setSaving(null)
     fetchData()
   }
 
   function getStatusBadge(g: any) {
-    if (g.allReturned) return <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Published</Badge>
+    if (g.allReturned) return <Badge className="text-[10px] bg-green-100 text-green-700">Published</Badge>
     if (g.allGraded) return <Badge variant="secondary" className="text-[10px]">Graded</Badge>
     if (g.status === "graded") return <Badge variant="secondary" className="text-[10px]">Partial</Badge>
     return <Badge variant="outline" className="text-[10px] text-amber-600">Submitted</Badge>
   }
 
-  // ---- Review Modal ----
+  // ---- Review Modal with Annotation Tools ----
   const [annotationData, setAnnotationData] = useState<Record<string, string>>({})
-  const annotationCanvasRef = useRef<HTMLCanvasElement>(null)
+  const canvasRefs = useRef<Record<string, HTMLCanvasElement | null>>({})
+  const [activeItem, setActiveItem] = useState<string | null>(null)
+  const [penColor, setPenColor] = useState("#22c55e")
+  const [penSize, setPenSize] = useState(3)
+  const [toolMode, setToolMode] = useState<"pen" | "eraser">("pen")
   const [drawing, setDrawing] = useState(false)
-  const [activeAnnoPage, setActiveAnnoPage] = useState<number | null>(null)
+  const [totalManualScore, setTotalManualScore] = useState<string>("")
 
   function openReview(g: any) {
     setReviewItem(g)
     setAnnotationData({})
-    setActiveAnnoPage(null)
+    setActiveItem(null)
+    setPenColor("#22c55e")
+    setPenSize(3)
+    setToolMode("pen")
+    setTotalManualScore(g.allGraded ? g.totalScore.toFixed(1) : "")
   }
 
   function closeReview() {
     setReviewItem(null)
     setAnnotationData({})
-    setActiveAnnoPage(null)
+    setActiveItem(null)
+    setTotalManualScore("")
   }
 
-  function saveAnnotation(itemId: string) {
-    const canvas = annotationCanvasRef.current
+  function initAnnoCanvas(itemId: string, canvasImg: string) {
+    const canvas = canvasRefs.current[itemId]
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    canvas.width = 800; canvas.height = 500
+    const img = new Image()
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, 800, 500)
+      // Restore saved annotation
+      const saved = annotationData[itemId]
+      if (saved) {
+        const savedImg = new Image()
+        savedImg.onload = () => ctx.drawImage(savedImg, 0, 0, 800, 500)
+        savedImg.src = saved
+      }
+    }
+    img.src = canvasImg
+  }
+
+  function startDraw(e: React.MouseEvent, itemId: string) {
+    const canvas = canvasRefs.current[itemId]
+    if (!canvas) return
+    setDrawing(true)
+    setActiveItem(itemId)
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    ctx.beginPath()
+    ctx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY)
+  }
+
+  function doDraw(e: React.MouseEvent, itemId: string) {
+    if (!drawing || activeItem !== itemId) return
+    const canvas = canvasRefs.current[itemId]
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    if (toolMode === "eraser") {
+      ctx.clearRect((e.clientX - rect.left) * scaleX - penSize * 2, (e.clientY - rect.top) * scaleY - penSize * 2, penSize * 4, penSize * 4)
+    } else {
+      ctx.strokeStyle = penColor
+      ctx.lineWidth = penSize * scaleX
+      ctx.lineCap = "round"
+      ctx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY)
+      ctx.stroke()
+    }
+  }
+
+  function stopDraw(e: React.MouseEvent, itemId: string) {
+    if (!drawing) return
+    setDrawing(false)
+    const canvas = canvasRefs.current[itemId]
     if (!canvas) return
     setAnnotationData(prev => ({ ...prev, [itemId]: canvas.toDataURL() }))
   }
 
-  function clearAnnotation() {
-    const canvas = annotationCanvasRef.current
+  function clearAnno(itemId: string) {
+    const canvas = canvasRefs.current[itemId]
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
+    const item = reviewItem?.items.find((i: any) => i.id === itemId)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = "rgba(0,0,0,0)"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    if (item?.canvas_data) {
+      const img = new Image()
+      img.onload = () => ctx.drawImage(img, 0, 0, 800, 500)
+      img.src = item.canvas_data as string
+    }
+    setAnnotationData(prev => { const n = { ...prev }; delete n[itemId]; return n })
   }
 
-  function startDraw(e: React.MouseEvent) {
-    const canvas = annotationCanvasRef.current
-    if (!canvas) return
-    setDrawing(true)
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    ctx.beginPath()
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-  }
-
-  function doDraw(e: React.MouseEvent) {
-    if (!drawing) return
-    const canvas = annotationCanvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    ctx.strokeStyle = "#22c55e"
-    ctx.lineWidth = 3
-    ctx.lineCap = "round"
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-    ctx.stroke()
-  }
-
-  function stopDraw() {
-    setDrawing(false)
-    const canvas = annotationCanvasRef.current
-    if (!canvas || activeAnnoPage === null) return
+  // Distribute manual total score proportionally across items
+  function distributeTotal(total: number) {
     if (!reviewItem) return
-    const item = reviewItem.items[activeAnnoPage]
-    if (item) saveAnnotation(item.id)
+    const items = reviewItem.items
+    const totalMax = items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
+    if (totalMax === 0) return
+    items.forEach((item: any, idx: number) => {
+      const proportion = (item.max_score || 10) / totalMax
+      const itemScore = Math.round(total * proportion * 10) / 10
+      const clamped = Math.min(itemScore, item.max_score || 10)
+      updateField(item.id, "_score", String(clamped))
+    })
+    setSubmissions(prev => [...prev])
   }
 
   function renderReview() {
     if (!reviewItem) return null
     const g = reviewItem
+    const totalMax = g.items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
+    const currentTotal = g.items.reduce((s: number, i: any) => {
+      const v = parseFloat(i._score ?? i.score)
+      return s + (isNaN(v) ? 0 : v)
+    }, 0)
+
     return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={closeReview}>
-        <div className="relative w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 space-y-4 mt-8 mb-8" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between sticky top-0 bg-white dark:bg-gray-900 pb-2 border-b z-10">
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-2 sm:p-4" onClick={closeReview}>
+        <div className="relative w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 mt-4 mb-8" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10">
             <div>
-              <h2 className="text-lg font-bold">{g.student_name}</h2>
-              <p className="text-xs text-muted-foreground">{g.sourceLabel} · {g.category || "No category"} · {g.items.length} item(s)</p>
+              <h2 className="text-lg font-bold flex items-center gap-2">{g.student_name} <Badge variant="outline" className="text-[10px]">G{g.student_grade || "—"}</Badge></h2>
+              <p className="text-xs text-muted-foreground">{g.sourceLabel} · {g.items.length} page(s)</p>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={closeReview}><X className="h-4 w-4" /></Button>
             </div>
           </div>
 
+          {/* Total Score Bar */}
+          <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-muted/30 border">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold whitespace-nowrap">Total Score</Label>
+              <Input type="number" min={0} max={totalMax} step={0.5} value={totalManualScore}
+                onChange={e => setTotalManualScore(e.target.value)}
+                onBlur={() => { if (totalManualScore) distributeTotal(parseFloat(totalManualScore)) }}
+                className="w-20 h-8 text-sm font-bold text-center" />
+              <span className="text-sm text-muted-foreground">/ {totalMax.toFixed(0)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">Current: <strong>{currentTotal.toFixed(1)}</strong> / {totalMax.toFixed(0)}</div>
+            <div className="flex-1" />
+            {/* Global category */}
+            <select value={g.items[0]?._score_category ?? g.category ?? ""}
+              onChange={e => g.items.forEach((i: any) => updateField(i.id, "_score_category", e.target.value))}
+              className="h-8 text-xs rounded-md border border-input bg-background px-2">
+              <option value="">Category...</option>
+              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <Button size="sm" onClick={() => saveGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+              <Save className="mr-1 h-4 w-4" />{saving === g.key ? "..." : "Grade All"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => autoGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+              <Sparkles className="mr-1 h-4 w-4" />Auto
+            </Button>
+            {g.allGraded && (g.allReturned
+              ? <Button size="sm" variant="outline" className="text-amber-600" onClick={async () => { await bulkPublish("unpublish", g); closeReview() }}><RotateCcw className="mr-1 h-4 w-4" />Unpub</Button>
+              : <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={async () => { await bulkPublish("publish", g); closeReview() }} disabled={!g.category}><Send className="mr-1 h-4 w-4" />Publish</Button>
+            )}
+          </div>
+
+          {/* Annotation Tools Bar */}
+          <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs">
+            <span className="font-medium text-muted-foreground mr-1">Annotate:</span>
+            <button onClick={() => setToolMode("pen")} className={`px-3 py-1 rounded-md font-medium transition-colors ${toolMode === "pen" ? "bg-green-600 text-white" : "bg-white hover:bg-green-100 dark:bg-gray-700"}`}>✏️ Pen</button>
+            <button onClick={() => setToolMode("eraser")} className={`px-3 py-1 rounded-md font-medium transition-colors ${toolMode === "eraser" ? "bg-red-500 text-white" : "bg-white hover:bg-red-100 dark:bg-gray-700"}`}>🧹 Eraser</button>
+            <Separator orientation="vertical" className="h-5" />
+            <Label className="text-[10px]">Color</Label>
+            <input type="color" value={penColor} onChange={e => setPenColor(e.target.value)} className="w-7 h-7 p-0.5 rounded cursor-pointer border" />
+            <Label className="text-[10px]">Size</Label>
+            <select value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="h-7 text-xs rounded border border-input bg-background px-1">
+              <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option><option value={5}>5</option><option value={8}>8</option><option value={12}>12</option>
+            </select>
+            <span className="text-[10px] text-muted-foreground ml-auto">Click on an item below, then draw with {toolMode === "pen" ? "green pen" : "eraser"}</span>
+          </div>
+
+          {/* Items */}
           {g.items.map((item: any, idx: number) => {
             const isCanvas = item.question_type === "canvas"
-            const isActive = activeAnnoPage === idx
+            const isActive = activeItem === item.id
+            const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
+            const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? "")
             return (
-              <div key={item.id} className="rounded-xl border p-4 space-y-3">
+              <div key={item.id} className={`rounded-xl border p-3 space-y-3 ${isActive ? "ring-2 ring-green-400" : ""}`}
+                onClick={() => { setActiveItem(item.id); if (isCanvas) setTimeout(() => initAnnoCanvas(item.id, item.canvas_data as string), 50) }}>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">#{idx + 1} {item.question_text || item.question_id}</p>
+                  <p className="text-xs font-medium text-muted-foreground">Page {idx + 1}: {item.question_text || item.question_id || (isCanvas ? "Drawing" : "Answer")}</p>
                   <Badge variant="outline" className="text-[10px]">{isCanvas ? "Drawing" : "Text"} · {item.status}</Badge>
                 </div>
 
-                {/* Answer display */}
                 {isCanvas ? (
-                  <div className="relative">
-                    {item.canvas_data ? (
-                      <div className="relative inline-block border rounded-lg overflow-hidden">
-                        <img src={item.canvas_data as string} alt="Student drawing" className="max-w-full" style={{ maxHeight: 400 }} />
-                        <canvas ref={isActive ? annotationCanvasRef : undefined}
-                          width={800} height={500}
-                          className="absolute inset-0 cursor-crosshair"
-                          style={isActive ? {} : { display: "none" }}
-                          onMouseDown={isActive ? startDraw : undefined}
-                          onMouseMove={isActive ? doDraw : undefined}
-                          onMouseUp={isActive ? stopDraw : undefined}
-                          onMouseLeave={isActive ? stopDraw : undefined} />
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No drawing submitted</p>
-                    )}
-                    <div className="flex gap-1 mt-1">
-                      <Button size="sm" variant="outline" className="h-6 text-[10px]"
-                        onClick={() => setActiveAnnoPage(activeAnnoPage === idx ? null : idx)}>
-                        <Palette className="mr-1 h-3 w-3" />{isActive ? "Hide Green Pen" : "✏️ Annotate (Green)"}
-                      </Button>
-                      {isActive && (
-                        <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={clearAnnotation}>
-                          Clear Annotation
-                        </Button>
-                      )}
-                    </div>
+                  <div className="relative border rounded-lg overflow-hidden bg-gray-50">
+                    {item.canvas_data
+                      ? <canvas ref={el => { canvasRefs.current[item.id] = el }}
+                          className="w-full cursor-crosshair touch-none" style={{ aspectRatio: "800/500", maxHeight: 400 }}
+                          onMouseDown={e => startDraw(e, item.id)}
+                          onMouseMove={e => doDraw(e, item.id)}
+                          onMouseUp={e => stopDraw(e, item.id)}
+                          onMouseLeave={e => stopDraw(e, item.id)} />
+                      : <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">No drawing submitted</div>}
                   </div>
                 ) : (
-                  <pre className="rounded bg-muted/50 p-3 text-xs whitespace-pre-wrap max-h-48 overflow-y-auto">
+                  <pre className="rounded bg-muted/50 p-3 text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">
                     {item.answer_text || "(blank)"}
                   </pre>
                 )}
 
-                {/* Score + Feedback */}
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                {/* Per-item score + feedback */}
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
                   <div className="space-y-1">
                     <Label className="text-[10px]">Score /{item.max_score || 10}</Label>
                     <Input type="number" min={0} max={item.max_score || 10} step={0.5}
-                      value={item._score !== undefined ? item._score : (item.score ?? "")}
-                      onChange={e => updateField(item.id, "_score", e.target.value)}
+                      value={scoreVal} onChange={e => updateField(item.id, "_score", e.target.value)}
                       className="h-8 text-xs" />
                   </div>
-                  <div className="sm:col-span-3 space-y-1">
+                  <div className="sm:col-span-4 space-y-1">
                     <Label className="text-[10px]">Feedback</Label>
-                    <Textarea value={item._feedback !== undefined ? item._feedback : (item.feedback ?? "")}
-                      onChange={e => updateField(item.id, "_feedback", e.target.value)}
+                    <Textarea value={fbVal} onChange={e => updateField(item.id, "_feedback", e.target.value)}
                       rows={1} className="h-8 text-xs resize-none" placeholder="Feedback..." />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">Category</Label>
-                    <select value={item._score_category ?? item.score_category ?? ""}
-                      onChange={e => updateField(item.id, "_score_category", e.target.value)}
-                      className="h-8 text-xs rounded-md border border-input bg-background px-2 w-full">
-                      <option value="">Select...</option>
-                      {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
                   </div>
                 </div>
               </div>
             )
           })}
 
-          <div className="flex items-center justify-between sticky bottom-0 bg-white dark:bg-gray-900 pt-2 border-t">
+          {/* Bottom Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => handleGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+              <Button size="sm" onClick={() => saveGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
                 <Save className="mr-1 h-4 w-4" />{saving === g.key ? "..." : "Grade All"}
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => handleAutoGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
-                <Sparkles className="mr-1 h-4 w-4" />Auto All
+              <Button size="sm" variant="secondary" onClick={() => autoGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
+                <Sparkles className="mr-1 h-4 w-4" />Auto
               </Button>
             </div>
             <div className="flex gap-2">
-              {g.allGraded && (
-                g.allReturned
-                  ? <Button size="sm" variant="outline" className="text-amber-600" onClick={async () => { await handleBulkPublish("unpublish"); closeReview() }} disabled={publishing}><RotateCcw className="mr-1 h-4 w-4" />Cancel Publish</Button>
-                  : <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={async () => { await handleBulkPublish("publish"); closeReview() }} disabled={publishing || !g.category}><Send className="mr-1 h-4 w-4" />Publish All</Button>
+              {g.allGraded && (g.allReturned
+                ? <Button size="sm" variant="outline" className="text-amber-600" onClick={async () => { await bulkPublish("unpublish", g); closeReview() }}><RotateCcw className="mr-1 h-4 w-4" />Unpublish</Button>
+                : <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={async () => { await bulkPublish("publish", g); closeReview() }} disabled={!g.category}><Send className="mr-1 h-4 w-4" />Publish</Button>
               )}
             </div>
           </div>
@@ -399,16 +440,37 @@ export default function GradingPage() {
     )
   }
 
-  // ---- Export helpers ----
-  function exportCSV() {
-    const rows: string[][] = [["Student", "Source", "Type", "Score", "Max", "Status", "Submitted"]]
-    for (const g of filteredGroups) {
-      rows.push([g.student_name, g.sourceLabel, g.category || "-", g.totalScore.toFixed(1), g.totalMax.toFixed(0), g.status, new Date(g.submitted_at).toLocaleDateString()])
+  async function bulkPublish(action: "publish" | "unpublish", g?: any) {
+    const groupsToProcess = g ? [g] : groups.filter(g => selected.has(g.key))
+    if (groupsToProcess.length === 0) { toast.error("Select submissions first"); return }
+    setPublishing(true)
+    let totalPublished = 0
+    for (const grp of groupsToProcess) {
+      const ids = grp.items.filter((i: any) => i.status === "graded" || (action === "unpublish" && i.status === "returned")).map((i: any) => i.id)
+      if (ids.length === 0) continue
+      try {
+        const res = await fetch("/api/teacher/grading/publish", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ submission_ids: ids, action }),
+        })
+        if (res.ok) totalPublished += ids.length
+      } catch {}
     }
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n")
+    toast.success(`${action === "publish" ? "Published" : "Unpublished"} ${totalPublished}`)
+    setPublishing(false)
+    setSelected(new Set())
+    fetchData()
+  }
+
+  function exportCSV() {
+    const rows: string[][] = [["Student", "Grade", "Source", "Type", "Score", "Max", "Status", "Submitted"]]
+    for (const g of filteredGroups) {
+      rows.push([g.student_name, String(g.student_grade || ""), g.sourceLabel, g.category || "-", g.totalScore.toFixed(1), g.totalMax.toFixed(0), g.status, new Date(g.submitted_at).toLocaleDateString()])
+    }
+    const csv = rows.map(r => `"${r.join('","')}"`).join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a"); a.href = url; a.download = `grading-grade-${grade}.csv`; a.click()
+    const a = document.createElement("a"); a.href = url; a.download = `grading${grade > 0 ? `-grade-${grade}` : "-all"}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -420,13 +482,14 @@ export default function GradingPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Grading Center</h1>
-          <p className="text-sm text-muted-foreground">Review, score, and publish student submissions</p>
+          <p className="text-sm text-muted-foreground">Review, score, and publish student work</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <select value={grade} onChange={e => setGrade(Number(e.target.value))}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm font-medium">
+              <option value={0}>📋 All Grades</option>
               {assignedGrades.map(g => <option key={g} value={g}>Grade {g}</option>)}
             </select>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
@@ -453,11 +516,11 @@ export default function GradingPage() {
       {/* Bulk Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="default" className="h-7 text-xs bg-green-600 hover:bg-green-700"
-          onClick={() => handleBulkPublish("publish")} disabled={publishing || selected.size === 0}>
+          onClick={() => bulkPublish("publish")} disabled={publishing || selected.size === 0}>
           <Send className="mr-1 h-3 w-3" />Publish Selected
         </Button>
         <Button size="sm" variant="outline" className="h-7 text-xs text-amber-600 border-amber-300"
-          onClick={() => handleBulkPublish("unpublish")} disabled={publishing || selected.size === 0}>
+          onClick={() => bulkPublish("unpublish")} disabled={publishing || selected.size === 0}>
           <RotateCcw className="mr-1 h-3 w-3" />Unpublish
         </Button>
         <div className="flex-1" />
@@ -468,12 +531,12 @@ export default function GradingPage() {
         </div>
       </div>
 
-      {/* Loading */}
+      {/* Loading / Empty */}
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />)}</div>
       ) : filteredGroups.length === 0 ? (
         <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">
-          {submissions.length === 0 ? `No submissions for Grade ${grade}.` : "No submissions match filters."}
+          {submissions.length === 0 ? "No submissions found." : "No submissions match filters."}
         </CardContent></Card>
       ) : (
         /* Table */
@@ -491,22 +554,17 @@ export default function GradingPage() {
                   </button>
                 </th>
                 <th className="p-3 text-left font-medium text-xs text-muted-foreground uppercase">Student</th>
+                <th className="p-3 text-left font-medium text-xs text-muted-foreground uppercase">Gr</th>
                 <th className="p-3 text-left font-medium text-xs text-muted-foreground uppercase">Source</th>
                 <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Type</th>
                 <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Score</th>
-                <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Items</th>
                 <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Status</th>
-                <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Published</th>
-                <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Review</th>
+                <th className="p-3 text-center font-medium text-xs text-muted-foreground uppercase">Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredGroups.map((g) => {
                 const rowCat = g.items.find((i: any) => i._score_category)?.score_category || g.category
-                const rowScore = g.items.every((i: any) => i._score !== undefined || i.score !== null)
-                  ? g.items.reduce((s: number, i: any) => s + (parseFloat(i._score ?? i.score) || 0), 0)
-                  : null
-                const rowMax = g.items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
                 return (
                 <tr key={g.key} className="border-b hover:bg-muted/30 transition-colors">
                   <td className="p-3">
@@ -515,6 +573,7 @@ export default function GradingPage() {
                     </button>
                   </td>
                   <td className="p-3 font-medium">{g.student_name}</td>
+                  <td className="p-3 text-xs text-muted-foreground">{g.student_grade || "—"}</td>
                   <td className="p-3 text-xs text-muted-foreground max-w-[160px] truncate">{g.sourceLabel}</td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 justify-center">
@@ -525,12 +584,11 @@ export default function GradingPage() {
                             for (const item of g.items) {
                               updateField(item.id, "_score_category", newCat)
                               await fetch(`/api/teacher/grading/${item.id}`, {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
+                                method: "PUT", headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ score_category: newCat || null }),
                               })
                             }
-                            toast.success(newCat ? `Set ${cat.label}` : "Category cleared")
+                            toast.success(newCat ? `Set ${cat.label}` : "Cleared")
                             fetchData()
                           }}
                           className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium transition-colors ${
@@ -544,51 +602,31 @@ export default function GradingPage() {
                     </div>
                   </td>
                   <td className="p-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <input type="number" min={0} max={rowMax} step={0.5}
-                        value={g.items.map((i: any) => i._score ?? i.score ?? "").join(",")}
-                        onChange={e => {
-                          const vals = e.target.value.split(",")
-                          g.items.forEach((item: any, idx: number) => {
-                            const v = vals[idx]
-                            if (v !== undefined) updateField(item.id, "_score", v)
-                          })
-                          setSubmissions(prev => [...prev])
-                        }}
-                        className="w-14 h-7 text-xs text-center rounded border border-input bg-background" />
-                      <span className="text-[10px] text-muted-foreground">/{rowMax}</span>
-                    </div>
-                    <div className="flex gap-1 mt-1 justify-center">
-                      <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5"
-                        onClick={() => handleGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
-                        <Save className="h-2.5 w-2.5 mr-0.5" />Grade
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-5 text-[9px] px-1.5"
-                        onClick={() => handleAutoGrade(g.items.map((i: any) => i.id), g.key)} disabled={saving === g.key}>
-                        <Sparkles className="h-2.5 w-2.5 mr-0.5" />Auto
-                      </Button>
-                    </div>
+                    {g.allGraded
+                      ? <span className="font-mono text-sm font-semibold text-green-600">{g.totalScore.toFixed(1)}/{g.totalMax.toFixed(0)}</span>
+                      : <span className="text-[10px] text-muted-foreground">—</span>}
                   </td>
-                  <td className="p-3 text-center text-xs text-muted-foreground">{g.items.length}</td>
                   <td className="p-3 text-center">{getStatusBadge(g)}</td>
                   <td className="p-3 text-center">
-                    {g.allGraded && (
-                      g.allReturned
-                        ? <Button size="sm" variant="outline" className="h-6 text-[9px] px-1.5 text-amber-600"
-                            onClick={async () => { await handleBulkPublish("unpublish"); fetchData() }} disabled={publishing}>
-                            <RotateCcw className="h-2.5 w-2.5 mr-0.5" />Unpub
-                          </Button>
-                        : <Button size="sm" className="h-6 text-[9px] px-1.5 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={async () => { await handleBulkPublish("publish"); fetchData() }} disabled={publishing || !g.category}>
+                    <div className="flex flex-col items-center gap-1">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openReview(g)}>
+                        <Eye className="mr-1 h-3 w-3" />Review
+                      </Button>
+                      <div className="flex gap-1">
+                        {g.allGraded && !g.allReturned && (
+                          <Button size="sm" className="h-5 text-[8px] px-1 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={async () => { await bulkPublish("publish", g); fetchData() }} disabled={publishing || !g.category}>
                             <Send className="h-2.5 w-2.5 mr-0.5" />Pub
                           </Button>
-                    )}
-                    {g.published_at && <p className="text-[9px] text-green-600 mt-0.5">{new Date(g.published_at).toLocaleDateString()}</p>}
-                  </td>
-                  <td className="p-3 text-center">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openReview(g)}>
-                      <Eye className="mr-1 h-3 w-3" />Review
-                    </Button>
+                        )}
+                        {g.allReturned && (
+                          <Button size="sm" variant="outline" className="h-5 text-[8px] px-1 text-amber-600"
+                            onClick={async () => { await bulkPublish("unpublish", g); fetchData() }} disabled={publishing}>
+                            <RotateCcw className="h-2.5 w-2.5 mr-0.5" />Unpub
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               )})}

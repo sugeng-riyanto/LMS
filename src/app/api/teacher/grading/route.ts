@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (status && status !== "all") query = query.eq("status", status)
 
     // If grade filter, first get student IDs for that grade
-    if (grade) {
+    if (grade && grade !== "all") {
       const { data: students } = await supabase
         .from("profiles")
         .select("id")
