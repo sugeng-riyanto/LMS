@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (action === "publish") {
       const now = new Date().toISOString()
       const { data: graded, error: fetchError } = await (supabase.from("student_work") as any)
-        .select("id, student_id, score, score_category, question_text, question_id, package_id")
+        .select("id, student_id, score, max_score, score_category, question_text, question_id, package_id, worksheet_id, syllabus_id")
         .in("id", submission_ids)
         .eq("status", "graded")
 

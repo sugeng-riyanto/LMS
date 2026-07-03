@@ -79,7 +79,7 @@ export default function DashboardPage() {
   const { data: packages, isLoading } = usePackages()
   const { role, canManagePackages, isStudent } = useRBAC()
 
-  const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], submissions: {} })
+  const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; syllabus_plans: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], syllabus_plans: [], submissions: {} })
 
   useEffect(() => {
     if (isStudent && profile?.grade_assigned) {
@@ -89,11 +89,15 @@ export default function DashboardPage() {
           // Fetch submission status for each worksheet
           const wsIds = (d.worksheets || []).map((ws: any) => ws.id)
           const syIds = (d.syllabi || []).map((sy: any) => sy.id)
+          const spIds = (d.syllabus_plans || []).map((sp: any) => sp.id)
           Promise.all([
             ...wsIds.map((id: string) =>
               fetch(`/api/student-work?worksheet_id=${id}`).then(r => r.json()).then(d => ({ id, data: d })).catch(() => null)
             ),
             ...syIds.map((id: string) =>
+              fetch(`/api/student-work?syllabus_id=${id}`).then(r => r.json()).then(d => ({ id, data: d })).catch(() => null)
+            ),
+            ...spIds.map((id: string) =>
               fetch(`/api/student-work?syllabus_id=${id}`).then(r => r.json()).then(d => ({ id, data: d })).catch(() => null)
             )
           ]).then(results => {
@@ -189,20 +193,26 @@ export default function DashboardPage() {
           </Link>
         )}
 
-        {/* Published Syllabi — students go to /pre-class */}
-        {published.syllabi.length > 0 && (
+        {/* Published Syllabi + Plans — students go to /pre-class */}
+        {(published.syllabi.length > 0 || published.syllabus_plans?.length > 0) && (
           <Link href="/pre-class" className="rounded-xl border bg-card p-6 block hover:bg-accent transition-colors">
-            <h2 className="mb-2 text-lg font-semibold">Published Syllabus Documents</h2>
-            <p className="text-sm text-muted-foreground">{published.syllabi.length} syllabus document{published.syllabi.length > 1 ? "s" : ""} available.</p>
+            <h2 className="mb-2 text-lg font-semibold">Syllabus Assignments</h2>
+            <p className="text-sm text-muted-foreground">{published.syllabi.length + (published.syllabus_plans?.length || 0)} syllabus item(s) available.</p>
             <div className="mt-3 space-y-2">
-              {published.syllabi.slice(0, 3).map((doc: any) => (
+              {published.syllabi.slice(0, 2).map((doc: any) => (
                 <div key={doc.id} className="flex items-center gap-2 rounded-lg border p-3">
                   <FileText className="h-4 w-4 text-blue-500 shrink-0" />
                   <span className="text-sm font-medium">{doc.file_name}</span>
                 </div>
               ))}
-              {published.syllabi.length > 3 && (
-                <p className="text-xs text-muted-foreground text-center">+{published.syllabi.length - 3} more → Go to Pre-Class</p>
+              {(published.syllabus_plans || []).slice(0, 2).map((sp: any) => (
+                <div key={sp.id} className="flex items-center gap-2 rounded-lg border p-3">
+                  <BookOpen className="h-4 w-4 text-violet-500 shrink-0" />
+                  <span className="text-sm font-medium">{sp.topic || "Syllabus Plan"}{sp.week_number ? ` (Week ${sp.week_number})` : ""}</span>
+                </div>
+              ))}
+              {(published.syllabi.length + (published.syllabus_plans?.length || 0)) > 4 && (
+                <p className="text-xs text-muted-foreground text-center">+ more → Go to Pre-Class</p>
               )}
             </div>
           </Link>
