@@ -148,7 +148,7 @@ export default function SyllabusManagerPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge variant="outline" className="text-[10px]">G{doc.grade}</Badge>
-                        <Button size="sm" variant={doc.published ? "default" : "outline"} className="h-7 text-[10px] px-2" onClick={async () => {
+                        <Button size="sm" variant={doc.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (doc.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
                           try {
                             const res = await fetch(`/api/syllabus/documents/${doc.id}`, {
                               method: "PUT",

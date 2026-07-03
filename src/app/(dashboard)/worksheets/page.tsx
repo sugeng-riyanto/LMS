@@ -482,7 +482,7 @@ export default function WorksheetsPage() {
                     }}>
                       <Share2 className="mr-1 h-3 w-3" /> Share
                     </Button>
-                    <Button size="sm" variant={ws.published ? "default" : "secondary"} onClick={async () => {
+                    <Button size="sm" variant={ws.published ? "default" : "outline"} className={ws.published ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""} onClick={async () => {
                       try {
                         const res = await fetch(`/api/worksheets/${ws.id}`, {
                           method: "PUT",
