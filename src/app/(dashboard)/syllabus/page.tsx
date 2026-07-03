@@ -75,7 +75,7 @@ const defaultPlan: SyllabusPlan = {
   calendar_status: "normal",
   effective_days: 5,
   status: "draft",
-  score_category: "",
+  score_category: "classwork",
   published: false,
 }
 
@@ -1021,16 +1021,6 @@ document.addEventListener("DOMContentLoaded", function() {
               Planned
             </Badge>
           )}
-          <select value={plan.score_category} onChange={e => setPlan(prev => ({ ...prev, score_category: e.target.value }))}
-            className="h-7 text-[11px] rounded-md border border-input bg-background px-1.5">
-            <option value="">Category...</option>
-            <option value="classwork">Classwork (40%)</option>
-            <option value="unit_test">Unit Test (20%)</option>
-            <option value="project">Project (10%)</option>
-            <option value="homework">Homework (10%)</option>
-            <option value="mid_semester">Mid Semester (10%)</option>
-            <option value="final_semester">Final Semester (10%)</option>
-          </select>
           {plan.id && (
             <>
               <Button size="sm" variant={plan.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (plan.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
@@ -1357,6 +1347,28 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4" />
+                Assessment Category
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <select value={plan.score_category} onChange={e => setPlan(prev => ({ ...prev, score_category: e.target.value }))}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="classwork">Classwork (40%)</option>
+                <option value="unit_test">Unit Test (20%)</option>
+                <option value="project">Project (10%)</option>
+                <option value="homework">Homework (10%)</option>
+                <option value="mid_semester">Mid Semester (10%)</option>
+                <option value="final_semester">Final Semester (10%)</option>
+              </select>
+              {plan.score_category && (
+                <p className="text-xs text-muted-foreground mt-2">Selected: <strong>{plan.score_category.replace(/_/g, " ")}</strong></p>
+              )}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
