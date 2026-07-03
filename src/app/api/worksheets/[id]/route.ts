@@ -43,12 +43,16 @@ export async function PUT(
       if (body[field] !== undefined) updates[field] = body[field]
     }
 
-    const pdfVal = updates.pdf_url !== undefined ? updates.pdf_url : undefined
-    const imgVal = updates.page_images !== undefined ? updates.page_images : undefined
-    const hasPdf = typeof pdfVal === "string" && pdfVal.length > 0
-    const hasImages = Array.isArray(imgVal) && imgVal.length > 0
-    if (!hasPdf && !hasImages) {
-      return NextResponse.json({ error: "pdf_url or page_images is required" }, { status: 400 })
+    const pdfInBody = body.pdf_url !== undefined
+    const imagesInBody = body.page_images !== undefined
+    if (pdfInBody || imagesInBody) {
+      const pdfVal = updates.pdf_url
+      const imgVal = updates.page_images
+      const hasPdf = typeof pdfVal === "string" && pdfVal.length > 0
+      const hasImages = Array.isArray(imgVal) && imgVal.length > 0
+      if (!hasPdf && !hasImages) {
+        return NextResponse.json({ error: "pdf_url or page_images is required" }, { status: 400 })
+      }
     }
 
     const { data, error } = await (supabase.from("shared_worksheets") as any)
