@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2 } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2, Download } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -54,6 +55,17 @@ export default function AnalyticsPage() {
   if (!canView) {
     return <div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">You do not have access to this page.</p></div>
   }
+
+  const [scoreData, setScoreData] = useState<any>(null)
+  const [scoreLoading, setScoreLoading] = useState(false)
+
+  useEffect(() => {
+    if (canView) {
+      setScoreLoading(true)
+      fetch(`/api/analytics/scores?grade=${filterGrade}`)
+        .then(r => r.json()).then(d => setScoreData(d)).catch(() => {}).finally(() => setScoreLoading(false))
+    }
+  }, [filterGrade])
 
   const students = data?.students ?? []
   const lowPerformers = students.filter((s) => s.entry_ticket_accuracy < 0.4)
@@ -202,6 +214,87 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Score Recap Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Score Recap — Grade {filterGrade}</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (!scoreData?.students) return
+                  const rows = [["Student", ...scoreData.summary.map((s: any) => s.label), "Weighted Total"]]
+                  scoreData.students.forEach((st: any) => {
+                    rows.push([st.full_name, ...st.breakdown.map((b: any) => b.average.toFixed(1)), st.weighted_total.toFixed(1)])
+                  })
+                  rows.push(["Grade Avg", ...scoreData.summary.map((s: any) => s.average.toFixed(1)), scoreData.grand_weighted_total.toFixed(1)])
+                  const csv = rows.map(r => r.join(",")).join("\n")
+                  const blob = new Blob([csv], { type: "text/csv" })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a"); a.href = url; a.download = `scores-grade-${filterGrade}.csv`; a.click()
+                  URL.revokeObjectURL(url)
+                }}>
+                  <Download className="mr-1 h-4 w-4" />CSV
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {scoreLoading ? (
+                <div className="h-32 animate-pulse rounded bg-muted" />
+              ) : !scoreData ? (
+                <p className="text-sm text-muted-foreground">No score data.</p>
+              ) : (
+                <div className="space-y-6">
+                  {/* Grade Summary */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                    {scoreData.summary.map((s: any) => (
+                      <div key={s.category} className="rounded-lg border p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground uppercase">{s.label}</p>
+                        <p className="text-lg font-bold">{s.average.toFixed(1)}</p>
+                        <p className="text-[10px] text-muted-foreground">w={s.weight*100}% · {s.count} items</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-center">
+                    <Badge variant="outline" className="text-sm px-4 py-1">
+                      Weighted Total: <strong>{scoreData.grand_weighted_total.toFixed(1)}</strong> · {scoreData.total_submissions} submissions
+                    </Badge>
+                  </div>
+
+                  {/* Per-Student Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="p-1.5 text-left font-medium">Student</th>
+                          {scoreData.summary.map((s: any) => (
+                            <th key={s.category} className="p-1.5 text-center font-medium">{s.label}<br /><span className="text-[9px] text-muted-foreground">({s.weight*100}%)</span></th>
+                          ))}
+                          <th className="p-1.5 text-center font-medium">Total</th>
+                          <th className="p-1.5 text-center font-medium">Work</th>
+                          <th className="p-1.5 text-center font-medium">Returned</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scoreData.students.map((st: any) => (
+                          <tr key={st.student_id} className="border-b hover:bg-muted/50">
+                            <td className="p-1.5 font-medium">{st.full_name}</td>
+                            {st.breakdown.map((b: any) => (
+                              <td key={b.category} className="p-1.5 text-center">{b.count > 0 ? b.average.toFixed(1) : "-"}</td>
+                            ))}
+                            <td className="p-1.5 text-center font-bold">{st.weighted_total.toFixed(1)}</td>
+                            <td className="p-1.5 text-center">{st.total_work}</td>
+                            <td className="p-1.5 text-center">{st.returned_count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Separator />
 
           {/* Full Student Table */}
           <Card>

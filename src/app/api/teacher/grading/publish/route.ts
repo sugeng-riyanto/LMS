@@ -17,11 +17,19 @@ export async function POST(request: NextRequest) {
     if (action === "publish") {
       const now = new Date().toISOString()
       const { data: graded, error: fetchError } = await (supabase.from("student_work") as any)
-        .select("id, student_id, score, question_text, question_id, package_id")
+        .select("id, student_id, score, score_category, question_text, question_id, package_id")
         .in("id", submission_ids)
         .eq("status", "graded")
 
       if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 })
+
+      // Validate all have score_category set
+      const noCategory = (graded ?? []).filter((w: any) => !w.score_category)
+      if (noCategory.length > 0) {
+        return NextResponse.json({
+          error: `${noCategory.length} submission(s) don't have a category. Set category (Classwork, Unit Test, etc.) before publishing.`
+        }, { status: 400 })
+      }
 
       const ids = (graded ?? []).map((w: any) => w.id)
 
@@ -35,15 +43,15 @@ export async function POST(request: NextRequest) {
 
       if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
-      // Create notifications for each student
+      // Create notifications for each student with score + category
       const admin = await createAdminClient()
       for (const w of graded ?? []) {
         await (admin.from("student_notifications") as any).insert({
           student_id: w.student_id,
           title: "Score Published",
-          message: `Your score for "${w.question_text || w.question_id}" has been published.`,
+          message: `"${w.question_text || w.question_id}" → ${w.score ?? "?"}/${w.max_score ?? 10} (${(w.score_category || "N/A").replace(/_/g, " ")})`,
           type: "grade_published",
-          link_url: w.package_id ? `/my-work?package_id=${w.package_id}` : "/my-work",
+          link_url: w.worksheet_id ? `/worksheet/public/${w.worksheet_id}` : w.syllabus_id ? `/syllabus/public/${w.syllabus_id}` : "/my-work",
         })
       }
 

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { BarChart3, PieChart, TrendingUp, Award, BookOpen, RefreshCw } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { BarChart3, PieChart, TrendingUp, Award, BookOpen, RefreshCw, Download, Filter, Search } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface BreakdownItem {
@@ -128,10 +129,52 @@ export default function MyProgressPage() {
     return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
   }
 
+  const [catFilter, setCatFilter] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+
   const breakdown = data?.breakdown ?? []
   const pieData = breakdown.map((b, i) => ({ label: b.label, value: b.average, color: COLORS[i % COLORS.length] }))
   const barData = breakdown.map((b, i) => ({ label: b.label, value: b.weighted, color: COLORS[i % COLORS.length] }))
   const maxBar = Math.max(...barData.map((b) => b.value), 1)
+
+  // Flatten all items from all categories with weight info
+  const allItems = useMemo(() => {
+    return breakdown.flatMap((b) =>
+      b.items.map((item) => ({
+        ...item,
+        category: b.category,
+        label: b.label,
+        weight: b.weight,
+      }))
+    ).sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+  }, [breakdown])
+
+  const filteredItems = useMemo(() => {
+    return allItems.filter((item) => {
+      if (catFilter !== "all" && item.category !== catFilter) return false
+      if (searchTerm && !item.question_text.toLowerCase().includes(searchTerm.toLowerCase())) return false
+      return true
+    })
+  }, [allItems, catFilter, searchTerm])
+
+  function exportCSV() {
+    const rows = [["Date", "Title", "Category", "Score", "Max", "Weight", "Weighted %"]]
+    allItems.forEach((item) => {
+      const pct = item.max_score > 0 ? (item.score / item.max_score) * 100 : 0
+      rows.push([
+        new Date(item.submitted_at).toLocaleDateString(),
+        `"${item.question_text.replace(/"/g, '""')}"`,
+        item.label,
+        item.score.toString(),
+        item.max_score.toString(),
+        (item.weight * 100).toFixed(0) + "%",
+        pct.toFixed(1) + "%"
+      ])
+    })
+    const csv = rows.map(r => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-progress.csv"; a.click()
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -273,6 +316,78 @@ export default function MyProgressPage() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Filterable Assignments Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              All Assignments
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search title..." className="h-8 w-36 text-xs pl-7" />
+              </div>
+              <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+                <option value="all">All Categories</option>
+                {breakdown.map((b) => (<option key={b.category} value={b.category}>{b.label}</option>))}
+              </select>
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportCSV}>
+                <Download className="mr-1 h-3 w-3" />CSV
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {allItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No assignments yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="p-1.5 text-left font-medium">Date</th>
+                    <th className="p-1.5 text-left font-medium">Title</th>
+                    <th className="p-1.5 text-center font-medium">Category</th>
+                    <th className="p-1.5 text-center font-medium">Score</th>
+                    <th className="p-1.5 text-center font-medium">Max</th>
+                    <th className="p-1.5 text-center font-medium">Weight</th>
+                    <th className="p-1.5 text-center font-medium">Weighted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item) => {
+                    const pct = item.max_score > 0 ? (item.score / item.max_score) * 100 : 0
+                    const weighted = pct * item.weight
+                    return (
+                      <tr key={item.id} className="border-b hover:bg-muted/50">
+                        <td className="p-1.5 whitespace-nowrap">{new Date(item.submitted_at).toLocaleDateString()}</td>
+                        <td className="p-1.5 max-w-48 truncate">{item.question_text}</td>
+                        <td className="p-1.5 text-center">
+                          <Badge variant="outline" className="text-[9px]">{item.label}</Badge>
+                        </td>
+                        <td className={`p-1.5 text-center font-medium ${getGradeColor(pct)}`}>{item.score}</td>
+                        <td className="p-1.5 text-center text-muted-foreground">{item.max_score}</td>
+                        <td className="p-1.5 text-center">{(item.weight * 100).toFixed(0)}%</td>
+                        <td className="p-1.5 text-center font-medium">{weighted.toFixed(1)}%</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              {filteredItems.length < allItems.length && (
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  Showing {filteredItems.length} of {allItems.length} assignments
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

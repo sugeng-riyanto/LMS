@@ -1,18 +1,27 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useAuth } from "@/hooks/use-auth"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, ChevronDown, ChevronUp, GraduationCap, Filter, Send, Eye, EyeOff, RotateCcw } from "lucide-react"
+import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, ChevronDown, ChevronUp, Filter, Send, RotateCcw } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
+
+const CATEGORIES = [
+  { value: "classwork", label: "Classwork", weight: "40%" },
+  { value: "unit_test", label: "Unit Test", weight: "20%" },
+  { value: "project", label: "Project", weight: "10%" },
+  { value: "homework", label: "Homework", weight: "10%" },
+  { value: "mid_semester", label: "Mid Semester", weight: "10%" },
+  { value: "final_semester", label: "Final Semester", weight: "10%" },
+]
 
 type ViewMode = "by_student" | "by_question"
 
@@ -30,8 +39,8 @@ export default function GradingPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<ViewMode>("by_student")
-  const [activeQuestion, setActiveQuestion] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
+  const [activeQuestion, setActiveQuestion] = useState<string | null>(null)
 
   useEffect(() => {
     if (!canView || !profile?.id) return
@@ -132,6 +141,20 @@ export default function GradingPage() {
     finally { setSaving(null) }
   }
 
+  async function handlePublish(workId: string, action: "publish" | "unpublish") {
+    setPublishing(true)
+    try {
+      const res = await fetch("/api/teacher/grading/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submission_ids: [workId], action }),
+      })
+      if (res.ok) { toast.success(action === "publish" ? "Published!" : "Unpublished!"); fetchData() }
+      else { const e = await res.json().catch(() => ({ error: "Error" })); toast.error(e.error) }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Error") }
+    finally { setPublishing(false) }
+  }
+
   function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -192,8 +215,8 @@ export default function GradingPage() {
         const score = w._score !== undefined ? parseFloat(w._score) : w.score
         const feedback = w._feedback !== undefined ? w._feedback : w.feedback
         if (score === undefined || score === null || isNaN(score)) continue
-        const body: Record<string, unknown> = { score, feedback }
         const cat = w._score_category ?? w.score_category
+        const body: Record<string, unknown> = { score, feedback }
         if (cat) body.score_category = cat
         const res = await fetch(`/api/teacher/grading/${id}`, {
           method: "PUT",
@@ -236,6 +259,8 @@ export default function GradingPage() {
   function renderWorkRow(work: any, showSelect = true) {
     const scoreVal = work._score !== undefined ? work._score : (work.score ?? "")
     const fbVal = work._feedback !== undefined ? work._feedback : (work.feedback ?? "")
+    const catVal = work._score_category ?? work.score_category ?? ""
+    const isGradedOrReturned = work.status === "graded" || work.status === "returned"
 
     return (
       <div key={work.id} className={`rounded-lg border p-3 space-y-3 ${work.status === "returned" ? "border-green-300 bg-green-50/30 dark:bg-green-950/10" : ""}`}>
@@ -275,18 +300,20 @@ export default function GradingPage() {
               rows={1} className="h-8 text-xs resize-none" placeholder="Quick feedback..." />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">Category</Label>
-            <select value={work._score_category ?? work.score_category ?? ""}
-              onChange={(e) => updateField(work.id, "_score_category", e.target.value)}
-              className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs">
-              <option value="">Auto-detect</option>
-              <option value="classwork">Classwork</option>
-              <option value="unit_test">Unit Test</option>
-              <option value="project">Project</option>
-              <option value="homework">Homework</option>
-              <option value="mid_semester">Mid Semester</option>
-              <option value="final_semester">Final Semester</option>
-            </select>
+            <Label className="text-[10px]">Category *</Label>
+            <div className="flex flex-wrap gap-1">
+              {CATEGORIES.map((cat) => (
+                <button key={cat.value}
+                  onClick={() => updateField(work.id, "_score_category", catVal === cat.value ? "" : cat.value)}
+                  className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium transition-colors ${
+                    catVal === cat.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-input hover:bg-accent"
+                  }`}>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -297,6 +324,18 @@ export default function GradingPage() {
           <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => handleAutoGrade(work.id)} disabled={saving === work.id}>
             <Sparkles className="mr-1 h-3 w-3" />Auto
           </Button>
+          <div className="flex-1" />
+          {isGradedOrReturned && (
+            work.status === "returned" ? (
+              <Button size="sm" variant="outline" className="h-7 text-xs text-amber-600" onClick={() => handlePublish(work.id, "unpublish")} disabled={publishing}>
+                <RotateCcw className="mr-1 h-3 w-3" />Cancel Publish
+              </Button>
+            ) : (
+              <Button size="sm" variant="default" className="h-7 text-xs bg-green-600 hover:bg-green-700" onClick={() => handlePublish(work.id, "publish")} disabled={publishing || !work.score_category}>
+                <Send className="mr-1 h-3 w-3" />Publish
+              </Button>
+            )
+          )}
         </div>
       </div>
     )
@@ -311,7 +350,6 @@ export default function GradingPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Grading</h1>
@@ -336,8 +374,8 @@ export default function GradingPage() {
         {ungradedCount > 0 && <Badge variant="outline" className="text-xs px-3 py-1 text-amber-600">{ungradedCount} ungraded</Badge>}
       </div>
 
-      {/* View Toggle */}
-      <div className="flex items-center gap-2">
+      {/* View Toggle + Permanent Publish Bar */}
+      <div className="flex flex-wrap items-center gap-2">
         <button onClick={() => setViewMode("by_student")}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "by_student" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}>
           By Student
@@ -346,34 +384,27 @@ export default function GradingPage() {
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === "by_question" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}>
           By Question
         </button>
+        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => handleBulkPublish("publish")} disabled={publishing || selectedGraded.length === 0}>
+          <Send className="mr-1 h-3 w-3" />Publish Graded ({selectedGraded.length})
+        </Button>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkPublish("unpublish")} disabled={publishing || selected.size === 0}>
+          <RotateCcw className="mr-1 h-3 w-3" />Unpublish
+        </Button>
         <div className="flex-1" />
         {selected.size > 0 && (
-          <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+          <>
+            <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+            <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => handleBulkGrade()} disabled={publishing}>
+              <Save className="mr-1 h-3 w-3" />Grade
+            </Button>
+            <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => handleBulkAutoGrade()} disabled={publishing}>
+              <Sparkles className="mr-1 h-3 w-3" />Auto
+            </Button>
+          </>
         )}
       </div>
 
-      {/* Bulk Action Bar */}
-      {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 p-3">
-          <Button size="sm" variant="default" className="h-8 text-xs" onClick={() => handleBulkGrade()} disabled={publishing}>
-            <Save className="mr-1 h-3 w-3" />Grade Selected
-          </Button>
-          <Button size="sm" variant="secondary" className="h-8 text-xs" onClick={() => handleBulkAutoGrade()} disabled={publishing}>
-            <Sparkles className="mr-1 h-3 w-3" />Auto-Grade Selected
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Button size="sm" variant="default" className="h-8 text-xs" onClick={() => handleBulkPublish("publish")} disabled={publishing || selectedGraded.length === 0}>
-            <Send className="mr-1 h-3 w-3" />Publish ({selectedGraded.length})
-          </Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleBulkPublish("unpublish")} disabled={publishing}>
-            <RotateCcw className="mr-1 h-3 w-3" />Unpublish
-          </Button>
-          <div className="flex-1" />
-          <span className="text-xs text-muted-foreground">Showing scores after publish</span>
-        </div>
-      )}
-
-      {/* Search */}
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={viewMode === "by_student" ? "Search student..." : "Search question..."}
@@ -383,11 +414,8 @@ export default function GradingPage() {
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />))}</div>
       ) : submissions.length === 0 ? (
-        <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">
-          No submissions for Grade {grade}.
-        </CardContent></Card>
+        <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">No submissions for Grade {grade}.</CardContent></Card>
       ) : viewMode === "by_student" ? (
-        /* ─── BY STUDENT VIEW ─── */
         <div className="space-y-4">
           {studentIds.length === 0 ? (
             <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">No students match.</CardContent></Card>
@@ -395,6 +423,10 @@ export default function GradingPage() {
             const works = grouped[sid]
             const student = works[0]?.student
             const isExpanded = expanded[sid] ?? true
+            const g = works.filter((w: any) => w.status === "graded" || w.status === "returned")
+            const r = works.filter((w: any) => w.status === "returned")
+            const totalScore = works.reduce((s: number, w: any) => s + (w.score ?? 0), 0)
+            const totalMax = works.reduce((s: number, w: any) => s + (w.max_score ?? 10), 0)
 
             return (
               <Card key={sid} className="overflow-hidden">
@@ -407,10 +439,10 @@ export default function GradingPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold">{student?.full_name ?? "Unknown"}</p>
-                        {works.some((w: any) => w.status === "returned") && <Badge variant="default" className="text-[10px] h-5">Returned</Badge>}
+                        {r.length > 0 && <Badge variant="default" className="text-[10px] h-5">{r.length} returned</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {works.length} question{works.length > 1 ? "s" : ""} · {works.filter((w: any) => w.status === "graded" || w.status === "returned").length} graded
+                        {works.length} questions · {g.length} graded · Score {totalScore.toFixed(1)}/{totalMax.toFixed(0)}
                       </p>
                     </div>
                   </div>
@@ -435,60 +467,50 @@ export default function GradingPage() {
           })}
         </div>
       ) : (
-        /* ─── BY QUESTION VIEW ─── */
         <div className="space-y-4">
           {questions.length === 0 ? (
             <Card><CardContent className="py-16 text-center text-sm text-muted-foreground">No questions found.</CardContent></Card>
-          ) : (
-            questions.map(([qid, qWorks]) => {
-              const isExpanded = expanded[qid] ?? (activeQuestion === qid)
-
-              return (
-                <Card key={qid} className="overflow-hidden">
-                  <button onClick={() => {
-                    setExpanded((p) => ({ ...p, [qid]: !p[qid] }))
-                    setActiveQuestion(qid)
-                  }}
-                    className="w-full flex items-center justify-between p-4 hover:bg-accent/50 text-left">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary shrink-0">Q</div>
-                      <div className="min-w-0">
-                        <p className="font-semibold truncate">{qid.length > 60 ? qid.slice(0, 60) + "..." : qid}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {qWorks.length} submission{qWorks.length > 1 ? "s" : ""} · {qWorks.filter((w: any) => w.status === "returned").length} returned
-                        </p>
-                      </div>
+          ) : questions.map(([qid, qWorks]) => {
+            const isExpanded = expanded[qid] ?? (activeQuestion === qid)
+            return (
+              <Card key={qid} className="overflow-hidden">
+                <button onClick={() => { setExpanded((p) => ({ ...p, [qid]: !p[qid] })); setActiveQuestion(qid) }}
+                  className="w-full flex items-center justify-between p-4 hover:bg-accent/50 text-left">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary shrink-0">Q</div>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{qid.length > 60 ? qid.slice(0, 60) + "..." : qid}</p>
+                      <p className="text-xs text-muted-foreground">{qWorks.length} submissions · {qWorks.filter((w: any) => w.status === "returned").length} returned</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); toggleSelectAll(qWorks.map((w: any) => w.id)) }} className="text-xs text-muted-foreground hover:text-foreground" title="Select all">
-                        <Square className="h-4 w-4" />
-                      </button>
-                      {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <>
-                      <Separator />
-                      <div className="p-4 space-y-3">
-                        {qWorks.map((work: any) => (
-                          <div key={work.id} className="flex items-start gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-bold shrink-0 mt-1">
-                              {work.student?.full_name?.charAt(0)?.toUpperCase() ?? "?"}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium mb-1">{work.student?.full_name ?? "Unknown"}</p>
-                              {renderWorkRow(work, true)}
-                            </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); toggleSelectAll(qWorks.map((w: any) => w.id)) }} className="text-xs text-muted-foreground hover:text-foreground" title="Select all">
+                      <Square className="h-4 w-4" />
+                    </button>
+                    {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                  </div>
+                </button>
+                {isExpanded && (
+                  <>
+                    <Separator />
+                    <div className="p-4 space-y-3">
+                      {qWorks.map((work: any) => (
+                        <div key={work.id} className="flex items-start gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-bold shrink-0 mt-1">
+                            {work.student?.full_name?.charAt(0)?.toUpperCase() ?? "?"}
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </Card>
-              )
-            })
-          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium mb-1">{work.student?.full_name ?? "Unknown"}</p>
+                            {renderWorkRow(work, true)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
