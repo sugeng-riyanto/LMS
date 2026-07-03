@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "grade, week_number, and topic are required" }, { status: 400 })
     }
 
+    const validCats = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
+    if (body.score_category && !validCats.includes(body.score_category)) {
+      return NextResponse.json({ error: "Invalid score_category" }, { status: 400 })
+    }
+
     const { data, error } = await (supabase.from("syllabus_planning") as any)
       .upsert({
         academic_year: body.academic_year ?? "2026-2027",
@@ -52,6 +57,8 @@ export async function POST(request: NextRequest) {
         problems: problems ?? [],
         calendar_status: calendar_status ?? "normal",
         effective_days: effective_days ?? 5,
+        score_category: body.score_category ?? null,
+        published: body.published ?? false,
         created_by: user.id,
       })
       .select()

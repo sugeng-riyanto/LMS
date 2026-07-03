@@ -14,15 +14,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
 
-    if (!grade) return NextResponse.json({ error: "grade required" }, { status: 400 })
-
-    // Get students for this grade
     const admin = createAdminClient()
-    const { data: students } = await (admin.from("profiles") as any)
-      .select("id, full_name")
+    let query = (admin.from("profiles") as any)
+      .select("id, full_name, grade_assigned")
       .eq("role", "student")
-      .eq("grade_assigned", parseInt(grade))
       .order("full_name")
+
+    if (grade && grade !== "all") {
+      query = query.eq("grade_assigned", parseInt(grade))
+    }
+
+    const { data: students } = await query
 
     if (!students || students.length === 0) {
       return NextResponse.json({ students: [], summary: {} })
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
       return {
         student_id: student.id,
         full_name: student.full_name,
+        grade_assigned: student.grade_assigned,
         total_work: sWork.length,
         graded_count: sWork.filter((w: any) => w.status === "graded" || w.status === "returned").length,
         returned_count: sWork.filter((w: any) => w.status === "returned").length,

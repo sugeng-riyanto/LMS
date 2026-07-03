@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase.from("student_performance").select("*")
 
-    if (grade) {
+    if (grade && grade !== "all") {
       query = query.eq("grade_assigned", parseInt(grade))
     }
 

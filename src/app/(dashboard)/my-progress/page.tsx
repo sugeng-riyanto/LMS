@@ -127,10 +127,6 @@ export default function MyProgressPage() {
     return "E (Below Expectation)"
   }
 
-  if (loading) {
-    return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
-  }
-
   const breakdown = data?.breakdown ?? []
   const pieData = breakdown.map((b, i) => ({ label: b.label, value: b.average, color: COLORS[i % COLORS.length] }))
   const barData = breakdown.map((b, i) => ({ label: b.label, value: b.weighted, color: COLORS[i % COLORS.length] }))
@@ -155,6 +151,10 @@ export default function MyProgressPage() {
       return true
     })
   }, [allItems, catFilter, searchTerm])
+
+  if (loading) {
+    return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+  }
 
   function exportCSV() {
     const rows = [["Date", "Title", "Category", "Score", "Max", "Weight", "Weighted %"]]

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2, Download } from "lucide-react"
+import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2, Download, Search, SortAsc, SortDesc } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
@@ -31,9 +31,11 @@ interface AnalyticsData {
 export default function AnalyticsPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const canView = isSuperAdmin || isTeacher
-  const [filterGrade, setFilterGrade] = useState<number>(7)
+  const [filterGrade, setFilterGrade] = useState<number | "all">("all")
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [sortAsc, setSortAsc] = useState(true)
 
   useEffect(() => {
     if (canView) fetchAnalytics()
@@ -42,7 +44,8 @@ export default function AnalyticsPage() {
   async function fetchAnalytics() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/analytics?grade=${filterGrade}`)
+      const gradeParam = filterGrade === "all" ? "all" : String(filterGrade)
+      const res = await fetch(`/api/analytics?grade=${gradeParam}`)
       if (res.ok) setData(await res.json())
       else setData(null)
     } catch {
@@ -62,7 +65,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (canView) {
       setScoreLoading(true)
-      fetch(`/api/analytics/scores?grade=${filterGrade}`)
+      const gradeParam = filterGrade === "all" ? "" : `grade=${filterGrade}`
+      fetch(`/api/analytics/scores${gradeParam ? `?${gradeParam}` : ""}`)
         .then(r => r.json()).then(d => setScoreData(d)).catch(() => {}).finally(() => setScoreLoading(false))
     }
   }, [filterGrade])
@@ -88,17 +92,32 @@ export default function AnalyticsPage() {
   const totalEntries = students.reduce((sum, s) => sum + s.total_journal_entries, 0)
   const totalPackages = students.reduce((sum, s) => sum + s.packages_attempted, 0)
 
+  // Filter + sort score students
+  const filteredStudents = useMemo(() => {
+    if (!scoreData?.students) return []
+    let list = [...scoreData.students]
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter((st: any) => st.full_name.toLowerCase().includes(q))
+    }
+    list.sort((a: any, b: any) => sortAsc
+      ? a.full_name.localeCompare(b.full_name)
+      : b.full_name.localeCompare(a.full_name))
+    return list
+  }, [scoreData, search, sortAsc])
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
           <p className="text-muted-foreground">Class performance and insights</p>
         </div>
         <div className="flex items-center gap-2">
-          <Label>Grade</Label>
-          <select value={filterGrade} onChange={(e) => setFilterGrade(Number(e.target.value))}
+          <Label className="whitespace-nowrap">Grade</Label>
+          <select value={filterGrade} onChange={(e) => setFilterGrade(e.target.value === "all" ? "all" : Number(e.target.value))}
             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+            <option value="all">All Grades</option>
             {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
           </select>
           <Button variant="outline" size="sm" onClick={fetchAnalytics}><ArrowUpDown className="mr-1 h-4 w-4" />Refresh</Button>
@@ -218,23 +237,33 @@ export default function AnalyticsPage() {
           {/* Score Recap Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Score Recap — Grade {filterGrade}</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => {
-                  if (!scoreData?.students) return
-                  const rows = [["Student", ...scoreData.summary.map((s: any) => s.label), "Weighted Total"]]
-                  scoreData.students.forEach((st: any) => {
-                    rows.push([st.full_name, ...st.breakdown.map((b: any) => b.average.toFixed(1)), st.weighted_total.toFixed(1)])
-                  })
-                  rows.push(["Grade Avg", ...scoreData.summary.map((s: any) => s.average.toFixed(1)), scoreData.grand_weighted_total.toFixed(1)])
-                  const csv = rows.map(r => r.join(",")).join("\n")
-                  const blob = new Blob([csv], { type: "text/csv" })
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement("a"); a.href = url; a.download = `scores-grade-${filterGrade}.csv`; a.click()
-                  URL.revokeObjectURL(url)
-                }}>
-                  <Download className="mr-1 h-4 w-4" />CSV
-                </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardTitle>Score Recap {filterGrade !== "all" ? `— Grade ${filterGrade}` : "— All Grades"}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input type="text" placeholder="Search student..." value={search} onChange={e => setSearch(e.target.value)}
+                      className="h-8 w-40 rounded-md border border-input bg-background pl-7 pr-2 text-xs" />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setSortAsc(!sortAsc)} className="h-8 w-8 p-0">
+                    {sortAsc ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (!scoreData?.students) return
+                    const rows = [["Grade", "Student", ...scoreData.summary.map((s: any) => s.label), "Weighted Total"]]
+                    filteredStudents.forEach((st: any) => {
+                      rows.push([`G${st.grade_assigned}`, st.full_name, ...st.breakdown.map((b: any) => b.average.toFixed(1)), st.weighted_total.toFixed(1)])
+                    })
+                    rows.push(["", "Avg", ...scoreData.summary.map((s: any) => s.average.toFixed(1)), scoreData.grand_weighted_total.toFixed(1)])
+                    const csv = rows.map(r => r.join(",")).join("\n")
+                    const blob = new Blob([csv], { type: "text/csv" })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement("a"); a.href = url; a.download = `scores-${filterGrade === "all" ? "all-grades" : `grade-${filterGrade}`}.csv`; a.click()
+                    URL.revokeObjectURL(url)
+                  }}>
+                    <Download className="mr-1 h-4 w-4" />CSV
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -265,7 +294,11 @@ export default function AnalyticsPage() {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b">
-                          <th className="p-1.5 text-left font-medium">Student</th>
+                          <th className="p-1.5 text-left font-medium w-8">#</th>
+                          <th className="p-1.5 text-left font-medium cursor-pointer select-none" onClick={() => setSortAsc(!sortAsc)}>
+                            Student {sortAsc ? "↑" : "↓"}
+                          </th>
+                          <th className="p-1.5 text-center font-medium w-10">Grade</th>
                           {scoreData.summary.map((s: any) => (
                             <th key={s.category} className="p-1.5 text-center font-medium">{s.label}<br /><span className="text-[9px] text-muted-foreground">({s.weight*100}%)</span></th>
                           ))}
@@ -275,9 +308,13 @@ export default function AnalyticsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {scoreData.students.map((st: any) => (
+                        {filteredStudents.length === 0 ? (
+                          <tr><td colSpan={scoreData.summary.length + 5} className="p-4 text-center text-muted-foreground text-xs">No students match your search.</td></tr>
+                        ) : filteredStudents.map((st: any, idx: number) => (
                           <tr key={st.student_id} className="border-b hover:bg-muted/50">
+                            <td className="p-1.5 text-muted-foreground text-[10px]">{idx + 1}</td>
                             <td className="p-1.5 font-medium">{st.full_name}</td>
+                            <td className="p-1.5 text-center"><Badge variant="outline" className="text-[10px]">G{st.grade_assigned}</Badge></td>
                             {st.breakdown.map((b: any) => (
                               <td key={b.category} className="p-1.5 text-center">{b.count > 0 ? b.average.toFixed(1) : "-"}</td>
                             ))}
@@ -289,6 +326,7 @@ export default function AnalyticsPage() {
                       </tbody>
                     </table>
                   </div>
+                  <p className="text-[10px] text-muted-foreground text-right">{filteredStudents.length} of {scoreData.students.length} student(s)</p>
                 </div>
               )}
             </CardContent>
@@ -298,13 +336,24 @@ export default function AnalyticsPage() {
 
           {/* Full Student Table */}
           <Card>
-            <CardHeader><CardTitle>Student Performance Table</CardTitle></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Student Performance Table</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+                    className="h-8 w-36 rounded-md border border-input bg-background pl-7 pr-2 text-xs" />
+                </div>
+              </div>
+            </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="p-2 text-left font-medium">Student</th>
+                      <th className="p-2 text-left font-medium cursor-pointer select-none" onClick={() => setSortAsc(!sortAsc)}>
+                        Student {sortAsc ? "↑" : "↓"}
+                      </th>
                       <th className="p-2 text-left font-medium">Grade</th>
                       <th className="p-2 text-center font-medium">Journal</th>
                       <th className="p-2 text-center font-medium">Accuracy</th>
@@ -313,7 +362,10 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map((s) => (
+                    {students
+                      .filter(s => !search.trim() || s.full_name.toLowerCase().includes(search.toLowerCase()))
+                      .sort((a, b) => sortAsc ? a.full_name.localeCompare(b.full_name) : b.full_name.localeCompare(a.full_name))
+                      .map((s) => (
                       <tr key={s.student_id} className="border-b hover:bg-muted/50">
                         <td className="p-2 font-medium">{s.full_name}</td>
                         <td className="p-2">G{s.grade_assigned}</td>

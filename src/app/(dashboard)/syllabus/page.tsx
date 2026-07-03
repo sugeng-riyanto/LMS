@@ -53,6 +53,8 @@ interface SyllabusPlan {
   calendar_status: string
   effective_days: number
   status: string
+  score_category: string
+  published: boolean
 }
 
 const FlippedPhases = [
@@ -73,6 +75,8 @@ const defaultPlan: SyllabusPlan = {
   calendar_status: "normal",
   effective_days: 5,
   status: "draft",
+  score_category: "",
+  published: false,
 }
 
 export default function SyllabusPlannerPage() {
@@ -126,6 +130,8 @@ export default function SyllabusPlannerPage() {
           calendar_status: (p.calendar_status as string) ?? "normal",
           effective_days: (p.effective_days as number) ?? 5,
           status: (p.status as string) ?? "draft",
+          score_category: (p.score_category as string) ?? "",
+          published: (p.published as boolean) ?? false,
         })
         setSelectedTopicIds(new Set(p.subtopics as string[] ?? []))
         // Load media sources from saved plan
@@ -300,6 +306,8 @@ export default function SyllabusPlannerPage() {
         calendar_status: (events ?? []).find(e => e.event_type !== "holiday")?.event_type ?? "normal",
         effective_days: (events ?? [])[0]?.effective_days ?? 5,
         status: "planned",
+        score_category: plan.score_category || null,
+        published: plan.published ?? false,
       }
 
       let error: any = null
@@ -1013,23 +1021,50 @@ document.addEventListener("DOMContentLoaded", function() {
               Planned
             </Badge>
           )}
+          <select value={plan.score_category} onChange={e => setPlan(prev => ({ ...prev, score_category: e.target.value }))}
+            className="h-7 text-[11px] rounded-md border border-input bg-background px-1.5">
+            <option value="">Category...</option>
+            <option value="classwork">Classwork (40%)</option>
+            <option value="unit_test">Unit Test (20%)</option>
+            <option value="project">Project (10%)</option>
+            <option value="homework">Homework (10%)</option>
+            <option value="mid_semester">Mid Semester (10%)</option>
+            <option value="final_semester">Final Semester (10%)</option>
+          </select>
           {plan.id && (
-            <div className="flex items-center gap-2 ml-auto">
-              <div className="text-center">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.origin + "/syllabus/public/" + plan.id)}`}
-                  alt="QR" className="w-14 h-14 rounded border"
-                />
-                <button
-                  className="text-[10px] text-primary hover:underline block"
-                  onClick={() => {
-                    const url = `${window.location.origin}/syllabus/public/${plan.id}`
-                    navigator.clipboard.writeText(url)
-                    toast.success("Public URL copied!")
-                  }}
-                >Copy Link</button>
+            <>
+              <Button size="sm" variant={plan.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (plan.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
+                try {
+                  const res = await fetch(`/api/syllabus/plan/${plan.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ published: !plan.published }),
+                  })
+                  if (res.ok) {
+                    setPlan(prev => ({ ...prev, published: !prev.published }))
+                    toast.success(plan.published ? "Unpublished" : "Published to dashboard!")
+                  } else toast.error("Failed")
+                } catch { toast.error("Failed") }
+              }}>
+                {plan.published ? "✓ Published" : "Publish"}
+              </Button>
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="text-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.origin + "/syllabus/public/" + plan.id)}`}
+                    alt="QR" className="w-14 h-14 rounded border"
+                  />
+                  <button
+                    className="text-[10px] text-primary hover:underline block"
+                    onClick={() => {
+                      const url = `${window.location.origin}/syllabus/public/${plan.id}`
+                      navigator.clipboard.writeText(url)
+                      toast.success("Public URL copied!")
+                    }}
+                  >Copy Link</button>
+                </div>
               </div>
-            </div>
+            </>
           )}
       </div>
 

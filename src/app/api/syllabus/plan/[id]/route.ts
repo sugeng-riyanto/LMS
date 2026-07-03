@@ -12,10 +12,16 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
+    const validCats = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
+    if (body.score_category && !validCats.includes(body.score_category)) {
+      return NextResponse.json({ error: "Invalid score_category" }, { status: 400 })
+    }
+
     const allowedFields = [
       "topic", "subtopics", "syllabus_ref",
       "opening_ideas", "activity_questions", "problems",
       "calendar_status", "effective_days", "status",
+      "score_category", "published",
     ]
 
     const updates: Record<string, unknown> = {}

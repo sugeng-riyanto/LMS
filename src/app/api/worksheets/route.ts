@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const grade = searchParams.get("grade")
     const ids = searchParams.get("ids")
 
-    let query = (supabase.from("shared_worksheets") as any).select("id,title,grade,week_number,topic,pdf_url,pdf_pages,published,created_at").order("created_at", { ascending: false })
+    let query = (supabase.from("shared_worksheets") as any).select("id,title,grade,week_number,topic,pdf_url,pdf_pages,media_links,objectives,reference_pdf_url,theory_video_url,theory_video_title,page_images,published,score_category,created_at").order("created_at", { ascending: false })
     if (grade) query = query.eq("grade", Number(grade))
     if (ids) {
       const idArr = ids.split(",").filter(Boolean)

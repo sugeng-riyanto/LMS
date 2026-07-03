@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createAdminClient()
 
-    const [wsResult, sylResult] = await Promise.all([
+    const [wsResult, sylDocResult, sylPlanResult] = await Promise.all([
       (supabase.from("shared_worksheets") as any)
         .select("id,title,grade,week_number,topic,pdf_url,published,created_at,score_category")
         .eq("grade", parseInt(grade))
@@ -22,11 +22,17 @@ export async function GET(request: NextRequest) {
         .eq("grade", parseInt(grade))
         .eq("published", true)
         .order("created_at", { ascending: false }),
+      (supabase.from("syllabus_planning") as any)
+        .select("id,grade,week_number,topic,published,created_at,score_category,status")
+        .eq("grade", parseInt(grade))
+        .eq("published", true)
+        .order("created_at", { ascending: false }),
     ])
 
     return NextResponse.json({
       worksheets: wsResult.data ?? [],
-      syllabi: sylResult.data ?? [],
+      syllabi: sylDocResult.data ?? [],
+      syllabus_plans: sylPlanResult.data ?? [],
     })
   } catch (error) {
     return NextResponse.json(

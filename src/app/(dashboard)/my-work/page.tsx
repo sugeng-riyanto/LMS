@@ -115,6 +115,7 @@ interface PublishedItem {
   week_number?: number
   topic?: string
   file_name?: string
+  score_category?: string
   created_at: string
 }
 
@@ -141,8 +142,10 @@ export default function MyWorkPage() {
 
   const [publishedWorksheets, setPublishedWorksheets] = useState<PublishedItem[]>([])
   const [publishedSyllabi, setPublishedSyllabi] = useState<PublishedItem[]>([])
+  const [publishedSyllabusPlans, setPublishedSyllabusPlans] = useState<PublishedItem[]>([])
   const [wsSubmissions, setWsSubmissions] = useState<Record<string, SubmissionInfo>>({})
   const [sySubmissions, setSySubmissions] = useState<Record<string, SubmissionInfo>>({})
+  const [spSubmissions, setSpSubmissions] = useState<Record<string, SubmissionInfo>>({})
 
   const [activeTab, setActiveTab] = useState<"weekly" | "worksheets" | "syllabi">("weekly")
 
@@ -153,8 +156,10 @@ export default function MyWorkPage() {
       .then(d => {
         const wss = d.worksheets || []
         const sys = d.syllabi || []
+        const splans = d.syllabus_plans || []
         setPublishedWorksheets(wss)
         setPublishedSyllabi(sys)
+        setPublishedSyllabusPlans(splans)
         wss.forEach((ws: PublishedItem) => {
           fetch(`/api/student-work?worksheet_id=${ws.id}`)
             .then(r => r.json())
@@ -172,6 +177,16 @@ export default function MyWorkPage() {
               if (Array.isArray(data) && data.length > 0) {
                 const statuses = data.map((w: any) => w.status)
                 setSySubmissions(prev => ({ ...prev, [sy.id]: { allReturned: statuses.every(s => s === 'returned'), allGraded: statuses.every(s => s === 'graded' || s === 'returned'), status: statuses.includes('returned') ? 'returned' : statuses.includes('graded') ? 'graded' : 'submitted' } }))
+              }
+            }).catch(() => {})
+        })
+        splans.forEach((sp: PublishedItem) => {
+          fetch(`/api/student-work?syllabus_id=${sp.id}`)
+            .then(r => r.json())
+            .then(data => {
+              if (Array.isArray(data) && data.length > 0) {
+                const statuses = data.map((w: any) => w.status)
+                setSpSubmissions(prev => ({ ...prev, [sp.id]: { allReturned: statuses.every(s => s === 'returned'), allGraded: statuses.every(s => s === 'graded' || s === 'returned'), status: statuses.includes('returned') ? 'returned' : statuses.includes('graded') ? 'graded' : 'submitted' } }))
               }
             }).catch(() => {})
         })
@@ -220,9 +235,9 @@ export default function MyWorkPage() {
 
   const hasWeeklyWork = !!pkg
   const hasWorksheets = publishedWorksheets.length > 0
-  const hasSyllabi = publishedSyllabi.length > 0
+  const hasSyllabi = publishedSyllabi.length > 0 || publishedSyllabusPlans.length > 0
 
-  const totalAssignments = (hasWeeklyWork ? 1 : 0) + publishedWorksheets.length + publishedSyllabi.length
+  const totalAssignments = (hasWeeklyWork ? 1 : 0) + publishedWorksheets.length + publishedSyllabi.length + publishedSyllabusPlans.length
 
   function SubmissionBadge({ sub }: { sub?: SubmissionInfo }) {
     if (!sub) return null
@@ -345,6 +360,28 @@ export default function MyWorkPage() {
                   <div>
                     <p className="text-sm font-medium">{sy.file_name || "Syllabus Document"}</p>
                     <p className="text-xs text-muted-foreground">Grade {sy.grade} · {sy.topic || "Syllabus"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <SubmissionBadge sub={sub} />
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            )
+          })}
+          {publishedSyllabusPlans.map((sp) => {
+            const sub = spSubmissions[sp.id]
+            return (
+              <Link key={`sp-${sp.id}`} href={`/syllabus/public/${sp.id}`}
+                className="flex items-center justify-between rounded-xl border bg-card p-4 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{sp.topic || "Syllabus Plan"}</p>
+                    <p className="text-xs text-muted-foreground">Grade {sp.grade}{sp.week_number ? ` · Week ${sp.week_number}` : ""}{sp.score_category ? ` · ${sp.score_category.replace(/_/g, " ")}` : ""}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
