@@ -28,7 +28,7 @@ interface ProgressData {
 
 const COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#ec4899"]
 
-function PieChartVis({ data }: { data: { label: string; value: number; color: string }[] }) {
+function PieChartVis({ data, weightedTotal }: { data: { label: string; value: number; color: string }[]; weightedTotal: number }) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1
   let cumulative = 0
   const segments = data.map((d) => {
@@ -58,9 +58,9 @@ function PieChartVis({ data }: { data: { label: string; value: number; color: st
         })}
         <circle cx={50} cy={50} r={25} fill="#fff" />
         <text x={50} y={48} textAnchor="middle" fontSize={10} fontWeight="bold" fill="#1a1a2e">
-          {Math.round((total > 0 ? data.reduce((s, d) => s + d.value, 0) / segments.length : 0) * 10) / 10}%
+          {weightedTotal.toFixed(1)}%
         </text>
-        <text x={50} y={60} textAnchor="middle" fontSize={6} fill="#64748b">avg</text>
+        <text x={50} y={60} textAnchor="middle" fontSize={6} fill="#64748b">total</text>
       </svg>
       <div className="space-y-1.5">
         {data.map((d, i) => (
@@ -221,7 +221,7 @@ export default function MyProgressPage() {
             {breakdown.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No graded work yet.</p>
             ) : (
-              <PieChartVis data={pieData} />
+              <PieChartVis data={pieData} weightedTotal={data?.weighted_total ?? 0} />
             )}
           </CardContent>
         </Card>
