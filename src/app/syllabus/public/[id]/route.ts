@@ -134,7 +134,7 @@ canvas{touch-action:none;cursor:crosshair;border-radius:8px;max-width:100%}
 .signature-box{border:2px dashed #ccc;border-radius:12px;min-height:120px}
 </style>
 </head>
-<body class="bg-gray-50 text-gray-900 p-4 md:p-8 min-h-screen">
+<body class="bg-gray-50 text-gray-900 p-4 md:p-8 min-h-screen" data-grade="${grade}">
 <div class="max-w-5xl mx-auto" id="syllabus-content">
 <div class="bg-white rounded-2xl shadow-sm border p-6 md:p-10 space-y-8">
 
@@ -179,7 +179,7 @@ ${allItems.map((item, idx) => {
 </div>
 ${srcList.map(s => renderMedia(s)).join("")}
 <div class="space-y-3">
-<textarea rows="3" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here (paste disabled)" onpaste="event.preventDefault();alert('Paste is disabled')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
+<textarea rows="3" data-idx="${idx}" class="w-full rounded-lg border border-gray-300 p-3 text-sm resize-y" placeholder="Type your answer here" onpaste="event.preventDefault();alert('Paste is disabled')" oncopy="event.preventDefault()" oncut="event.preventDefault()"></textarea>
 <div class="flex flex-wrap items-center gap-1.5 mt-1 no-print">
 <select class="tool-size text-xs border rounded px-1 py-0.5 bg-white" data-target="c${idx}"><option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="20">Bold</option></select>
 <button class="tool-pen px-2 py-0.5 text-xs rounded border bg-white hover:bg-gray-100" data-target="c${idx}" data-mode="pen">✏️ Pen</button>
@@ -202,6 +202,18 @@ ${srcList.map(s => renderMedia(s)).join("")}
 </div>
 </div>
 
+<div id="submit-section" class="no-print rounded-xl border-2 border-dashed border-gray-300 p-6 space-y-4 mt-6">
+<div class="flex items-center justify-between">
+<h3 class="font-semibold text-gray-700 flex items-center gap-2">📤 Submit to Teacher <span id="submit-badge" class="hidden"></span></h3>
+</div>
+<div id="submit-status" class="text-sm text-gray-600">Select your name above, then click Submit to send your answers to your teacher.</div>
+<div id="submit-results" class="space-y-2"></div>
+<div id="submit-actions">
+<button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button>
+<p class="text-xs text-gray-400 mt-1">Make sure you have selected your name above. All text answers and drawings will be sent.</p>
+</div>
+</div>
+
 <div class="flex flex-wrap gap-3 pt-4 no-print">
 <button onclick="if(!document.getElementById('student-name').value){alert('Please select your Full Name before printing.');return false}window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
 <button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All</button>
@@ -214,6 +226,8 @@ ${srcList.map(s => renderMedia(s)).join("")}
 </div>
 
 <script>
+var SYLLABUS_ID = ${JSON.stringify(id)}
+var GRADE = ${grade}
 var CS = {}
 function initC(id) {
   var c = document.getElementById(id); if(!c) return
@@ -229,6 +243,146 @@ function initC(id) {
 }
 function clearC(id){var c=document.getElementById(id);if(!c)return;c.getContext("2d").fillRect(0,0,c.width,c.height)}
 function clearAll(){document.querySelectorAll("textarea").forEach(function(t){t.value=""});document.querySelectorAll("canvas").forEach(function(c){clearC(c.id)})}
+
+// --- Submit to Teacher ---
+window.submitWork = async function() {
+  var name = document.getElementById('student-name')?.value?.trim()
+  if (!name) { alert('Please select your Full Name before submitting.'); return }
+
+  var btn = document.getElementById('submit-btn')
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Submitting...' }
+
+  var entries = []
+  var items = document.querySelectorAll('[id^="c"]:not(#sig)')
+  var sigCanvas = document.getElementById('sig')
+
+  items.forEach(function(c) {
+    var idx = c.id.replace('c', '')
+    var ta = document.querySelector('textarea[data-idx="' + idx + '"]')
+    var answerText = ta ? ta.value : ''
+    var canvasData = null
+    try { canvasData = c.toDataURL('image/png') } catch(e) {}
+    if (answerText || canvasData) {
+      entries.push({
+        question_id: 'item-' + idx,
+        question_text: c.closest('.rounded-xl')?.querySelector('.font-medium')?.textContent || 'Item ' + idx,
+        question_type: canvasData ? 'canvas' : 'paragraph',
+        answer_text: answerText || null,
+        canvas_data: canvasData || null,
+        max_score: 10
+      })
+    }
+  })
+
+  if (sigCanvas) {
+    try {
+      var sigData = sigCanvas.toDataURL('image/png')
+      var sigCtx = sigCanvas.getContext('2d')
+      var hasSig = false
+      var imgData = sigCtx.getImageData(0, 0, sigCanvas.width, sigCanvas.height).data
+      for (var i = 0; i < imgData.length; i += 4) {
+        if (imgData[i] < 255) { hasSig = true; break }
+      }
+      if (hasSig) {
+        entries.push({
+          question_id: 'signature',
+          question_text: 'Signature',
+          question_type: 'canvas',
+          canvas_data: sigData,
+          max_score: 5
+        })
+      }
+    } catch(e) {}
+  }
+
+  if (entries.length === 0) {
+    alert('No answers to submit. Write something or draw first.')
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+    return
+  }
+
+  try {
+    var res = await fetch('/api/student-work/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ syllabus_id: SYLLABUS_ID, student_name: name, grade: GRADE, entries: entries })
+    })
+
+    if (res.ok) {
+      document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-green-300 bg-green-50 p-6 space-y-4 mt-6'
+      document.getElementById('submit-status').innerHTML = '<span class="text-green-700 font-medium">✅ Submitted successfully! Your teacher will review your answers.</span>'
+      var badge = document.getElementById('submit-badge')
+      if (badge) { badge.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700'; badge.textContent = 'Submitted' }
+      document.getElementById('submit-actions').innerHTML = '<p class="text-xs text-green-600">You have submitted. Check back later for your score.</p>'
+    } else {
+      var err = await res.json().catch(function() { return { error: 'Error' } })
+      alert('Submit failed: ' + (err.error || 'Unknown error'))
+      if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message)
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+  }
+}
+
+window.checkSubmission = async function() {
+  var name = document.getElementById('student-name')?.value?.trim()
+  if (!name) {
+    document.getElementById('submit-status').textContent = 'Select your name above, then click Submit to send your answers to your teacher.'
+    var badge = document.getElementById('submit-badge')
+    if (badge) badge.className = 'hidden'
+    document.getElementById('submit-actions').innerHTML = '<button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button><p class="text-xs text-gray-400 mt-1">Make sure you have selected your name above.</p>'
+    return
+  }
+
+  try {
+    var res = await fetch('/api/student-work?syllabus_id=' + encodeURIComponent(SYLLABUS_ID) + '&student_name=' + encodeURIComponent(name) + '&grade=' + GRADE)
+    var data = await res.json()
+    if (!Array.isArray(data) || data.length === 0) {
+      document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-dashed border-gray-300 p-6 space-y-4 mt-6'
+      document.getElementById('submit-status').textContent = 'Ready to submit. Click the button below.'
+      var badge = document.getElementById('submit-badge')
+      if (badge) badge.className = 'hidden'
+      document.getElementById('submit-actions').innerHTML = '<button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button><p class="text-xs text-gray-400 mt-1">All text answers and drawings will be sent.</p>'
+      return
+    }
+
+    var allReturned = data.every(function(w) { return w.status === 'returned' })
+    var allGraded = data.every(function(w) { return w.status === 'graded' || w.status === 'returned' })
+    var totalScore = 0, totalMax = 0
+    data.forEach(function(w) {
+      if (w.score != null) totalScore += parseFloat(w.score)
+      totalMax += parseFloat(w.max_score || 10)
+    })
+
+    document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-' + (allReturned ? 'green' : allGraded ? 'amber' : 'blue') + '-300 bg-' + (allReturned ? 'green' : allGraded ? 'amber' : 'blue') + '-50 p-6 space-y-4 mt-6'
+
+    var badge = document.getElementById('submit-badge')
+    if (badge) {
+      badge.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ' + (allReturned ? 'bg-green-100 text-green-700' : allGraded ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')
+      badge.textContent = allReturned ? 'Returned' : allGraded ? 'Graded' : 'Submitted'
+    }
+
+    var resultsHtml = ''
+    if (allReturned) {
+      resultsHtml = '<div class="text-sm"><span class="font-medium">Total Score: ' + totalScore + '/' + totalMax + '</span></div>'
+      data.forEach(function(w) {
+        if (w.feedback) resultsHtml += '<div class="text-xs p-2 rounded bg-white/60"><span class="font-medium">' + (w.question_id || 'Item') + ':</span> ' + w.feedback + '</div>'
+      })
+    } else if (allGraded) {
+      resultsHtml = '<div class="text-sm text-amber-700"><span class="font-medium">Score: ' + totalScore + '/' + totalMax + '</span> — waiting for teacher to publish</div>'
+    } else {
+      resultsHtml = '<div class="text-sm text-blue-700">Submitted ' + data.length + ' item(s). Waiting for teacher to grade.</div>'
+    }
+
+    document.getElementById('submit-results').innerHTML = resultsHtml
+    document.getElementById('submit-status').innerHTML = ''
+    document.getElementById('submit-actions').innerHTML = allReturned
+      ? '<p class="text-xs text-green-600">✅ Your answers have been graded and published.</p>'
+      : '<p class="text-xs text-gray-500">You have already submitted. Check back after your teacher grades and publishes.</p>'
+  } catch(e) { console.error('Check submission error:', e) }
+}
+
 document.addEventListener("DOMContentLoaded",function(){
   document.querySelectorAll("canvas[id^=c],#sig").forEach(function(c){initC(c.id)})
   document.querySelectorAll(".tool-pen,.tool-eraser").forEach(function(b){
@@ -244,6 +398,9 @@ document.addEventListener("DOMContentLoaded",function(){
   document.querySelectorAll(".tool-clear").forEach(function(b){b.addEventListener("click",function(){clearC(this.dataset.target)})})
   document.querySelectorAll(".yt-player").forEach(function(el){el.addEventListener("click",function(){var e=this.dataset.embed;if(e)this.innerHTML='<iframe src="'+e+'" class="absolute inset-0 w-full h-full" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen style="border:0"></iframe>'})})
   document.querySelectorAll(".doc-preview").forEach(function(el){el.addEventListener("click",function(){var e=this.dataset.embed;if(e){this.innerHTML='<iframe src="'+e+'" class="w-full h-full" allowfullscreen style="border:0"></iframe>';this.className="w-full h-full"}})})
+  // Student name change → check submission
+  var ns = document.getElementById('student-name')
+  if (ns) ns.addEventListener('change', function() { checkSubmission() })
 })
 </script>
 </body></html>`

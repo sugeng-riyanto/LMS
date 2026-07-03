@@ -79,12 +79,39 @@ export default function DashboardPage() {
   const { data: packages, isLoading } = usePackages()
   const { role, canManagePackages, isStudent } = useRBAC()
 
-  const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[] }>({ worksheets: [], syllabi: [] })
+  const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], submissions: {} })
 
   useEffect(() => {
     if (isStudent && profile?.grade_assigned) {
       fetch(`/api/published-items?grade=${profile.grade_assigned}`)
-        .then(r => r.json()).then(d => setPublished(d)).catch(() => {})
+        .then(r => r.json()).then(d => {
+          setPublished(d)
+          // Fetch submission status for each worksheet
+          const wsIds = (d.worksheets || []).map((ws: any) => ws.id)
+          const syIds = (d.syllabi || []).map((sy: any) => sy.id)
+          Promise.all([
+            ...wsIds.map((id: string) =>
+              fetch(`/api/student-work?worksheet_id=${id}`).then(r => r.json()).then(d => ({ id, data: d })).catch(() => null)
+            ),
+            ...syIds.map((id: string) =>
+              fetch(`/api/student-work?syllabus_id=${id}`).then(r => r.json()).then(d => ({ id, data: d })).catch(() => null)
+            )
+          ]).then(results => {
+            const subs: Record<string, any> = {}
+            results.filter(Boolean).forEach((r: any) => {
+              if (Array.isArray(r.data) && r.data.length > 0) {
+                const statuses = r.data.map((w: any) => w.status)
+                subs[r.id] = {
+                  count: r.data.length,
+                  allReturned: statuses.every((s: string) => s === 'returned'),
+                  allGraded: statuses.every((s: string) => s === 'graded' || s === 'returned'),
+                  status: statuses.includes('returned') ? 'returned' : statuses.includes('graded') ? 'graded' : 'submitted',
+                }
+              }
+            })
+            setPublished(p => ({ ...p, submissions: subs }))
+          }).catch(() => {})
+        }).catch(() => {})
     }
   }, [isStudent, profile?.grade_assigned])
 
@@ -136,15 +163,26 @@ export default function DashboardPage() {
           <div className="rounded-xl border bg-card p-6">
             <h2 className="mb-3 text-lg font-semibold">Published Worksheets</h2>
             <div className="space-y-2">
-              {published.worksheets.map((ws: any) => (
+              {published.worksheets.map((ws: any) => {
+                const sub = published.submissions?.[ws.id]
+                return (
                 <a key={ws.id} href={`/worksheet/public/${ws.id}`} target="_blank" className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors">
                   <div>
                     <p className="text-sm font-medium">{ws.title}</p>
                     <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}{ws.topic ? ` · ${ws.topic}` : ""}</p>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {sub && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        sub.allReturned ? 'bg-green-100 text-green-700' :
+                        sub.allGraded ? 'bg-amber-100 text-amber-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>{sub.status}</span>
+                    )}
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 </a>
-              ))}
+              )})}
             </div>
           </div>
         )}

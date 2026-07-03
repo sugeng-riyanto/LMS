@@ -1,25 +1,48 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
-    if (authError) return authError
-
     const { searchParams } = new URL(request.url)
     const pkgId = searchParams.get("package_id")
     const questionId = searchParams.get("question_id")
     const status = searchParams.get("status")
+    const worksheetId = searchParams.get("worksheet_id")
+    const syllabusId = searchParams.get("syllabus_id")
+    const studentName = searchParams.get("student_name")
+    const grade = searchParams.get("grade")
+
+    // Support unauthenticated lookup by student_name + grade (for public pages)
+    if (studentName && grade) {
+      const admin = createAdminClient()
+      const { data: profile } = await (admin.from("profiles") as any)
+        .select("id")
+        .eq("role", "student")
+        .eq("full_name", studentName)
+        .eq("grade_assigned", parseInt(grade))
+        .maybeSingle()
+      if (!profile) return NextResponse.json([])
+
+      let q = (admin.from("student_work") as any).select("*").eq("student_id", profile.id)
+      if (worksheetId) q = q.eq("worksheet_id", worksheetId)
+      if (syllabusId) q = q.eq("syllabus_id", syllabusId)
+      if (status) q = q.eq("status", status)
+      const { data } = await q.order("submitted_at", { ascending: false })
+      return NextResponse.json(data ?? [])
+    }
+
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    if (authError) return authError
 
     let query = (supabase.from("student_work") as any).select("*")
-
-    if (user.role === "student") {
-      query = query.eq("student_id", user.id)
-    }
+    if (user.role === "student") query = query.eq("student_id", user.id)
 
     if (pkgId) query = query.eq("package_id", pkgId)
     if (questionId) query = query.eq("question_id", questionId)
-    if (status) query = query.eq("status", status)
+    if (status && status !== "all") query = query.eq("status", status)
+    if (worksheetId) query = query.eq("worksheet_id", worksheetId)
+    if (syllabusId) query = query.eq("syllabus_id", syllabusId)
 
     query = query.order("submitted_at", { ascending: false })
 

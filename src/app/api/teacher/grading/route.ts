@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     if (pkgId) query = query.eq("package_id", pkgId)
     if (studentId) query = query.eq("student_id", studentId)
-    if (status) query = query.eq("status", status)
+    if (status && status !== "all") query = query.eq("status", status)
 
     // If grade filter, first get student IDs for that grade
     if (grade) {

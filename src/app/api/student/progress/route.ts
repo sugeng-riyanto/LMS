@@ -13,11 +13,11 @@ export async function GET() {
       .eq("id", user.id)
       .single()
 
-    // Get all graded work with categories
+    // Show scores only when teacher has published (status = 'returned')
     const { data: work } = await (supabase.from("student_work") as any)
       .select("*")
       .eq("student_id", user.id)
-      .not("score", "is", null)
+      .eq("status", "returned")
       .order("submitted_at", { ascending: false })
 
     const items = (work ?? []) as Array<Record<string, unknown>>

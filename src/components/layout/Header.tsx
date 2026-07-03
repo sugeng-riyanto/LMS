@@ -6,6 +6,7 @@ import { LogOut, User, Shield, FlaskConical, Menu } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { ROLE_LABELS } from "@/lib/utils/constants"
 import { useSchoolSettings } from "@/hooks/use-school-settings"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -13,7 +14,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile, signOut } = useAuth()
-  const { role } = useRBAC()
+  const { role, isStudent } = useRBAC()
   const { data: school } = useSchoolSettings()
   const router = useRouter()
 
@@ -40,6 +41,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </div>
       <div className="flex-1" />
       <div className="flex items-center gap-4">
+        {isStudent && <NotificationBell />}
         <div className="flex items-center gap-2 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">{profile?.full_name ?? "User"}</span>

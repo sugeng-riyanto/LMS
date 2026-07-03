@@ -296,7 +296,7 @@ canvas{max-width:100%;height:auto}
 .floating-protractor{background:rgba(255,255,255,0.3);border:1px solid #94a3b8;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
 </style>
 </head>
-<body>
+<body data-grade="${grade}">
 <div class="max-w-5xl mx-auto p-4 md:p-6 space-y-4">
 
 <div class="bg-white rounded-2xl shadow-sm border p-6">
@@ -345,6 +345,18 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   </div>
 </div>
 
+<div id="submit-section" class="no-print rounded-xl border-2 border-dashed border-gray-300 p-6 space-y-4">
+  <div class="flex items-center justify-between">
+    <h3 class="font-semibold text-gray-700 flex items-center gap-2">📤 Submit to Teacher <span id="submit-badge" class="hidden"></span></h3>
+  </div>
+  <div id="submit-status" class="text-sm text-gray-600">Select your name above, then click Submit to send your answers to your teacher.</div>
+  <div id="submit-results" class="space-y-2"></div>
+  <div id="submit-actions">
+    <button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button>
+    <p class="text-xs text-gray-400 mt-1">Make sure you have selected your name above. All canvas drawings and text answers will be sent.</p>
+  </div>
+</div>
+
 <div class="flex flex-wrap gap-3 no-print">
   <button onclick="handlePrint()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-sm">🖨️ Print / Save as PDF</button>
   <button onclick="clearAll()" class="px-4 py-3 border rounded-xl font-medium hover:bg-gray-100">Clear All Drawings</button>
@@ -361,6 +373,7 @@ var PDF_URL = ${JSON.stringify(directPdfUrl)}
 var PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
 var PDF_PAGES = ${pages}
 var WORKSHEET_ID = ${JSON.stringify(id)}
+var GRADE = ${grade}
 var SAVE_DIRTY = false
 function markDirty() { SAVE_DIRTY = true }
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
@@ -964,6 +977,145 @@ window.handlePrint = function() {
   window.print()
 }
 
+// --- Submit to Teacher ---
+function getGradeFromWorksheet() {
+  // Grade is usually encoded in the page context; extract from HTML
+  var el = document.querySelector('[data-grade]')
+  return el ? parseInt(el.dataset.grade) : 0
+}
+
+window.submitWork = async function() {
+  var name = document.getElementById('student-name')?.value?.trim()
+  if (!name) { alert('Please select your Full Name before submitting.'); return }
+
+  var btn = document.getElementById('submit-btn')
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Submitting...' }
+
+  var entries = []
+  var total = Math.max(PDF_PAGES, TOTAL_PAGES || PDF_PAGES)
+
+  for (var p = 1; p <= total; p++) {
+    var ta = document.querySelector('.answer-text[data-page="' + p + '"]')
+    var ac = document.querySelector('.annotation-canvas[data-page="' + p + '"]')
+    var answerText = ta ? ta.value : ''
+    var canvasData = null
+
+    if (ac) {
+      try {
+        // Capture annotation overlay canvas only (merged with PDF already)
+        canvasData = ac.toDataURL('image/png')
+      } catch(e) { console.error('Canvas capture error page ' + p, e) }
+    }
+
+    if (answerText || canvasData) {
+      entries.push({
+        question_id: 'page-' + p,
+        question_text: 'Page ' + p,
+        question_type: canvasData ? 'canvas' : 'paragraph',
+        answer_text: answerText || null,
+        canvas_data: canvasData || null,
+        max_score: 10
+      })
+    }
+  }
+
+  if (entries.length === 0) {
+    alert('No answers to submit. Draw or type something first.')
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+    return
+  }
+
+  try {
+    var res = await fetch('/api/student-work/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worksheet_id: WORKSHEET_ID, student_name: name, grade: GRADE, entries: entries })
+    })
+
+    if (res.ok) {
+      document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-green-300 bg-green-50 p-6 space-y-4'
+      document.getElementById('submit-status').innerHTML = '<span class="text-green-700 font-medium">✅ Submitted successfully! Your teacher will review your answers.</span>'
+      var badge = document.getElementById('submit-badge')
+      if (badge) { badge.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700'; badge.textContent = 'Submitted' }
+      document.getElementById('submit-actions').innerHTML = '<p class="text-xs text-green-600">You have submitted this worksheet. Check back later for your score.</p>'
+    } else {
+      var err = await res.json().catch(function() { return { error: 'Error' } })
+      alert('Submit failed: ' + (err.error || 'Unknown error'))
+      if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message)
+    if (btn) { btn.disabled = false; btn.textContent = '📤 Submit All Answers' }
+  }
+}
+
+window.checkSubmission = async function() {
+  var name = document.getElementById('student-name')?.value?.trim()
+  if (!name) {
+    document.getElementById('submit-status').textContent = 'Select your name above, then click Submit to send your answers to your teacher.'
+    var badge = document.getElementById('submit-badge')
+    if (badge) badge.className = 'hidden'
+    document.getElementById('submit-actions').innerHTML = '<button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button><p class="text-xs text-gray-400 mt-1">Make sure you have selected your name above.</p>'
+    return
+  }
+
+  try {
+    var res = await fetch('/api/student-work?worksheet_id=' + encodeURIComponent(WORKSHEET_ID) + '&student_name=' + encodeURIComponent(name) + '&grade=' + GRADE)
+    var data = await res.json()
+
+    if (!Array.isArray(data) || data.length === 0) {
+      // No existing submission
+      document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-dashed border-gray-300 p-6 space-y-4'
+      document.getElementById('submit-status').textContent = 'Ready to submit. Click the button below.'
+      var badge = document.getElementById('submit-badge')
+      if (badge) badge.className = 'hidden'
+      document.getElementById('submit-actions').innerHTML = '<button id="submit-btn" onclick="submitWork()" class="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 shadow-sm">📤 Submit All Answers</button><p class="text-xs text-gray-400 mt-1">All canvas drawings and text answers will be sent.</p>'
+      return
+    }
+
+    // Has existing submission
+    var submitted = data.length
+    var allGraded = data.every(function(w) { return w.status === 'graded' || w.status === 'returned' })
+    var allReturned = data.every(function(w) { return w.status === 'returned' })
+    var totalScore = 0
+    var totalMax = 0
+    data.forEach(function(w) {
+      if (w.score != null) totalScore += parseFloat(w.score)
+      totalMax += parseFloat(w.max_score || 10)
+    })
+
+    // Update UI
+    document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-' + (allReturned ? 'green' : allGraded ? 'amber' : 'blue') + '-300 bg-' + (allReturned ? 'green' : allGraded ? 'amber' : 'blue') + '-50 p-6 space-y-4'
+
+    var badge = document.getElementById('submit-badge')
+    if (badge) {
+      badge.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ' +
+        (allReturned ? 'bg-green-100 text-green-700' : allGraded ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700')
+      badge.textContent = allReturned ? 'Returned' : allGraded ? 'Graded' : 'Submitted (' + submitted + ')'
+    }
+
+    var resultsHtml = ''
+    if (allReturned) {
+      resultsHtml = '<div class="text-sm"><span class="font-medium">Score: ' + totalScore + '/' + totalMax + '</span></div>'
+      data.forEach(function(w) {
+        if (w.feedback) resultsHtml += '<div class="text-xs p-2 rounded bg-white/60"><span class="font-medium">' + w.question_id + ':</span> ' + w.feedback + '</div>'
+      })
+    } else if (allGraded) {
+      resultsHtml = '<div class="text-sm text-amber-700"><span class="font-medium">Score: ' + totalScore + '/' + totalMax + '</span> — waiting for teacher to publish</div>'
+    } else {
+      resultsHtml = '<div class="text-sm text-blue-700">Submitted ' + submitted + ' page(s). Waiting for teacher to grade.</div>'
+    }
+
+    document.getElementById('submit-results').innerHTML = resultsHtml
+    document.getElementById('submit-status').innerHTML = ''
+    document.getElementById('submit-actions').innerHTML = allReturned
+      ? '<p class="text-xs text-green-600">✅ Your answers have been graded and published. Scores are shown above.</p>'
+      : '<p class="text-xs text-gray-500">You have already submitted. Check back after your teacher grades and publishes.</p>'
+  } catch(e) {
+    console.error('Check submission error:', e)
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   var pdfTimeout = setTimeout(function() {
     document.querySelectorAll('.pdf-loading').forEach(function(el) {
@@ -1079,6 +1231,11 @@ document.addEventListener('DOMContentLoaded', function() {
     textarea.addEventListener('input', autoResize)
     textarea.addEventListener('focus', autoResize)
   })
+  // Student name change → check submission status
+  var nameSelect = document.getElementById('student-name')
+  if (nameSelect) {
+    nameSelect.addEventListener('change', function() { checkSubmission() })
+  }
   // Load PDF, then restore saved state
   loadPDF().then(function() {
     clearTimeout(pdfTimeout)
