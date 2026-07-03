@@ -21,7 +21,6 @@ export async function GET(
     const grade = plan.grade
     const week = plan.week_number
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-    const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
     const origin = request.headers.get("x-forwarded-host")
       ? `https://${request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
@@ -181,12 +180,14 @@ ${objectivesHtml}
 <h3 class="font-semibold text-gray-700">Student Information</h3>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 <div><label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-<select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+${autoFillName
+  ? `<span id="student-name-display" class="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-50 text-gray-700 font-medium">${esc(autoFillName)}</span><input type="hidden" id="student-name" value="${esc(autoFillName)}" />`
+  : `<select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
 <option value="">Select student...</option>
 ${studentOptions}
-</select></div>
+</select>`}</div>
 <div><label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
-<input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" /></div>
+<input type="text" id="date-field" value="" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" /></div>
 </div>
 </div>
 
@@ -407,7 +408,16 @@ window.checkSubmission = async function() {
   } catch(e) { console.error('Check submission error:', e) }
 }
 
+function setCurrentDate() {
+  var d = new Date()
+  var pad = function(n) { return n < 10 ? '0' + n : '' + n }
+  var val = pad(d.getDate()) + pad(d.getMonth()+1) + d.getFullYear() + ' ' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds())
+  var el = document.getElementById('date-field')
+  if (el) el.value = val
+}
+
 document.addEventListener("DOMContentLoaded",function(){
+  setCurrentDate()
   document.querySelectorAll("canvas[id^=c],#sig").forEach(function(c){initC(c.id)})
   document.querySelectorAll(".tool-pen,.tool-eraser").forEach(function(b){
     b.addEventListener("click",function(){
@@ -425,8 +435,10 @@ document.addEventListener("DOMContentLoaded",function(){
   // Student name change → check submission
   var ns = document.getElementById('student-name')
   if (ns) {
-    ns.addEventListener('change', function() { checkSubmission() })
-    // Auto-check submission if name is pre-selected
+    if (ns.tagName === 'SELECT') {
+      ns.addEventListener('change', function() { checkSubmission() })
+    }
+    // Auto-check submission if name is pre-selected (auto-filled)
     if (ns.value) setTimeout(checkSubmission, 500)
   }
 })

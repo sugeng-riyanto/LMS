@@ -136,7 +136,6 @@ export async function GET(
       return `<div class="mt-2"><a href="${esc(src.url)}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
     }
 
-    const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
 
     const extraMedia: Array<{ type: string; url: string; title: string }> = []
@@ -357,14 +356,16 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
       <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-      <select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+      ${autoFillName
+        ? `<span id="student-name-display" class="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-50 text-gray-700 font-medium">${esc(autoFillName)}</span><input type="hidden" id="student-name" value="${esc(autoFillName)}" />`
+        : `<select id="student-name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
         <option value="">Select student...</option>
         ${studentOptions}
-      </select>
+      </select>`}
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-600 mb-1">Date (ddmmyyyy hhmmss)</label>
-      <input type="text" value="${dateCode}" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+      <input type="text" id="date-field" value="" readonly class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-gray-100 text-gray-500" />
     </div>
   </div>
 </div>
@@ -1140,7 +1141,16 @@ window.checkSubmission = async function() {
   }
 }
 
+function setCurrentDate() {
+  var d = new Date()
+  var pad = function(n) { return n < 10 ? '0' + n : '' + n }
+  var val = pad(d.getDate()) + pad(d.getMonth()+1) + d.getFullYear() + ' ' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds())
+  var el = document.getElementById('date-field')
+  if (el) el.value = val
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  setCurrentDate()
   var pdfTimeout = setTimeout(function() {
     document.querySelectorAll('.pdf-loading').forEach(function(el) {
       el.innerHTML = '<span class="text-red-500">Taking too long. <a href="' + PDF_URL + '" target="_blank" class="underline">Open PDF directly ↗</a></span>'
