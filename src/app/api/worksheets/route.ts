@@ -9,9 +9,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
+    const ids = searchParams.get("ids")
 
-    let query = (supabase.from("shared_worksheets") as any).select("*").order("created_at", { ascending: false })
+    let query = (supabase.from("shared_worksheets") as any).select("id,title,grade,week_number,topic,pdf_url,pdf_pages,published,created_at").order("created_at", { ascending: false })
     if (grade) query = query.eq("grade", Number(grade))
+    if (ids) {
+      const idArr = ids.split(",").filter(Boolean)
+      if (idArr.length > 0) query = query.in("id", idArr)
+    }
 
     const { data, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

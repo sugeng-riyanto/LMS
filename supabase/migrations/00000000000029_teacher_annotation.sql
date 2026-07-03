@@ -1,0 +1,3 @@
+ALTER TABLE student_work ADD COLUMN IF NOT EXISTS teacher_annotation TEXT;
+
+ALTER TABLE student_work ENABLE ROW LEVEL LOGGING;

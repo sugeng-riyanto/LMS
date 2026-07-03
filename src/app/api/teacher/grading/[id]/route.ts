@@ -16,6 +16,7 @@ export async function PUT(
     const updates: Record<string, unknown> = {
       score: body.score ?? null,
       feedback: body.feedback ?? null,
+      teacher_annotation: body.teacher_annotation ?? null,
       teacher_id: user.id,
       status: "graded",
       graded_at: new Date().toISOString(),
@@ -84,6 +85,7 @@ export async function POST(
     const updates: Record<string, unknown> = {
       score: Math.min(Math.max(autoScore, 0), work.max_score ?? 10),
       feedback: autoFeedback,
+      teacher_annotation: body.teacher_annotation ?? null,
       teacher_id: user.id,
       status: "graded",
       graded_at: new Date().toISOString(),
