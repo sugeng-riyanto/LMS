@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useRBAC } from "@/hooks/use-rbac"
 import { usePackages, useUpdatePackage } from "@/hooks/use-packages"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,6 +71,7 @@ const defaultContent: PackageContent = {
 export default function EditPackagePage() {
   const params = useParams()
   const router = useRouter()
+  const { canManagePackages } = useRBAC()
   const grade = Number(params.grade)
   const week = Number(params.week)
   const { data: packages } = usePackages({ grade, week })
@@ -339,6 +341,14 @@ export default function EditPackagePage() {
       ...prev,
       answer_keys: [...prev.answer_keys, { question: "", answer: "", explanation: "" }],
     }))
+  }
+
+  if (!canManagePackages) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted-foreground">You do not have access to this page.</p>
+      </div>
+    )
   }
 
   if (!pkg) {

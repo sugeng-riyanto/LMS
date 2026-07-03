@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { createServerClient } from "@supabase/ssr"
 
 function getGoogleDriveDirectUrl(url: string): string {
   const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
@@ -14,7 +15,7 @@ function getGoogleDriveEmbedUrl(url: string): string | null {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -38,11 +39,31 @@ export async function GET(
     const referencePdfUrl: string | null = ws.reference_pdf_url || null
     const theoryVideoUrl: string | null = ws.theory_video_url || null
     const theoryVideoTitle: string | null = ws.theory_video_title || null
-    const origin = _request.headers.get("x-forwarded-host")
-      ? `https://${_request.headers.get("x-forwarded-host")}`
+    const origin = request.headers.get("x-forwarded-host")
+      ? `https://${request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+    // Check if logged-in student is viewing
+    let autoFillName = ""
+    try {
+      const authSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return request.cookies.getAll() }, setAll() {} } }
+      )
+      const { data: { user } } = await authSupabase.auth.getUser()
+      if (user) {
+        const { data: prof } = await (authSupabase.from("profiles") as any)
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single()
+        if (prof && prof.role === "student") {
+          autoFillName = prof.full_name || ""
+        }
+      }
+    } catch {}
 
     let studentOptions = ""
     try {
@@ -52,7 +73,10 @@ export async function GET(
         .eq("grade_assigned", grade)
         .order("full_name")
       if (students && students.length > 0) {
-        studentOptions = students.map((s: any) => `<option value="${esc(s.full_name)}">${esc(s.full_name)}</option>`).join("")
+        studentOptions = students.map((s: any) => {
+          const selected = autoFillName && s.full_name === autoFillName ? " selected" : ""
+          return `<option value="${esc(s.full_name)}"${selected}>${esc(s.full_name)}</option>`
+        }).join("")
       }
     } catch {}
 
@@ -1235,6 +1259,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var nameSelect = document.getElementById('student-name')
   if (nameSelect) {
     nameSelect.addEventListener('change', function() { checkSubmission() })
+    // Auto-check if name is pre-selected (logged-in student)
+    if (nameSelect.value) setTimeout(checkSubmission, 1000)
   }
   // Load PDF, then restore saved state
   loadPDF().then(function() {

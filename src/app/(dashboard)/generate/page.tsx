@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRBAC } from "@/hooks/use-rbac"
 import { useTriggerAgentGeneration, useAgentLogs } from "@/hooks/use-agents"
 import { GRADES, GRADE_LABELS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
@@ -30,6 +31,7 @@ const statusColor: Record<string, string> = {
 }
 
 export default function GeneratePage() {
+  const { canManagePackages } = useRBAC()
   const [grade, setGrade] = useState<number | undefined>(undefined)
   const [executionId, setExecutionId] = useState<string | null>(null)
   const { mutateAsync: triggerGeneration, isPending } = useTriggerAgentGeneration(grade)
@@ -49,6 +51,14 @@ export default function GeneratePage() {
   const hasActiveLogs = logs?.some(
     (l) => l.status === "pending" || l.status === "running",
   )
+
+  if (!canManagePackages) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted-foreground">You do not have access to this page.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

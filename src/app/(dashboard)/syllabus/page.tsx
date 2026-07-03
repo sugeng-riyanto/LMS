@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2 } from "lucide-react"
+import { useRBAC } from "@/hooks/use-rbac"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
@@ -77,6 +78,7 @@ const defaultPlan: SyllabusPlan = {
 export default function SyllabusPlannerPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { canManagePackages } = useRBAC()
 
   const [generating, setGenerating] = useState(false)
   const [generatingAI, setGeneratingAI] = useState(false)
@@ -925,6 +927,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const hasConflict = events.some(e => e.is_holiday || e.event_type === "blackout")
   const eventBadgeVariant = hasConflict ? "destructive" : events.length > 0 ? "secondary" : "outline"
+
+  if (!canManagePackages) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted-foreground">You do not have access to the Syllabus Planner.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

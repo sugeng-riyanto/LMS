@@ -158,20 +158,20 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Published Worksheets */}
+        {/* Published Worksheets — students go to /my-work */}
         {published.worksheets.length > 0 && (
-          <div className="rounded-xl border bg-card p-6">
-            <h2 className="mb-3 text-lg font-semibold">Published Worksheets</h2>
-            <div className="space-y-2">
-              {published.worksheets.map((ws: any) => {
+          <Link href="/my-work" className="rounded-xl border bg-card p-6 block hover:bg-accent transition-colors">
+            <h2 className="mb-2 text-lg font-semibold">Published Worksheets</h2>
+            <p className="text-sm text-muted-foreground">{published.worksheets.length} worksheet{published.worksheets.length > 1 ? "s" : ""} available for your grade.</p>
+            <div className="mt-3 space-y-2">
+              {published.worksheets.slice(0, 3).map((ws: any) => {
                 const sub = published.submissions?.[ws.id]
                 return (
-                <a key={ws.id} href={`/worksheet/public/${ws.id}`} target="_blank" className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors">
-                  <div>
-                    <p className="text-sm font-medium">{ws.title}</p>
-                    <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}{ws.topic ? ` · ${ws.topic}` : ""}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div key={ws.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <p className="text-sm font-medium">{ws.title}</p>
+                      <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}</p>
+                    </div>
                     {sub && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                         sub.allReturned ? 'bg-green-100 text-green-700' :
@@ -179,30 +179,33 @@ export default function DashboardPage() {
                         'bg-blue-100 text-blue-700'
                       }`}>{sub.status}</span>
                     )}
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   </div>
-                </a>
-              )})}
+                )
+              })}
+              {published.worksheets.length > 3 && (
+                <p className="text-xs text-muted-foreground text-center">+{published.worksheets.length - 3} more → Go to My Work</p>
+              )}
             </div>
-          </div>
+          </Link>
         )}
 
-        {/* Published Syllabi */}
+        {/* Published Syllabi — students go to /pre-class */}
         {published.syllabi.length > 0 && (
-          <div className="rounded-xl border bg-card p-6">
-            <h2 className="mb-3 text-lg font-semibold">Published Syllabus Documents</h2>
-            <div className="space-y-2">
-              {published.syllabi.map((doc: any) => (
-                <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium">{doc.file_name}</span>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">{doc.file_type?.toUpperCase()}</Badge>
+          <Link href="/pre-class" className="rounded-xl border bg-card p-6 block hover:bg-accent transition-colors">
+            <h2 className="mb-2 text-lg font-semibold">Published Syllabus Documents</h2>
+            <p className="text-sm text-muted-foreground">{published.syllabi.length} syllabus document{published.syllabi.length > 1 ? "s" : ""} available.</p>
+            <div className="mt-3 space-y-2">
+              {published.syllabi.slice(0, 3).map((doc: any) => (
+                <div key={doc.id} className="flex items-center gap-2 rounded-lg border p-3">
+                  <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                  <span className="text-sm font-medium">{doc.file_name}</span>
                 </div>
               ))}
+              {published.syllabi.length > 3 && (
+                <p className="text-xs text-muted-foreground text-center">+{published.syllabi.length - 3} more → Go to Pre-Class</p>
+              )}
             </div>
-          </div>
+          </Link>
         )}
 
         <div className="rounded-xl border bg-card p-6">

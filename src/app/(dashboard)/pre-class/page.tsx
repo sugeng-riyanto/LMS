@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Video, FlaskConical, CheckCircle, XCircle, ArrowRight } from "lucide-react"
+import { Video, FlaskConical, CheckCircle, XCircle, ArrowRight, FileText, ExternalLink } from "lucide-react"
+import Link from "next/link"
 
 interface QuizQuestion {
   question: string
@@ -18,6 +19,14 @@ interface QuizQuestion {
 interface QuizAnswer {
   questionIndex: number
   selected: string
+}
+
+interface PublishedSyllabus {
+  id: string
+  file_name: string
+  file_type: string
+  grade: number
+  created_at: string
 }
 
 export default function PreClassPage() {
@@ -33,6 +42,38 @@ export default function PreClassPage() {
   const [answers, setAnswers] = useState<QuizAnswer[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+
+  const [publishedSyllabi, setPublishedSyllabi] = useState<PublishedSyllabus[]>([])
+  const [syllabusSubmissions, setSyllabusSubmissions] = useState<Record<string, { status: string; allReturned: boolean; allGraded: boolean }>>({})
+
+  useEffect(() => {
+    if (!grade) return
+    fetch(`/api/published-items?grade=${grade}`)
+      .then(r => r.json())
+      .then(d => {
+        const syllabi = d.syllabi || []
+        setPublishedSyllabi(syllabi)
+        syllabi.forEach((sy: PublishedSyllabus) => {
+          fetch(`/api/student-work?syllabus_id=${sy.id}`)
+            .then(r => r.json())
+            .then(data => {
+              if (Array.isArray(data) && data.length > 0) {
+                const statuses = data.map((w: any) => w.status)
+                setSyllabusSubmissions(prev => ({
+                  ...prev,
+                  [sy.id]: {
+                    allReturned: statuses.every(s => s === 'returned'),
+                    allGraded: statuses.every(s => s === 'graded' || s === 'returned'),
+                    status: statuses.includes('returned') ? 'returned' : statuses.includes('graded') ? 'graded' : 'submitted',
+                  }
+                }))
+              }
+            })
+            .catch(() => {})
+        })
+      })
+      .catch(() => {})
+  }, [grade])
 
   useEffect(() => {
     if (quiz.length > 0 && answers.length === 0) {
@@ -206,6 +247,42 @@ export default function PreClassPage() {
             <p className="text-sm text-muted-foreground">
               No pre-class materials available for this week.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {publishedSyllabi.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-500" />
+              Published Syllabus Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {publishedSyllabi.map((doc) => {
+              const sub = syllabusSubmissions[doc.id]
+              return (
+                <Link
+                  key={doc.id}
+                  href={`/syllabus/public/${doc.id}`}
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">{doc.file_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {sub && (
+                      <Badge variant={sub.allReturned ? "default" : sub.allGraded ? "secondary" : "outline"} className="text-[10px]">
+                        {sub.status}
+                      </Badge>
+                    )}
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              )
+            })}
           </CardContent>
         </Card>
       )}

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { createServerClient } from "@supabase/ssr"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -21,11 +22,31 @@ export async function GET(
     const week = plan.week_number
     const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     const dateCode = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
-    const origin = _request.headers.get("x-forwarded-host")
-      ? `https://${_request.headers.get("x-forwarded-host")}`
+    const origin = request.headers.get("x-forwarded-host")
+      ? `https://${request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
 
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+    // Check if logged-in student is viewing
+    let autoFillName = ""
+    try {
+      const authSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return request.cookies.getAll() }, setAll() {} } }
+      )
+      const { data: { user } } = await authSupabase.auth.getUser()
+      if (user) {
+        const { data: prof } = await (authSupabase.from("profiles") as any)
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single()
+        if (prof && prof.role === "student") {
+          autoFillName = prof.full_name || ""
+        }
+      }
+    } catch {}
 
     // Load objectives from database, fallback to static syllabus data
     let objectives: Array<{ topic: string; objectives: string[] }> = []
@@ -46,7 +67,10 @@ export async function GET(
         .eq("grade_assigned", grade)
         .order("full_name")
       if (students && students.length > 0) {
-        studentOptions = students.map((s: any) => `<option value="${esc(s.full_name)}">${esc(s.full_name)}</option>`).join("")
+        studentOptions = students.map((s: any) => {
+          const selected = autoFillName && s.full_name === autoFillName ? " selected" : ""
+          return `<option value="${esc(s.full_name)}"${selected}>${esc(s.full_name)}</option>`
+        }).join("")
       }
     } catch {}
 
@@ -400,7 +424,11 @@ document.addEventListener("DOMContentLoaded",function(){
   document.querySelectorAll(".doc-preview").forEach(function(el){el.addEventListener("click",function(){var e=this.dataset.embed;if(e){this.innerHTML='<iframe src="'+e+'" class="w-full h-full" allowfullscreen style="border:0"></iframe>';this.className="w-full h-full"}})})
   // Student name change → check submission
   var ns = document.getElementById('student-name')
-  if (ns) ns.addEventListener('change', function() { checkSubmission() })
+  if (ns) {
+    ns.addEventListener('change', function() { checkSubmission() })
+    // Auto-check submission if name is pre-selected
+    if (ns.value) setTimeout(checkSubmission, 500)
+  }
 })
 </script>
 </body></html>`

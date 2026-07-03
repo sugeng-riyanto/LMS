@@ -14,16 +14,51 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/analytics": ["super_admin", "teacher"],
   "/journals": ["super_admin", "teacher"],
   "/settings": ["super_admin"],
-  "/lab": ["super_admin", "teacher", "lab_assistant", "student"],
+  "/lab": ["super_admin", "lab_assistant"],
   "/syllabus": ["super_admin", "teacher"],
   "/syllabus-manager": ["super_admin", "teacher"],
-  "/calendar": ["super_admin", "teacher", "lab_assistant"],
+  "/worksheets": ["super_admin", "teacher"],
+  "/calendar": ["super_admin", "teacher", "lab_assistant", "student"],
   "/my-week": ["student"],
   "/my-work": ["student"],
   "/my-progress": ["student"],
   "/my-journal": ["student"],
   "/pre-class": ["student"],
 }
+
+const API_ROLE_ROUTES: Record<string, Role[]> = {
+  "/api/admin/": ["super_admin"],
+  "/api/settings/ai-providers": ["super_admin"],
+  "/api/settings/school": ["super_admin"],
+  "/api/users/": ["super_admin"],
+  "/api/seed/": ["super_admin"],
+  "/api/webhooks/": [],
+  "/api/agents/": ["super_admin", "teacher"],
+  "/api/analytics": ["super_admin", "teacher"],
+  "/api/calendar": ["super_admin"],
+  "/api/entry-ticket": ["super_admin", "teacher", "student"],
+  "/api/export/": ["super_admin", "teacher"],
+  "/api/journals": ["super_admin", "student"],
+  "/api/lab": ["super_admin", "lab_assistant"],
+  "/api/lesson-plan/": ["super_admin", "teacher"],
+  "/api/memory/": ["super_admin", "teacher"],
+  "/api/notifications": ["super_admin", "teacher", "student"],
+  "/api/packages": ["super_admin", "teacher", "lab_assistant", "student"],
+  "/api/profiles": ["super_admin", "teacher", "lab_assistant", "student"],
+  "/api/student-work": ["super_admin", "teacher", "student"],
+  "/api/student/": ["super_admin", "teacher", "student"],
+  "/api/syllabus": ["super_admin", "teacher", "student"],
+  "/api/teacher/": ["super_admin", "teacher"],
+  "/api/uploads": ["super_admin", "teacher"],
+  "/api/worksheets": ["super_admin", "teacher", "student"],
+}
+
+const PUBLIC_API_ROUTES = [
+  "/api/favicon",
+  "/api/published-items",
+  "/api/syllabus/public/",
+  "/api/worksheet/public/",
+]
 
 function getSupabase(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -50,11 +85,22 @@ function getSupabase(request: NextRequest) {
 
 function matchProtectedRoute(pathname: string): string | null {
   // Public routes that should bypass auth
-  if (pathname.startsWith("/syllabus/public/") || pathname.startsWith("/api/syllabus/public/")) return null
+  if (pathname.startsWith("/syllabus/public/") || pathname.startsWith("/worksheet/public/")) return null
   for (const route of Object.keys(ROLE_ROUTES)) {
     if (pathname === route || pathname.startsWith(route + "/")) return route
   }
   return null
+}
+
+function matchApiRoute(pathname: string): string | null {
+  for (const [prefix, _roles] of Object.entries(API_ROLE_ROUTES)) {
+    if (pathname.startsWith(prefix)) return prefix
+  }
+  return null
+}
+
+function isPublicApiRoute(pathname: string): boolean {
+  return PUBLIC_API_ROUTES.some((r) => pathname.startsWith(r))
 }
 
 export async function proxy(request: NextRequest) {
@@ -98,6 +144,26 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url)
       }
     }
+
+    // API route role check
+    const apiRouteMatched = matchApiRoute(pathname)
+    if (apiRouteMatched && pathname.startsWith("/api/")) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single() as { data: { role: Role } | null }
+
+      const allowedRoles = API_ROLE_ROUTES[apiRouteMatched]
+      if (profile && allowedRoles.length > 0 && !allowedRoles.includes(profile.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
+  }
+
+  // Public API routes skip auth
+  if (pathname.startsWith("/api/") && !isPublicApiRoute(pathname) && !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   return supabaseResponse

@@ -98,6 +98,8 @@ export default function MyProgressPage() {
   const { profile } = useAuth()
   const [data, setData] = useState<ProgressData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [catFilter, setCatFilter] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
 
   function fetchProgress() {
     setLoading(true)
@@ -128,9 +130,6 @@ export default function MyProgressPage() {
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
   }
-
-  const [catFilter, setCatFilter] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
 
   const breakdown = data?.breakdown ?? []
   const pieData = breakdown.map((b, i) => ({ label: b.label, value: b.average, color: COLORS[i % COLORS.length] }))

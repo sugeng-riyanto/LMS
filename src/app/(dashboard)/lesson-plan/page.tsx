@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRBAC } from "@/hooks/use-rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +43,7 @@ function getDefaultForm() {
 }
 
 export default function LessonPlanPage() {
+  const { canManagePackages } = useRBAC()
   const [form, setForm] = useState(getDefaultForm())
   const [step, setStep] = useState<"form" | "result">("form")
   const [previewContent, setPreviewContent] = useState("")
@@ -223,6 +225,14 @@ export default function LessonPlanPage() {
     setStep("form")
     setShowPreview(false)
     setPreviewContent("")
+  }
+
+  if (!canManagePackages) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted-foreground">You do not have access to this page.</p>
+      </div>
+    )
   }
 
   return (
