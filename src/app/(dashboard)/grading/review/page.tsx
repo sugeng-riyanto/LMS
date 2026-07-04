@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Save, Sparkles, Send, RotateCcw, ArrowLeft, X } from "lucide-react"
+import { Save, Sparkles, Send, RotateCcw, ArrowLeft } from "lucide-react"
 import toast from "react-hot-toast"
 
 const CATEGORIES = [
@@ -42,6 +42,7 @@ export default function GradingReviewPage() {
   const canvasRefs = useRef<Record<string, HTMLCanvasElement | null>>({})
   const [totalManualScore, setTotalManualScore] = useState("")
   const [category, setCategory] = useState("")
+  const annoRendered = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!sourceId || !studentId) return
@@ -88,6 +89,8 @@ export default function GradingReviewPage() {
         else if (w.feedback) body.feedback = w.feedback
         if (w._score_category) body.score_category = w._score_category
         else if (w.score_category) body.score_category = w.score_category
+        const annoData = localStorage.getItem(`grading_anno_${w.id}`)
+        if (annoData) body.teacher_annotation = annoData
         const res = await fetch(`/api/teacher/grading/${w.id}`, {
           method: "PUT", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -157,24 +160,33 @@ export default function GradingReviewPage() {
     } catch { toast.error("Failed") }
   }
 
-  function initAnnoCanvas(itemId: string, canvasImg: string) {
+  function loadAnnoOverlay(itemId: string) {
     const canvas = canvasRefs.current[itemId]
     if (!canvas) return
+    if (annoRendered.current.has(itemId)) return
+    annoRendered.current.add(itemId)
     const ctx = canvas.getContext("2d")
     if (!ctx) return
     canvas.width = 800; canvas.height = 500
-    const img = new Image()
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, 800, 500)
-      const saved = localStorage.getItem(`grading_anno_${itemId}`)
-      if (saved) {
-        const annImg = new Image()
-        annImg.onload = () => ctx.drawImage(annImg, 0, 0, 800, 500)
-        annImg.src = saved
-      }
+    const localSaved = localStorage.getItem(`grading_anno_${itemId}`)
+    const serverAnno = items.find((w: any) => w.id === itemId)?.teacher_annotation
+    const src = localSaved || serverAnno
+    if (src) {
+      const img = new Image()
+      img.onload = () => ctx.drawImage(img, 0, 0, 800, 500)
+      img.src = src
     }
-    img.src = canvasImg
   }
+
+  useEffect(() => {
+    annoRendered.current.clear()
+    if (!items.length) return
+    items.forEach((item: any) => {
+      if (item.question_type === "canvas") {
+        setTimeout(() => loadAnnoOverlay(item.id), 100)
+      }
+    })
+  }, [items])
 
   function getPos(e: React.MouseEvent | React.TouchEvent) {
     const canvas = e.currentTarget as HTMLCanvasElement
@@ -186,13 +198,20 @@ export default function GradingReviewPage() {
 
   function startDraw(e: React.MouseEvent | React.TouchEvent, itemId: string) {
     e.preventDefault()
+    setActiveItem(itemId)
     setDrawing(true)
     const canvas = canvasRefs.current[itemId]
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    ctx.strokeStyle = toolMode === "eraser" ? "#ffffff" : penColor
-    ctx.lineWidth = toolMode === "eraser" ? penSize * 4 : penSize
+    if (toolMode === "eraser") {
+      ctx.globalCompositeOperation = "destination-out"
+      ctx.lineWidth = penSize * 4
+    } else {
+      ctx.globalCompositeOperation = "source-over"
+      ctx.strokeStyle = penColor
+      ctx.lineWidth = penSize
+    }
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.beginPath()
@@ -201,7 +220,7 @@ export default function GradingReviewPage() {
   }
 
   function doDraw(e: React.MouseEvent | React.TouchEvent, itemId: string) {
-    if (!drawing) return
+    if (!drawing || activeItem !== itemId) return
     e.preventDefault()
     const canvas = canvasRefs.current[itemId]
     if (!canvas) return
@@ -217,6 +236,9 @@ export default function GradingReviewPage() {
     setDrawing(false)
     const canvas = canvasRefs.current[itemId]
     if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    ctx.globalCompositeOperation = "source-over"
     localStorage.setItem(`grading_anno_${itemId}`, canvas.toDataURL())
   }
 
@@ -225,14 +247,8 @@ export default function GradingReviewPage() {
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    const img = new Image()
-    const work = items.find(w => w.id === itemId)
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      localStorage.removeItem(`grading_anno_${itemId}`)
-    }
-    img.src = work?.canvas_data || ""
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    localStorage.removeItem(`grading_anno_${itemId}`)
   }
 
   const currentTotal = items.reduce((s: number, i: any) => {
@@ -319,8 +335,7 @@ export default function GradingReviewPage() {
           const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
           const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? "")
           return (
-            <div key={item.id} className="space-y-3"
-              onClick={() => { setActiveItem(item.id); if (isCanvas) setTimeout(() => initAnnoCanvas(item.id, item.canvas_data as string), 50) }}>
+            <div key={item.id} className="space-y-3">
 
               {/* Page header */}
               <div className="flex items-center gap-3 border-b pb-2">
@@ -336,12 +351,15 @@ export default function GradingReviewPage() {
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {isCanvas ? (
                   item.canvas_data
-                    ? <canvas ref={el => { canvasRefs.current[item.id] = el }}
-                        className="w-full cursor-crosshair touch-none" style={{ aspectRatio: "800/500", maxHeight: 500 }}
-                        onMouseDown={e => startDraw(e, item.id)}
-                        onMouseMove={e => doDraw(e, item.id)}
-                        onMouseUp={e => stopDraw(e, item.id)}
-                        onMouseLeave={e => stopDraw(e, item.id)} />
+                    ? <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
+                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
+                        <canvas ref={el => { canvasRefs.current[item.id] = el }}
+                          className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                          onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}
+                          onMouseMove={e => doDraw(e, item.id)}
+                          onMouseUp={e => stopDraw(e, item.id)}
+                          onMouseLeave={e => stopDraw(e, item.id)} />
+                      </div>
                     : <div className="flex items-center justify-center h-40 text-xs text-muted-foreground">No drawing submitted</div>
                 ) : (
                   <pre className="p-4 text-sm whitespace-pre-wrap font-sans leading-relaxed min-h-[60px]">
