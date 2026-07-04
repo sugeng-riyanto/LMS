@@ -182,7 +182,7 @@ export default function GradingReviewPage() {
     annoRendered.current.clear()
     if (!items.length) return
     items.forEach((item: any) => {
-      if (item.question_type === "canvas") {
+      if (item.canvas_data) {
         setTimeout(() => loadAnnoOverlay(item.id), 100)
       }
     })
@@ -330,8 +330,9 @@ export default function GradingReviewPage() {
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found.</div>
         ) : items.map((item: any, idx: number) => {
-          const isCanvas = item.question_type === "canvas"
           const isActive = activeItem === item.id
+          const hasCanvas = !!item.canvas_data
+          const hasText = !!item.answer_text
           const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
           const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? "")
           return (
@@ -341,7 +342,10 @@ export default function GradingReviewPage() {
               <div className="flex items-center gap-3 border-b pb-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">{idx + 1}</div>
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-700">{isCanvas ? "Drawing" : "Written Answer"}</p>
+                  <p className="text-xs font-medium text-gray-700">
+                    {hasCanvas ? "Drawing" : ""}{hasCanvas && hasText ? " + " : ""}{hasText ? "Written Answer" : ""}
+                    {!hasCanvas && !hasText ? "Page" : ""}
+                  </p>
                   {item.question_text && <p className="text-[11px] text-muted-foreground">{item.question_text}</p>}
                 </div>
                 <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
@@ -349,22 +353,26 @@ export default function GradingReviewPage() {
 
               {/* Answer display */}
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
-                {isCanvas ? (
-                  item.canvas_data
-                    ? <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
-                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
-                        <canvas ref={el => { canvasRefs.current[item.id] = el }}
-                          className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
-                          onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}
-                          onMouseMove={e => doDraw(e, item.id)}
-                          onMouseUp={e => stopDraw(e, item.id)}
-                          onMouseLeave={e => stopDraw(e, item.id)} />
-                      </div>
-                    : <div className="flex items-center justify-center h-40 text-xs text-muted-foreground">No drawing submitted</div>
-                ) : (
-                  <pre className="p-4 text-sm whitespace-pre-wrap font-sans leading-relaxed min-h-[60px]">
-                    {item.answer_text || <span className="text-muted-foreground italic">(blank)</span>}
-                  </pre>
+                {hasCanvas && (
+                  <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
+                    <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
+                    <canvas ref={el => { canvasRefs.current[item.id] = el }}
+                      className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                      onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}
+                      onMouseMove={e => doDraw(e, item.id)}
+                      onMouseUp={e => stopDraw(e, item.id)}
+                      onMouseLeave={e => stopDraw(e, item.id)} />
+                  </div>
+                )}
+                {hasText && (
+                  <div className={hasCanvas ? "border-t" : ""}>
+                    <pre className="p-4 text-sm whitespace-pre-wrap font-sans leading-relaxed min-h-[60px]">
+                      {item.answer_text}
+                    </pre>
+                  </div>
+                )}
+                {!hasCanvas && !hasText && (
+                  <div className="flex items-center justify-center h-24 text-xs text-muted-foreground italic">No submission</div>
                 )}
               </div>
 
@@ -381,7 +389,7 @@ export default function GradingReviewPage() {
                   <Textarea value={fbVal} onChange={e => updateField(item.id, "_feedback", e.target.value)}
                     rows={1} className="h-7 text-xs resize-none" placeholder="Feedback for this page..." />
                 </div>
-                {isActive && isCanvas && (
+                {isActive && hasCanvas && (
                   <Button size="sm" variant="ghost" className="h-6 text-[9px] text-muted-foreground" onClick={() => clearAnno(item.id)}>
                     Clear Annotations
                   </Button>
