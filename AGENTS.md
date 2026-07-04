@@ -97,6 +97,9 @@ Build **Physics Command Center** — full-stack Next.js 16 + Supabase app for AI
 ### In Progress
 - *(none)*
 
+### Done (newest first)
+- **Grading review page** — `src/app/(dashboard)/grading/review/page.tsx`: standalone page (not modal) for reviewing student work; URL-based navigation via `?sourceType=&sourceId=&studentId=&studentName=&studentGrade=`; top bar with total score input (distribute on blur), category selector, Grade/Auto/Pub buttons; per-page canvas (with green annotation overlay + pen/eraser/color/size) or text display; score + feedback fields per item; bottom sticky bar with combined actions; `src/app/(dashboard)/grading/page.tsx` Review button now calls `router.push()` instead of opening a modal, removing ~250 lines of obsolete modal state, refs, and handlers
+
 ### Blocked
 - `src/types/database.ts` incomplete — covers only 10 of 22+ tables; regenerating requires `supabase login` with valid access token
 - Knowledge base — `knowledge_base` table has text chunks but null embeddings (needs real API key)
