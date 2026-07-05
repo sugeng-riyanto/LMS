@@ -72,7 +72,7 @@ function ReviewContent() {
       .then((data: any[]) => {
         const all = Array.isArray(data) ? data : []
         const filtered = all.filter((s: any) =>
-          s.worksheet_id === sourceId || s.syllabus_id === sourceId
+          s.worksheet_id === sourceId || s.syllabus_id === sourceId || s.id === sourceId
         )
         setItems(filtered)
         const cat = filtered.find((i: any) => i.score_category)?.score_category || ""
@@ -447,7 +447,7 @@ function ReviewContent() {
           const hasCanvas = !!item.canvas_data
           const hasText = !!item.answer_text
           const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
-          const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? item.answer_text ?? "")
+          const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback || item.answer_text || "")
           const pageIdx = item.question_id ? parseInt(item.question_id.replace("page-", "")) - 1 : -1
           const bgImage = pageImages[pageIdx] || null
           return (

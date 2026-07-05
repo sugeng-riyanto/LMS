@@ -60,12 +60,6 @@ export function PDFPageBackground({
     setReady(false)
     setError("")
     let cancelled = false
-    const timeoutId = setTimeout(() => {
-      if (!cancelled && !ready) {
-        cancelled = true
-        setError("Timed out")
-      }
-    }, 25000)
 
     async function render() {
       const canvas = canvasRef.current
@@ -87,13 +81,13 @@ export function PDFPageBackground({
 
         const ctx = canvas.getContext("2d")!
         await page.render({ canvasContext: ctx, viewport: vp }).promise
-        if (!cancelled) { clearTimeout(timeoutId); setReady(true) }
+        if (!cancelled) setReady(true)
       } catch (e: any) {
-        if (!cancelled) { clearTimeout(timeoutId); setError(e?.message || "PDF render failed") }
+        if (!cancelled) setError(e?.message || "PDF render failed")
       }
     }
     render()
-    return () => { clearTimeout(timeoutId); cancelled = true }
+    return () => { cancelled = true }
   }, [renderKey])
 
   if (error) {
