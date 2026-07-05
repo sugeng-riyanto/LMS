@@ -201,7 +201,7 @@ export default function WorksheetsPage() {
       theory_video_url: ws.theory_video_url || "",
       theory_video_title: ws.theory_video_title || "",
       additional_links: addLinks,
-      score_category: ws.score_category || "",
+      score_category: ws.score_category || "classwork",
       max_score: String(ws.max_score ?? 100),
     })
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
