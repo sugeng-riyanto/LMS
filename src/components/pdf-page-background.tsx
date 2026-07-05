@@ -47,11 +47,9 @@ function ensurePdfjsLib(): Promise<any> {
 export function PDFPageBackground({
   pdfUrl,
   pageNum,
-  studentCanvasData,
 }: {
   pdfUrl: string
   pageNum: number
-  studentCanvasData?: string | null
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
@@ -67,7 +65,7 @@ export function PDFPageBackground({
         cancelled = true
         setError("Timed out")
       }
-    }, 8000)
+    }, 25000)
 
     async function render() {
       const canvas = canvasRef.current
@@ -89,16 +87,6 @@ export function PDFPageBackground({
 
         const ctx = canvas.getContext("2d")!
         await page.render({ canvasContext: ctx, viewport: vp }).promise
-        if (cancelled) return
-
-        if (studentCanvasData) {
-          const img = new Image()
-          await new Promise<void>((resolve) => {
-            img.onload = () => { ctx.drawImage(img, 0, 0, vp.width, vp.height); resolve() }
-            img.onerror = () => resolve()
-            img.src = studentCanvasData
-          })
-        }
         if (!cancelled) { clearTimeout(timeoutId); setReady(true) }
       } catch (e: any) {
         if (!cancelled) { clearTimeout(timeoutId); setError(e?.message || "PDF render failed") }
@@ -109,10 +97,10 @@ export function PDFPageBackground({
   }, [renderKey])
 
   if (error) {
-    return <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-xs text-muted-foreground">PDF: {error}</div>
+    return <div className="absolute inset-0 flex items-start justify-end p-1 text-[9px] text-muted-foreground/50 pointer-events-none">PDF unavailable</div>
   }
   if (!ready) {
-    return <div className="absolute inset-0 flex items-center justify-center bg-muted/10"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
+    return null
   }
   return (
     <canvas

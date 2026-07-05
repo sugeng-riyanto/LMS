@@ -392,21 +392,20 @@ function ReviewContent() {
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {hasCanvas && (
                   <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
+                    {/* PDF background layer (behind student work) */}
                     {bgImage ? (
-                      <>
-                        <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" />
-                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
-                      </>
+                      <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
                     ) : pdfUrl ? (
-                      <>
-                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} />
-                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
-                      </>
-                    ) : (
-                      <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
-                    )}
+                      <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
+                      </div>
+                    ) : null}
+                    {/* Student work (always visible on top) */}
+                    <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 10, opacity: 0.85 }} />
+                    {/* Teacher annotation overlay */}
                     <canvas ref={el => { canvasRefs.current[item.id] = el }}
                       className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                      style={{ zIndex: 20 }}
                       onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}
                       onMouseMove={e => doDraw(e, item.id)}
                       onMouseUp={e => stopDraw(e, item.id)}
