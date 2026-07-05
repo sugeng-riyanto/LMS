@@ -479,8 +479,8 @@ function ReviewContent() {
                         <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
                       </div>
                     ) : null}
-                    {/* Student work — block element provides natural height */}
-                    <img src={item.canvas_data} alt="Student work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} data-print-layer />
+                    {/* Student work — block element provides natural height (already has PDF composited) */}
+                    <img src={item.canvas_data} alt="Student work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10 }} data-print-layer />
                     {/* Teacher annotation overlay — covers parent exactly */}
                     <canvas ref={el => { canvasRefs.current[item.id] = el }}
                       className="absolute inset-0 w-full h-full cursor-crosshair touch-none"

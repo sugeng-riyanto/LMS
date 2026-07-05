@@ -156,7 +156,7 @@ function ResultContent() {
                       </div>
                     ) : null}
                     {/* Student work */}
-                    <img src={item.canvas_data} alt="Your work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} data-print-layer />
+                    <img src={item.canvas_data} alt="Your work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10 }} data-print-layer />
                     {/* Teacher annotation */}
                     {hasTeacherAnno && (
                       <img src={teacherAnnoData[item.id]} alt="Teacher annotation"
