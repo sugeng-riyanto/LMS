@@ -1022,13 +1022,20 @@ window.submitWork = async function() {
   for (var p = 1; p <= total; p++) {
     var ta = document.querySelector('.answer-text[data-page="' + p + '"]')
     var ac = document.querySelector('.annotation-canvas[data-page="' + p + '"]')
+    var pc = document.querySelector('.pdf-canvas[data-page="' + p + '"]')
     var answerText = ta ? ta.value : ''
     var canvasData = null
 
     if (ac) {
       try {
-        // Capture annotation overlay canvas only (merged with PDF already)
-        canvasData = ac.toDataURL('image/png')
+        // Composite PDF + annotation into a single image
+        var cc = document.createElement('canvas')
+        cc.width = ac.width
+        cc.height = ac.height
+        var cctx = cc.getContext('2d')
+        if (pc) { cctx.drawImage(pc, 0, 0) }
+        cctx.drawImage(ac, 0, 0)
+        canvasData = cc.toDataURL('image/png')
       } catch(e) { console.error('Canvas capture error page ' + p, e) }
     }
 

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Save, Sparkles, Send, RotateCcw, ArrowLeft } from "lucide-react"
 import toast from "react-hot-toast"
+import { PDFPageBackground } from "@/components/pdf-page-background"
 
 const CATEGORIES = [
   { value: "classwork", label: "Classwork", weight: "40%" },
@@ -49,6 +50,8 @@ function ReviewContent() {
   const canvasRefs = useRef<Record<string, HTMLCanvasElement | null>>({})
   const [totalManualScore, setTotalManualScore] = useState("")
   const [category, setCategory] = useState("")
+  const [pageImages, setPageImages] = useState<string[]>([])
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const annoRendered = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -65,11 +68,9 @@ function ReviewContent() {
       })
       .then((data: any[]) => {
         const all = Array.isArray(data) ? data : []
-        console.log("[review] API returned", all.length, "items for student", studentId)
         const filtered = all.filter((s: any) =>
           s.worksheet_id === sourceId || s.syllabus_id === sourceId
         )
-        console.log("[review] filtered to", filtered.length, "items for source", sourceId, filtered.map((s: any) => ({ id: s.id, ws: s.worksheet_id, sy: s.syllabus_id, hasCanvas: !!s.canvas_data, hasText: !!s.answer_text, qtype: s.question_type })))
         setItems(filtered)
         const cat = filtered.find((i: any) => i.score_category)?.score_category || ""
         setCategory(cat)
@@ -80,7 +81,11 @@ function ReviewContent() {
         }
         if (filtered.length > 0) {
           if (sourceType === "worksheet") {
-            fetch(`/api/worksheets/${sourceId}`).then(r => r.json()).then(d => setSourceTitle(d.title || "Worksheet")).catch(() => {})
+            fetch(`/api/worksheets/${sourceId}`).then(r => r.json()).then(d => {
+              setSourceTitle(d.title || "Worksheet")
+              if (Array.isArray(d.page_images)) setPageImages(d.page_images)
+              if (d.pdf_url) setPdfUrl(d.pdf_url)
+            }).catch(() => {})
           } else {
             fetch(`/api/syllabus/documents/${sourceId}`).then(r => r.json()).then(d => setSourceTitle(d.file_name || d.topic || "Syllabus")).catch(() => {})
           }
@@ -340,12 +345,6 @@ function ReviewContent() {
 
       {/* Student Work */}
       <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
-        {/* Debug summary */}
-        <details className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg p-2">
-          <summary className="cursor-pointer font-medium">Debug: {items.length} items</summary>
-          <pre className="mt-1 whitespace-pre-wrap">{JSON.stringify(items.map((i: any) => ({ id: i.id?.slice(0,8), hasCanvas: !!i.canvas_data, canvasLen: i.canvas_data?.length, hasText: !!i.answer_text, textLen: i.answer_text?.length, qtype: i.question_type, status: i.status })), null, 2)}</pre>
-        </details>
-
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found for this assignment.</div>
         ) : items.map((item: any, idx: number) => {
@@ -354,6 +353,8 @@ function ReviewContent() {
           const hasText = !!item.answer_text
           const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
           const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? "")
+          const pageIdx = item.question_id ? parseInt(item.question_id.replace("page-", "")) - 1 : -1
+          const bgImage = pageImages[pageIdx] || null
           return (
             <div key={item.id} className="space-y-3">
 
@@ -372,7 +373,18 @@ function ReviewContent() {
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {hasCanvas && (
                   <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
-                    <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
+                    {bgImage ? (
+                      <>
+                        <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" />
+                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
+                      </>
+                    ) : pdfUrl ? (
+                      <>
+                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} aspectRatio={500 / 800} />
+                      </>
+                    ) : (
+                      <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
+                    )}
                     <canvas ref={el => { canvasRefs.current[item.id] = el }}
                       className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
                       onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}

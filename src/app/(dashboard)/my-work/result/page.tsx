@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
+import { PDFPageBackground } from "@/components/pdf-page-background"
 
 export default function ResultPage() {
   return (
@@ -25,6 +26,8 @@ function ResultContent() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [sourceTitle, setSourceTitle] = useState("")
+  const [pageImages, setPageImages] = useState<string[]>([])
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [teacherAnnoData, setTeacherAnnoData] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -38,7 +41,11 @@ function ResultContent() {
         setItems(mine)
         if (mine.length > 0) {
           if (sourceType === "worksheet") {
-            fetch(`/api/worksheets/${sourceId}`).then(r => r.json()).then(d => setSourceTitle(d.title || "Worksheet")).catch(() => {})
+            fetch(`/api/worksheets/${sourceId}`).then(r => r.json()).then(d => {
+              setSourceTitle(d.title || "Worksheet")
+              if (Array.isArray(d.page_images)) setPageImages(d.page_images)
+              if (d.pdf_url) setPdfUrl(d.pdf_url)
+            }).catch(() => {})
           }
         }
       })
@@ -82,6 +89,8 @@ function ResultContent() {
           const hasCanvas = !!item.canvas_data
           const hasText = !!item.answer_text
           const hasTeacherAnno = !!teacherAnnoData[item.id]
+          const pageIdx = item.question_id ? parseInt(item.question_id.replace("page-", "")) - 1 : -1
+          const bgImage = pageImages[pageIdx] || null
           return (
             <div key={item.id} className="space-y-3">
               <div className="flex items-center gap-3 border-b pb-2">
@@ -97,7 +106,16 @@ function ResultContent() {
               <div className="bg-gray-50 rounded-lg border overflow-hidden">
                 {hasCanvas && (
                   <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
-                    <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" />
+                    {bgImage ? (
+                      <>
+                        <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" />
+                        <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
+                      </>
+                    ) : pdfUrl ? (
+                      <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} aspectRatio={500 / 800} />
+                    ) : (
+                      <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" />
+                    )}
                     {hasTeacherAnno && (
                       <img src={teacherAnnoData[item.id]} alt="Teacher annotation"
                         className="absolute inset-0 w-full h-full object-contain pointer-events-none"
