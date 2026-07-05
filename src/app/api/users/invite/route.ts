@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
 const VALID_ROLES = ["super_admin", "teacher", "lab_assistant", "student"]
@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
 
     const tempPassword = "SHB-" + Math.random().toString(36).slice(2, 8)
 
-    const { data: authUser, error: signUpError } = await supabase.auth.admin.createUser({
+    const admin = createAdminClient()
+    const { data: authUser, error: signUpError } = await admin.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,

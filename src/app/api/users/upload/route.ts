@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 import * as XLSX from "xlsx"
 
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
       const tempPassword = "SHB-" + Math.random().toString(36).slice(2, 8)
 
       try {
-        const { data: authUser, error: signUpError } = await supabase.auth.admin.createUser({
+        const admin = createAdminClient()
+        const { data: authUser, error: signUpError } = await admin.auth.admin.createUser({
           email,
           password: tempPassword,
           email_confirm: true,

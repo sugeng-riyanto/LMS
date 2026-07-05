@@ -71,8 +71,8 @@ export default function GradingPage() {
         if (wsRes.ok) { const ws = await wsRes.json(); (Array.isArray(ws) ? ws : []).forEach((w: any) => { sm[`ws_${w.id}`] = w.title; if (w.max_score) mm[`ws_${w.id}`] = w.max_score }) }
       }
       for (const id of syIds) {
-        const syRes = await fetch(`/api/syllabus/documents/${id}`)
-        if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = sy.file_name || "Syllabus"; if (sy.max_score) mm[`sy_${id}`] = sy.max_score }
+        const syRes = await fetch(`/api/syllabus/plan/${id}`)
+        if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = `Grade ${sy.grade} Week ${sy.week_number}` || "Syllabus"; if (sy.max_score) mm[`sy_${id}`] = sy.max_score }
       }
       setSourceMap(sm)
       setMaxScoreMap(mm)

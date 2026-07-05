@@ -54,6 +54,7 @@ interface SyllabusPlan {
   effective_days: number
   status: string
   score_category: string
+  max_score: number
   published: boolean
 }
 
@@ -76,6 +77,7 @@ const defaultPlan: SyllabusPlan = {
   effective_days: 5,
   status: "draft",
   score_category: "classwork",
+  max_score: 100,
   published: false,
 }
 
@@ -131,6 +133,7 @@ export default function SyllabusPlannerPage() {
           effective_days: (p.effective_days as number) ?? 5,
           status: (p.status as string) ?? "draft",
           score_category: (p.score_category as string) ?? "",
+          max_score: (p.max_score as number) ?? 100,
           published: (p.published as boolean) ?? false,
         })
         setSelectedTopicIds(new Set(p.subtopics as string[] ?? []))
@@ -307,6 +310,7 @@ export default function SyllabusPlannerPage() {
         effective_days: (events ?? [])[0]?.effective_days ?? 5,
         status: "planned",
         score_category: plan.score_category || null,
+        max_score: plan.max_score || 100,
         published: plan.published ?? false,
       }
 

@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    if (authError) return authError
+    const { id } = await params
+    const { data, error } = await (supabase.from("syllabus_planning") as any)
+      .select("*")
+      .eq("id", id)
+      .single()
+    if (error || !data) return new NextResponse("Not found", { status: 404 })
+    return NextResponse.json(data)
+  } catch {
+    return new NextResponse("Not found", { status: 404 })
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

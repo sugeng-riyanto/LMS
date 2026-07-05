@@ -93,8 +93,13 @@ function ReviewContent() {
               if (d.pdf_url) setPdfUrl(d.pdf_url)
               if (d.max_score) setSourceMaxScore(d.max_score)
             }).catch(() => {})
+          } else if (sourceType === "syllabus") {
+            fetch(`/api/syllabus/plan/${sourceId}`, { method: "GET" }).then(r => r.json()).then(d => {
+              if (d.max_score) setSourceMaxScore(d.max_score)
+            }).catch(() => {})
+            setSourceTitle("Syllabus Assignment")
           } else {
-            setSourceTitle(sourceType === "syllabus" ? "Syllabus Assignment" : "Assignment")
+            setSourceTitle("Assignment")
           }
         }
       })

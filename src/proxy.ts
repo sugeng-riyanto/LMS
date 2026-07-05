@@ -49,7 +49,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/student/": ["super_admin", "teacher", "student"],
   "/api/syllabus": ["super_admin", "teacher", "student"],
   "/api/teacher/": ["super_admin", "teacher"],
-  "/api/uploads": ["super_admin", "teacher"],
+  "/api/upload": ["super_admin", "teacher"],
   "/api/worksheets": ["super_admin", "teacher", "student"],
 }
 

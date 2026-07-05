@@ -435,7 +435,6 @@ export default function WorksheetsPage() {
               <Label>Assessment Category</Label>
               <select value={form.score_category} onChange={e => updateForm({ score_category: e.target.value })}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">— Select category —</option>
                 <option value="classwork">Classwork (40%)</option>
                 <option value="unit_test">Unit Test (20%)</option>
                 <option value="project">Project (10%)</option>
