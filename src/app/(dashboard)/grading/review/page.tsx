@@ -380,7 +380,8 @@ function ReviewContent() {
                       </>
                     ) : pdfUrl ? (
                       <>
-                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} aspectRatio={500 / 800} />
+                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} />
+                        <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
                       </>
                     ) : (
                       <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" />
