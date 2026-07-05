@@ -87,7 +87,7 @@ function ReviewContent() {
               if (d.pdf_url) setPdfUrl(d.pdf_url)
             }).catch(() => {})
           } else {
-            fetch(`/api/syllabus/documents/${sourceId}`).then(r => r.json()).then(d => setSourceTitle(d.file_name || d.topic || "Syllabus")).catch(() => {})
+            setSourceTitle(sourceType === "syllabus" ? "Syllabus Assignment" : "Assignment")
           }
         }
       })
@@ -347,7 +347,15 @@ function ReviewContent() {
       <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found for this assignment.</div>
-        ) : items.map((item: any, idx: number) => {
+        ) : (
+          <div className="flex gap-1 text-[9px] text-muted-foreground bg-muted/20 rounded px-2 py-1 mb-2">
+            <span>items:{items.length}</span>
+            <span>pdfUrl:{pdfUrl ? "yes" : "no"}</span>
+            <span>bgImgs:{pageImages.length}</span>
+            {pdfUrl && <a href={pdfUrl} target="_blank" className="underline text-blue-500">open PDF</a>}
+          </div>
+        )}
+        {items.map((item: any, idx: number) => {
           const isActive = activeItem === item.id
           const hasCanvas = !!item.canvas_data
           const hasText = !!item.answer_text
@@ -367,7 +375,10 @@ function ReviewContent() {
                   </p>
                   {item.question_text && <p className="text-[11px] text-muted-foreground">{item.question_text}</p>}
                 </div>
-                <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] text-muted-foreground">{item.canvas_data?.length || 0}b</span>
+                  <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
+                </div>
               </div>
 
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
@@ -407,8 +418,11 @@ function ReviewContent() {
               </div>
 
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Score</Label>
+          {pdfUrl && idx === 0 && (
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-md border border-input bg-background h-6 px-2 text-[9px] font-medium hover:bg-accent">PDF</a>
+          )}
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Score</Label>
                   <Input type="number" min={0} max={item.max_score || 10} step={0.5}
                     value={scoreVal} onChange={e => updateField(item.id, "_score", e.target.value)}
                     className="w-16 h-7 text-xs text-center" />
