@@ -426,7 +426,7 @@ function ReviewContent() {
           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => window.print()}>
             <FileDown className="h-3 w-3" /> PDF
           </Button>
-          <span className="text-[10px] text-muted-foreground ml-auto">Click a page below to annotate</span>
+            <span className="text-[10px] text-muted-foreground ml-auto">v2 - Click a page below to annotate</span>
         </div>
       </div>
 
