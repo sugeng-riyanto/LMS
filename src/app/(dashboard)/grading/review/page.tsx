@@ -340,6 +340,12 @@ function ReviewContent() {
 
       {/* Student Work */}
       <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
+        {/* Debug summary */}
+        <details className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg p-2">
+          <summary className="cursor-pointer font-medium">Debug: {items.length} items</summary>
+          <pre className="mt-1 whitespace-pre-wrap">{JSON.stringify(items.map((i: any) => ({ id: i.id?.slice(0,8), hasCanvas: !!i.canvas_data, canvasLen: i.canvas_data?.length, hasText: !!i.answer_text, textLen: i.answer_text?.length, qtype: i.question_type, status: i.status })), null, 2)}</pre>
+        </details>
+
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found for this assignment.</div>
         ) : items.map((item: any, idx: number) => {
