@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 import { PDFPageBackground } from "@/components/pdf-page-background"
 
 export default function ResultPage() {
@@ -29,6 +29,7 @@ function ResultContent() {
   const [pageImages, setPageImages] = useState<string[]>([])
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [teacherAnnoData, setTeacherAnnoData] = useState<Record<string, string>>({})
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!sourceId || !profile?.id) return
@@ -61,6 +62,43 @@ function ResultContent() {
     setTeacherAnnoData(map)
   }, [items])
 
+  useEffect(() => {
+    const beforePrint = () => {
+      contentRef.current?.querySelectorAll<HTMLElement>('[data-print-group]').forEach(group => {
+        const layers = group.querySelectorAll<HTMLImageElement>('[data-print-layer]')
+        if (!layers.length) return
+        const canvas = document.createElement('canvas')
+        const w = group.offsetWidth
+        const h = group.offsetHeight
+        if (!w || !h) return
+        canvas.width = w * 2
+        canvas.height = h * 2
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.scale(2, 2)
+        layers.forEach(img => {
+          try { ctx.drawImage(img, 0, 0, w, h) } catch {}
+        })
+        const composite = document.createElement('img')
+        composite.src = canvas.toDataURL('image/jpeg', 0.92)
+        composite.style.cssText = 'display:block;width:100%'
+        composite.dataset.printTemp = 'true'
+        layers.forEach(l => { l.style.display = 'none' })
+        group.appendChild(composite)
+      })
+    }
+    const afterPrint = () => {
+      document.querySelectorAll<HTMLElement>('[data-print-temp]').forEach(el => el.remove())
+      document.querySelectorAll<HTMLImageElement>('[data-print-layer]').forEach(el => { el.style.display = '' })
+    }
+    window.addEventListener('beforeprint', beforePrint)
+    window.addEventListener('afterprint', afterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', beforePrint)
+      window.removeEventListener('afterprint', afterPrint)
+    }
+  }, [items])
+
   const totalScore = items.reduce((s, i) => s + (i.score || 0), 0)
   const totalMax = items.reduce((s, i) => s + (i.max_score || 10), 0)
 
@@ -75,14 +113,17 @@ function ResultContent() {
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h2 className="font-bold text-sm">{sourceTitle || "Assignment"}</h2>
             <p className="text-[11px] text-muted-foreground">{items.length} page(s) · Score {totalScore.toFixed(1)}/{totalMax.toFixed(0)}</p>
           </div>
+          <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-1.5">
+            <Download className="h-4 w-4" /> PDF
+          </Button>
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
+      <div ref={contentRef} className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">No graded work found.</div>
         ) : items.map((item: any, idx: number) => {
@@ -93,7 +134,7 @@ function ResultContent() {
           const bgImage = pageImages[pageIdx] || null
           return (
             <div key={item.id} className="space-y-3">
-              <div className="flex items-center gap-3 border-b pb-2">
+              <div className="flex items-center gap-3 border-b pb-2 no-print">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">{idx + 1}</div>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-700">
@@ -105,22 +146,22 @@ function ResultContent() {
 
               <div className="bg-gray-50 rounded-lg border overflow-hidden">
                 {hasCanvas && (
-                  <div className="relative">
-                    {/* PDF background layer (behind student work) */}
+                  <div className="relative" data-print-group>
+                    {/* PDF background layer */}
                     {bgImage ? (
-                      <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
+                      <img src={bgImage} alt="" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} data-print-layer />
                     ) : pdfUrl ? (
                       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
                         <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
                       </div>
                     ) : null}
-                    {/* Student work — provides natural height */}
-                    <img src={item.canvas_data} alt="Your work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} />
+                    {/* Student work */}
+                    <img src={item.canvas_data} alt="Your work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} data-print-layer />
                     {/* Teacher annotation */}
                     {hasTeacherAnno && (
                       <img src={teacherAnnoData[item.id]} alt="Teacher annotation"
                         className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                        style={{ zIndex: 15, opacity: 0.7 }} />
+                        style={{ zIndex: 15, opacity: 0.7 }} data-print-layer />
                     )}
                   </div>
                 )}

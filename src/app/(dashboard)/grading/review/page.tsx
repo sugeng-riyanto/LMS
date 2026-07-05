@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -275,6 +276,76 @@ function ReviewContent() {
     localStorage.removeItem(`grading_anno_${itemId}`)
   }
 
+  async function saveAnnotationsOnly() {
+    setSaving("anno")
+    let success = 0
+    for (const w of items) {
+      try {
+        const annoData = localStorage.getItem(`grading_anno_${w.id}`)
+        if (!annoData) { success++; continue }
+        const res = await fetch(`/api/teacher/grading/${w.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teacher_annotation: annoData }),
+        })
+        if (res.ok) success++
+      } catch {}
+    }
+    toast.success(`Annotations saved for ${success}/${items.length}`)
+    setSaving(null)
+  }
+
+  useEffect(() => {
+    const beforePrint = () => {
+      document.querySelectorAll<HTMLElement>('[data-print-group]').forEach(group => {
+        const layerImages: HTMLImageElement[] = []
+        group.querySelectorAll<HTMLElement>('[data-print-layer]').forEach(el => {
+          if (el.tagName === 'CANVAS') {
+            const c = el as HTMLCanvasElement
+            const img = document.createElement('img')
+            try { img.src = c.toDataURL() } catch { return }
+            img.dataset.canvasSnapshot = 'true'
+            img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:20'
+            el.parentNode?.insertBefore(img, el.nextSibling)
+            el.style.display = 'none'
+            layerImages.push(img)
+          } else if (el.tagName === 'IMG') {
+            layerImages.push(el as HTMLImageElement)
+          }
+        })
+        if (!layerImages.length) return
+        const canvas = document.createElement('canvas')
+        const w = group.offsetWidth
+        const h = group.offsetHeight
+        if (!w || !h) return
+        canvas.width = w * 2
+        canvas.height = h * 2
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.scale(2, 2)
+        layerImages.forEach(img => {
+          try { ctx.drawImage(img, 0, 0, w, h) } catch {}
+        })
+        const composite = document.createElement('img')
+        composite.src = canvas.toDataURL('image/jpeg', 0.92)
+        composite.style.cssText = 'display:block;width:100%'
+        composite.dataset.printTemp = 'true'
+        layerImages.forEach(l => { l.style.display = 'none' })
+        group.appendChild(composite)
+      })
+    }
+    const afterPrint = () => {
+      document.querySelectorAll<HTMLElement>('[data-print-temp]').forEach(el => el.remove())
+      document.querySelectorAll<HTMLElement>('[data-canvas-snapshot]').forEach(el => el.remove())
+      document.querySelectorAll<HTMLElement>('[data-print-layer]').forEach(el => { el.style.display = '' })
+    }
+    window.addEventListener('beforeprint', beforePrint)
+    window.addEventListener('afterprint', afterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', beforePrint)
+      window.removeEventListener('afterprint', afterPrint)
+    }
+  }, [items])
+
   const currentTotal = items.reduce((s: number, i: any) => {
     const v = parseFloat(i._score ?? i.score)
     return s + (isNaN(v) ? 0 : v)
@@ -349,6 +420,12 @@ function ReviewContent() {
           <select value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="h-6 text-[10px] rounded border border-input bg-background px-1">
             <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option><option value={5}>5</option><option value={8}>8</option><option value={12}>12</option>
           </select>
+          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={saveAnnotationsOnly} disabled={saving === "anno"}>
+            {saving === "anno" ? "..." : "Save Anno"}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => window.print()}>
+            <FileDown className="h-3 w-3" /> PDF
+          </Button>
           <span className="text-[10px] text-muted-foreground ml-auto">Click a page below to annotate</span>
         </div>
       </div>
@@ -393,21 +470,22 @@ function ReviewContent() {
 
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {hasCanvas && (
-                  <div className="relative">
+                  <div className="relative" data-print-group>
                     {/* PDF background layer (behind student work) */}
                     {bgImage ? (
-                      <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
+                      <img src={bgImage} alt="" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
                     ) : pdfUrl ? (
                       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
                         <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
                       </div>
                     ) : null}
                     {/* Student work — block element provides natural height */}
-                    <img src={item.canvas_data} alt="Student work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} />
+                    <img src={item.canvas_data} alt="Student work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} data-print-layer />
                     {/* Teacher annotation overlay — covers parent exactly */}
                     <canvas ref={el => { canvasRefs.current[item.id] = el }}
                       className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
                       style={{ zIndex: 20 }}
+                      data-print-layer
                       onMouseDown={e => { setActiveItem(item.id); startDraw(e, item.id) }}
                       onMouseMove={e => doDraw(e, item.id)}
                       onMouseUp={e => stopDraw(e, item.id)}
