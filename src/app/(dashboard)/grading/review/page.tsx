@@ -72,7 +72,7 @@ function ReviewContent() {
       .then((data: any[]) => {
         const all = Array.isArray(data) ? data : []
         const filtered = all.filter((s: any) =>
-          s.worksheet_id === sourceId || s.syllabus_id === sourceId || s.id === sourceId
+          s.worksheet_id === sourceId || s.syllabus_id === sourceId || s.package_id === sourceId || s.id === sourceId
         )
         setItems(filtered)
         const cat = filtered.find((i: any) => i.score_category)?.score_category || ""
