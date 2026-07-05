@@ -189,13 +189,15 @@ function ReviewContent() {
     annoRendered.current.add(itemId)
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    canvas.width = 800; canvas.height = 500
+    const w = canvas.clientWidth || 800
+    const h = canvas.clientHeight || 600
+    canvas.width = w; canvas.height = h
     const localSaved = localStorage.getItem(`grading_anno_${itemId}`)
     const serverAnno = items.find((w: any) => w.id === itemId)?.teacher_annotation
     const src = localSaved || serverAnno
     if (src) {
       const img = new Image()
-      img.onload = () => ctx.drawImage(img, 0, 0, 800, 500)
+      img.onload = () => ctx.drawImage(img, 0, 0, w, h)
       img.src = src
     }
   }
@@ -391,7 +393,7 @@ function ReviewContent() {
 
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {hasCanvas && (
-                  <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
+                  <div className="relative">
                     {/* PDF background layer (behind student work) */}
                     {bgImage ? (
                       <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
@@ -400,9 +402,9 @@ function ReviewContent() {
                         <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
                       </div>
                     ) : null}
-                    {/* Student work (always visible on top) */}
-                    <img src={item.canvas_data} alt="Student work" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 10, opacity: 0.85 }} />
-                    {/* Teacher annotation overlay */}
+                    {/* Student work — block element provides natural height */}
+                    <img src={item.canvas_data} alt="Student work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} />
+                    {/* Teacher annotation overlay — covers parent exactly */}
                     <canvas ref={el => { canvasRefs.current[item.id] = el }}
                       className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
                       style={{ zIndex: 20 }}

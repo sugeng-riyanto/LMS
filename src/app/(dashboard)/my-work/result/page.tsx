@@ -105,24 +105,22 @@ function ResultContent() {
 
               <div className="bg-gray-50 rounded-lg border overflow-hidden">
                 {hasCanvas && (
-                  <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
+                  <div className="relative">
+                    {/* PDF background layer (behind student work) */}
                     {bgImage ? (
-                      <>
-                        <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" />
-                        <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
-                      </>
+                      <img src={bgImage} alt="Worksheet page" className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 0 }} />
                     ) : pdfUrl ? (
-                      <>
-                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} studentCanvasData={item.canvas_data} />
-                        <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" style={{ opacity: 0.8 }} />
-                      </>
-                    ) : (
-                      <img src={item.canvas_data} alt="Your work" className="absolute inset-0 w-full h-full object-contain" />
-                    )}
+                      <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+                        <PDFPageBackground pdfUrl={pdfUrl} pageNum={pageIdx + 1} />
+                      </div>
+                    ) : null}
+                    {/* Student work — provides natural height */}
+                    <img src={item.canvas_data} alt="Your work" className="w-full max-h-[90vh] object-contain relative" style={{ zIndex: 10, opacity: 0.85 }} />
+                    {/* Teacher annotation */}
                     {hasTeacherAnno && (
                       <img src={teacherAnnoData[item.id]} alt="Teacher annotation"
                         className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                        style={{ opacity: 0.7 }} />
+                        style={{ zIndex: 15, opacity: 0.7 }} />
                     )}
                   </div>
                 )}
