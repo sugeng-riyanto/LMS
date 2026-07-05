@@ -65,9 +65,11 @@ function ReviewContent() {
       })
       .then((data: any[]) => {
         const all = Array.isArray(data) ? data : []
+        console.log("[review] API returned", all.length, "items for student", studentId)
         const filtered = all.filter((s: any) =>
           s.worksheet_id === sourceId || s.syllabus_id === sourceId
         )
+        console.log("[review] filtered to", filtered.length, "items for source", sourceId, filtered.map((s: any) => ({ id: s.id, ws: s.worksheet_id, sy: s.syllabus_id, hasCanvas: !!s.canvas_data, hasText: !!s.answer_text, qtype: s.question_type })))
         setItems(filtered)
         const cat = filtered.find((i: any) => i.score_category)?.score_category || ""
         setCategory(cat)

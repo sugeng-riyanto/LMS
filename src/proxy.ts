@@ -29,7 +29,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
 const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/admin/": ["super_admin"],
   "/api/settings/ai-providers": ["super_admin"],
-  "/api/settings/school": ["super_admin"],
+  "/api/settings/school": ["super_admin", "teacher", "lab_assistant", "student"],
   "/api/users/": ["super_admin"],
   "/api/seed/": ["super_admin"],
   "/api/webhooks/": [],
