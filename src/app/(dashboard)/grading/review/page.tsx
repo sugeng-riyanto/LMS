@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Save, Sparkles, Send, RotateCcw, ArrowLeft } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -22,6 +20,14 @@ const CATEGORIES = [
 ]
 
 export default function GradingReviewPage() {
+  return (
+    <Suspense fallback={<div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
+      <ReviewContent />
+    </Suspense>
+  )
+}
+
+function ReviewContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const sourceType = searchParams.get("sourceType") || ""
@@ -32,6 +38,7 @@ export default function GradingReviewPage() {
 
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState("")
   const [sourceTitle, setSourceTitle] = useState("")
   const [saving, setSaving] = useState<string | null>(null)
   const [toolMode, setToolMode] = useState<"pen" | "eraser">("pen")
@@ -46,12 +53,20 @@ export default function GradingReviewPage() {
 
   useEffect(() => {
     if (!sourceId || !studentId) return
-    fetch(`/api/teacher/grading?grade=all&status=all`)
-      .then(r => r.json())
+    setLoading(true)
+    setFetchError("")
+    fetch(`/api/teacher/grading?student_id=${studentId}&status=all`)
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: r.statusText }))
+          throw new Error(err.error || "API error")
+        }
+        return r.json()
+      })
       .then((data: any[]) => {
-        const filtered = data.filter((s: any) =>
-          (s.worksheet_id === sourceId || s.syllabus_id === sourceId) &&
-          s.student_id === studentId
+        const all = Array.isArray(data) ? data : []
+        const filtered = all.filter((s: any) =>
+          s.worksheet_id === sourceId || s.syllabus_id === sourceId
         )
         setItems(filtered)
         const cat = filtered.find((i: any) => i.score_category)?.score_category || ""
@@ -69,7 +84,10 @@ export default function GradingReviewPage() {
           }
         }
       })
-      .catch(() => toast.error("Failed to load student work"))
+      .catch((err) => {
+        setFetchError(err.message)
+        toast.error("Failed to load student work")
+      })
       .finally(() => setLoading(false))
   }, [sourceId, studentId])
 
@@ -100,11 +118,6 @@ export default function GradingReviewPage() {
     }
     toast.success(`Graded ${success}/${items.length}`)
     setSaving(null)
-    const allGraded = items.every((i: any) => i.status === "graded" || i.status === "returned")
-    if (allGraded) {
-      const total = items.reduce((sum, i) => sum + (parseFloat(i._score ?? i.score) || 0), 0)
-      setTotalManualScore(total.toFixed(1))
-    }
   }
 
   async function autoGrade() {
@@ -124,14 +137,11 @@ export default function GradingReviewPage() {
     }
     toast.success(`Auto-graded ${success}/${items.length}`)
     setSaving(null)
-    fetch(`/api/teacher/grading?grade=all&status=all`)
+    fetch(`/api/teacher/grading?student_id=${studentId}&status=all`)
       .then(r => r.json())
       .then((data: any[]) => {
-        const filtered = data.filter((s: any) =>
-          (s.worksheet_id === sourceId || s.syllabus_id === sourceId) &&
-          s.student_id === studentId
-        )
-        setItems(filtered)
+        const all = Array.isArray(data) ? data : []
+        setItems(all.filter((s: any) => s.worksheet_id === sourceId || s.syllabus_id === sourceId))
       })
       .catch(() => {})
   }
@@ -147,14 +157,11 @@ export default function GradingReviewPage() {
       })
       if (res.ok) {
         toast.success(action === "publish" ? "Published!" : "Unpublished!")
-        fetch(`/api/teacher/grading?grade=all&status=all`)
+        fetch(`/api/teacher/grading?student_id=${studentId}&status=all`)
           .then(r => r.json())
           .then((data: any[]) => {
-            const filtered = data.filter((s: any) =>
-              (s.worksheet_id === sourceId || s.syllabus_id === sourceId) &&
-              s.student_id === studentId
-            )
-            setItems(filtered)
+            const all = Array.isArray(data) ? data : []
+            setItems(all.filter((s: any) => s.worksheet_id === sourceId || s.syllabus_id === sourceId))
           }).catch(() => {})
       } else { const e = await res.json(); toast.error(e.error || "Failed") }
     } catch { toast.error("Failed") }
@@ -263,6 +270,10 @@ export default function GradingReviewPage() {
     return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
   }
 
+  if (fetchError) {
+    return <div className="flex h-64 items-center justify-center"><p className="text-sm text-red-500">Error: {fetchError}</p></div>
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Sticky Top Bar */}
@@ -325,10 +336,10 @@ export default function GradingReviewPage() {
         </div>
       </div>
 
-      {/* Student Work — Full-width layout like public page */}
+      {/* Student Work */}
       <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-10">
         {items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found.</div>
+          <div className="py-12 text-center text-sm text-muted-foreground">No submitted work found for this assignment.</div>
         ) : items.map((item: any, idx: number) => {
           const isActive = activeItem === item.id
           const hasCanvas = !!item.canvas_data
@@ -338,7 +349,6 @@ export default function GradingReviewPage() {
           return (
             <div key={item.id} className="space-y-3">
 
-              {/* Page header */}
               <div className="flex items-center gap-3 border-b pb-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shrink-0">{idx + 1}</div>
                 <div className="flex-1">
@@ -351,7 +361,6 @@ export default function GradingReviewPage() {
                 <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
               </div>
 
-              {/* Answer display */}
               <div className={`bg-gray-50 rounded-lg overflow-hidden ${isActive ? "ring-2 ring-green-400" : "border"}`}>
                 {hasCanvas && (
                   <div className="relative" style={{ aspectRatio: "800/500", maxHeight: 500 }}>
@@ -376,7 +385,6 @@ export default function GradingReviewPage() {
                 )}
               </div>
 
-              {/* Score + Feedback per page */}
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex items-center gap-1.5">
                   <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Score</Label>
@@ -400,7 +408,6 @@ export default function GradingReviewPage() {
         })}
       </div>
 
-      {/* Bottom Actions */}
       <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-semibold">{studentName}</span>
