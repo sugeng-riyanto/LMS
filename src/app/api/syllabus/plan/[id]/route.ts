@@ -21,7 +21,7 @@ export async function PUT(
       "topic", "subtopics", "syllabus_ref",
       "opening_ideas", "activity_questions", "problems",
       "calendar_status", "effective_days", "status",
-      "score_category", "published",
+      "score_category", "max_score", "published",
     ]
 
     const updates: Record<string, unknown> = {}

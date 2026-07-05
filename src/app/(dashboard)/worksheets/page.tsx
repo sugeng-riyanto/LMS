@@ -45,6 +45,7 @@ interface Worksheet {
   theory_video_title: string | null
   published: boolean
   score_category: string | null
+  max_score: number | null
   created_at: string
 }
 
@@ -71,7 +72,8 @@ export default function WorksheetsPage() {
     theory_video_url: "",
     theory_video_title: "",
     additional_links: "",
-    score_category: ""
+    score_category: "",
+    max_score: "100"
   })
 
   const weeks = useMemo(() => {
@@ -157,6 +159,7 @@ export default function WorksheetsPage() {
         theory_video_url: form.theory_video_url || null,
         theory_video_title: form.theory_video_title || null,
         score_category: form.score_category || null,
+        max_score: form.max_score ? Number(form.max_score) : 100,
       }
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
@@ -199,6 +202,7 @@ export default function WorksheetsPage() {
       theory_video_title: ws.theory_video_title || "",
       additional_links: addLinks,
       score_category: ws.score_category || "",
+      max_score: String(ws.max_score ?? 100),
     })
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
@@ -211,7 +215,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "", max_score: "100" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
@@ -439,6 +443,13 @@ export default function WorksheetsPage() {
                 <option value="mid_semester">Mid Semester (10%)</option>
                 <option value="final_semester">Final Semester (10%)</option>
               </select>
+            </div>
+
+            {/* Max Score */}
+            <div className="space-y-2">
+              <Label>Max Score</Label>
+              <Input type="number" min={1} value={form.max_score} onChange={e => updateForm({ max_score: e.target.value })}
+                placeholder="100" />
             </div>
 
             {/* Additional Links */}

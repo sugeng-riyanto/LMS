@@ -29,14 +29,15 @@ export async function GET() {
 
     const breakdown = categories.map((cat) => {
       const catItems = items.filter((i) => i.score_category === cat)
-      const totalPct = catItems.reduce((s, i) => s + ((i.score as number) / ((i.max_score as number) || 10)) * 100, 0)
-      const avg = catItems.length > 0 ? totalPct / catItems.length : 0
+      const totalScore = catItems.reduce((s, i) => s + ((i.score as number) || 0), 0)
+      const totalMax = catItems.reduce((s, i) => s + ((i.max_score as number) || 10), 0)
+      const pct = totalMax > 0 ? (totalScore / totalMax) * 100 : 0
       return {
         category: cat,
         label: labels[cat],
         count: catItems.length,
-        average: Math.round(avg * 10) / 10,
-        weighted: Math.round(avg * weights[cat] * 10) / 10,
+        average: Math.round(pct * 10) / 10,
+        weighted: Math.round(pct * weights[cat] * 10) / 10,
         weight: weights[cat],
         items: catItems.map((i) => ({
           id: i.id,

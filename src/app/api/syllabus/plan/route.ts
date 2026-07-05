@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         calendar_status: calendar_status ?? "normal",
         effective_days: effective_days ?? 5,
         score_category: body.score_category ?? null,
+        max_score: body.max_score ?? 100,
         published: body.published ?? false,
         created_by: user.id,
       })

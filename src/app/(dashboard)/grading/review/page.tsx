@@ -53,6 +53,7 @@ function ReviewContent() {
   const [category, setCategory] = useState("")
   const [pageImages, setPageImages] = useState<string[]>([])
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [sourceMaxScore, setSourceMaxScore] = useState(0)
   const annoRendered = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -90,6 +91,7 @@ function ReviewContent() {
               setSourceTitle(d.title || "Worksheet")
               if (Array.isArray(d.page_images)) setPageImages(d.page_images)
               if (d.pdf_url) setPdfUrl(d.pdf_url)
+              if (d.max_score) setSourceMaxScore(d.max_score)
             }).catch(() => {})
           } else {
             setSourceTitle(sourceType === "syllabus" ? "Syllabus Assignment" : "Assignment")
@@ -350,7 +352,7 @@ function ReviewContent() {
     const v = parseFloat(i._score ?? i.score)
     return s + (isNaN(v) ? 0 : v)
   }, 0)
-  const totalMax = items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
+  const totalMax = sourceMaxScore || items.reduce((s: number, i: any) => s + (i.max_score || 10), 0)
   const allGraded = items.every((i: any) => i.status === "graded" || i.status === "returned")
   const allReturned = items.every((i: any) => i.status === "returned")
 

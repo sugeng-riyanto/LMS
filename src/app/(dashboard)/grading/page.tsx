@@ -35,6 +35,7 @@ export default function GradingPage() {
   const [filterCat, setFilterCat] = useState("all")
   const [submissions, setSubmissions] = useState<any[]>([])
   const [sourceMap, setSourceMap] = useState<Record<string, string>>({})
+  const [maxScoreMap, setMaxScoreMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -62,17 +63,19 @@ export default function GradingPage() {
       const data = res.ok ? await res.json() : []
       setSubmissions(Array.isArray(data) ? data : [])
       const sm: Record<string, string> = {}
+      const mm: Record<string, number> = {}
       const wsIds = new Set((data as any[]).filter((s: any) => s.worksheet_id).map((s: any) => s.worksheet_id))
       const syIds = new Set((data as any[]).filter((s: any) => s.syllabus_id).map((s: any) => s.syllabus_id))
       if (wsIds.size > 0) {
         const wsRes = await fetch(`/api/worksheets?ids=${Array.from(wsIds).join(",")}`)
-        if (wsRes.ok) { const ws = await wsRes.json(); (Array.isArray(ws) ? ws : []).forEach((w: any) => { sm[`ws_${w.id}`] = w.title }) }
+        if (wsRes.ok) { const ws = await wsRes.json(); (Array.isArray(ws) ? ws : []).forEach((w: any) => { sm[`ws_${w.id}`] = w.title; if (w.max_score) mm[`ws_${w.id}`] = w.max_score }) }
       }
       for (const id of syIds) {
         const syRes = await fetch(`/api/syllabus/documents/${id}`)
-        if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = sy.file_name || "Syllabus" }
+        if (syRes.ok) { const sy = await syRes.json(); sm[`sy_${id}`] = sy.file_name || "Syllabus"; if (sy.max_score) mm[`sy_${id}`] = sy.max_score }
       }
       setSourceMap(sm)
+      setMaxScoreMap(mm)
     } catch {} finally { setLoading(false) }
   }
 
@@ -98,14 +101,18 @@ export default function GradingPage() {
       sourceLabel: getSourceLabel(items[0]),
       items, category: items.find((i: any) => i.score_category)?.score_category || "",
       totalScore: items.reduce((sum: number, i: any) => sum + (i.score || 0), 0),
-      totalMax: items.reduce((sum: number, i: any) => sum + (i.max_score || 10), 0),
+      totalMax: (() => {
+        const first = items[0]
+        const sourceKey = first.worksheet_id ? `ws_${first.worksheet_id}` : first.syllabus_id ? `sy_${first.syllabus_id}` : null
+        return sourceKey && maxScoreMap[sourceKey] ? maxScoreMap[sourceKey] : items.reduce((sum: number, i: any) => sum + (i.max_score || 10), 0)
+      })(),
       allGraded: items.every((i: any) => i.status === "graded" || i.status === "returned"),
       allReturned: items.every((i: any) => i.status === "returned"),
       status: items.some((i: any) => i.status === "returned") ? "returned" : items.some((i: any) => i.status === "graded") ? "graded" : "submitted",
       submitted_at: items[0]?.submitted_at || "",
       published_at: items.find((i: any) => i.published_at)?.published_at || null,
     }))
-  }, [submissions, sourceMap])
+  }, [submissions, sourceMap, maxScoreMap])
 
   const filteredGroups = useMemo(() => {
     return groups.filter(g => {
