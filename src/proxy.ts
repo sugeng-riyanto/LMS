@@ -35,7 +35,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/webhooks/": [],
   "/api/agents/": ["super_admin", "teacher"],
   "/api/analytics": ["super_admin", "teacher"],
-  "/api/calendar": ["super_admin"],
+  "/api/calendar": ["super_admin", "teacher", "lab_assistant", "student"],
   "/api/entry-ticket": ["super_admin", "teacher", "student"],
   "/api/export/": ["super_admin", "teacher"],
   "/api/journals": ["super_admin", "student"],
