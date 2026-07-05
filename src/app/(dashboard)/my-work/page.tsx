@@ -350,7 +350,7 @@ export default function MyWorkPage() {
           {publishedSyllabi.map((sy) => {
             const sub = sySubmissions[sy.id]
             return (
-              <Link key={sy.id} href={`/syllabus/public/${sy.id}`}
+              <Link key={sy.id} href={sub?.allReturned ? `/my-work/result?sourceType=syllabus&sourceId=${sy.id}` : `/syllabus/public/${sy.id}`}
                 className="flex items-center justify-between rounded-xl border bg-card p-4 hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -400,7 +400,7 @@ export default function MyWorkPage() {
           {publishedWorksheets.map((ws) => {
             const sub = wsSubmissions[ws.id]
             return (
-              <Link key={ws.id} href={`/worksheet/public/${ws.id}`}
+              <Link key={ws.id} href={sub?.allReturned ? `/my-work/result?sourceType=worksheet&sourceId=${ws.id}` : `/worksheet/public/${ws.id}`}
                 className="flex items-center justify-between rounded-xl border bg-card p-4 hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-3">
