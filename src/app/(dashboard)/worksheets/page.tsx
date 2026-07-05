@@ -72,7 +72,7 @@ export default function WorksheetsPage() {
     theory_video_url: "",
     theory_video_title: "",
     additional_links: "",
-    score_category: "",
+    score_category: "classwork",
     max_score: "100"
   })
 
@@ -215,7 +215,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "", max_score: "100" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
