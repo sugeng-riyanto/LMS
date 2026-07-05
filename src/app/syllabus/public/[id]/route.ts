@@ -335,10 +335,11 @@ window.submitWork = async function() {
 
     if (res.ok) {
       document.getElementById('submit-section').className = 'no-print rounded-xl border-2 border-green-300 bg-green-50 p-6 space-y-4 mt-6'
-      document.getElementById('submit-status').innerHTML = '<span class="text-green-700 font-medium">✅ Submitted successfully! Your teacher will review your answers.</span>'
+      document.getElementById('submit-status').innerHTML = '<span class="text-green-700 font-medium">✅ Submitted successfully! Redirecting...</span>'
       var badge = document.getElementById('submit-badge')
       if (badge) { badge.className = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700'; badge.textContent = 'Submitted' }
-      document.getElementById('submit-actions').innerHTML = '<p class="text-xs text-green-600">You have submitted. Check back later for your score.</p>'
+      document.getElementById('submit-actions').innerHTML = '<p class="text-xs text-green-600">Redirecting to your dashboard...</p>'
+      setTimeout(function() { window.location.href = '/my-work' }, 1500)
     } else {
       var err = await res.json().catch(function() { return { error: 'Error' } })
       alert('Submit failed: ' + (err.error || 'Unknown error'))
