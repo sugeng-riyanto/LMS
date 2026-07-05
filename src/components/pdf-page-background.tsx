@@ -62,13 +62,19 @@ export function PDFPageBackground({
     setReady(false)
     setError("")
     let cancelled = false
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && !ready) {
+        cancelled = true
+        setError("Timed out")
+      }
+    }, 8000)
 
     async function render() {
       const canvas = canvasRef.current
       if (!canvas) return
       try {
         const pdfjsLib = await ensurePdfjsLib()
-        if (cancelled || !pdfjsLib) throw new Error("pdfjsLib unavailable")
+        if (cancelled || !pdfjsLib) return
 
         const pdf = pdfDocCache.get(pdfUrl) || await pdfjsLib.getDocument({ url: pdfUrl, disableRange: true, disableStream: true, disableAutoFetch: true, useSystemFonts: true }).promise
         if (cancelled) return
@@ -93,13 +99,13 @@ export function PDFPageBackground({
             img.src = studentCanvasData
           })
         }
-        if (!cancelled) setReady(true)
+        if (!cancelled) { clearTimeout(timeoutId); setReady(true) }
       } catch (e: any) {
-        if (!cancelled) setError(e?.message || "PDF render failed")
+        if (!cancelled) { clearTimeout(timeoutId); setError(e?.message || "PDF render failed") }
       }
     }
     render()
-    return () => { cancelled = true }
+    return () => { clearTimeout(timeoutId); cancelled = true }
   }, [renderKey])
 
   if (error) {

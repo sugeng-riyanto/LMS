@@ -58,7 +58,9 @@ function ReviewContent() {
     if (!sourceId || !studentId) return
     setLoading(true)
     setFetchError("")
-    fetch(`/api/teacher/grading?student_id=${studentId}&status=all`)
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), 15000)
+    fetch(`/api/teacher/grading?student_id=${studentId}&status=all`, { signal: ac.signal })
       .then(async r => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({ error: r.statusText }))
@@ -81,7 +83,9 @@ function ReviewContent() {
         }
         if (filtered.length > 0) {
           if (sourceType === "worksheet") {
-            fetch(`/api/worksheets/${sourceId}`).then(r => r.json()).then(d => {
+            const ac2 = new AbortController()
+            setTimeout(() => ac2.abort(), 10000)
+            fetch(`/api/worksheets/${sourceId}`, { signal: ac2.signal }).then(r => r.json()).then(d => {
               setSourceTitle(d.title || "Worksheet")
               if (Array.isArray(d.page_images)) setPageImages(d.page_images)
               if (d.pdf_url) setPdfUrl(d.pdf_url)
@@ -92,10 +96,14 @@ function ReviewContent() {
         }
       })
       .catch((err) => {
-        setFetchError(err.message)
+        if (err.name === "AbortError") {
+          setFetchError("Request timed out — please try again")
+        } else {
+          setFetchError(err.message)
+        }
         toast.error("Failed to load student work")
       })
-      .finally(() => setLoading(false))
+      .finally(() => { clearTimeout(timer); setLoading(false) })
   }, [sourceId, studentId])
 
   function updateField(workId: string, field: string, val: any) {
@@ -360,7 +368,7 @@ function ReviewContent() {
           const hasCanvas = !!item.canvas_data
           const hasText = !!item.answer_text
           const scoreVal = item._score !== undefined ? item._score : (item.score ?? "")
-          const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? "")
+          const fbVal = item._feedback !== undefined ? item._feedback : (item.feedback ?? item.answer_text ?? "")
           const pageIdx = item.question_id ? parseInt(item.question_id.replace("page-", "")) - 1 : -1
           const bgImage = pageImages[pageIdx] || null
           return (
