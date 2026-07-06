@@ -31,25 +31,30 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
+  // ── Teacher & Admin flow (plan → create → assess → review) ──
   { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
-  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.SYLLABUS, label: "Syllabus", icon: ClipboardList, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: "/worksheets", label: "Worksheets", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GRADING, label: "Grading", icon: CheckCircle, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.SYLLABUS, label: "Syllabus", icon: ClipboardList, roles: ["super_admin", "teacher"] },
-  { href: "/worksheets", label: "Worksheets", icon: FileText, roles: ["super_admin", "teacher"] },
-  { href: "/syllabus-manager", label: "Syllabus Files", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["super_admin", "teacher"] },
+  { href: "/syllabus-manager", label: "Syllabus Files", icon: ClipboardList, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
-  { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.ANALYTICS, label: "Analytics", icon: FileText, roles: ["super_admin", "teacher"] },
-  { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
-  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
+
+  // ── Student flow (view → do → review) ──
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
+  { href: "/pre-class", label: "Pre-Class", icon: GraduationCap, roles: ["student"] },
   { href: "/my-progress", label: "My Progress", icon: BarChart3, roles: ["student"] },
   { href: "/my-journal", label: "My Journal", icon: ClipboardList, roles: ["student"] },
-  { href: "/pre-class", label: "Pre-Class", icon: GraduationCap, roles: ["student"] },
+
+  // ── Account & Help ──
+  { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin", "teacher"] },
   { href: ROUTES.HELP, label: "Help", icon: HelpCircle, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
 ]
 
