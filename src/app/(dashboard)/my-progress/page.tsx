@@ -183,7 +183,8 @@ export default function MyProgressPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Progress</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">Review your academic performance across assessment categories — Classwork, Unit Tests, Projects, Homework, and Semester Examinations. Track weighted scores and identify areas for improvement.</p>
+          <p className="text-xs text-muted-foreground mt-1">
             {data?.student?.full_name ?? "Student"} — Grade {data?.student?.grade_assigned ?? "—"}
           </p>
         </div>

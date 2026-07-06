@@ -65,7 +65,7 @@ export default function GeneratePage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Generate Packages</h1>
         <p className="text-muted-foreground">
-          Trigger AI agents to generate weekly physics packages for one or all grades.
+          Generate weekly teaching packages using AI. Select a grade to automatically produce lesson plans, worksheets, pre-class materials, lab logistics, and answer keys aligned to the Cambridge curriculum.
         </p>
       </div>
 

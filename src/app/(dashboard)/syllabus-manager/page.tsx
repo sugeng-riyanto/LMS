@@ -88,7 +88,7 @@ export default function SyllabusManagerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Syllabus Manager</h1>
-          <p className="text-sm text-muted-foreground">Upload, manage, and distribute syllabus documents per grade</p>
+          <p className="text-sm text-muted-foreground">Upload, organise, and publish syllabus documents in Markdown, Quarto, PDF, or Excel format. Manage files by grade and subject, set assessment categories, and publish for student access.</p>
         </div>
         <div className="flex items-center gap-2">
           <Label className="text-xs">Grade</Label>

@@ -972,7 +972,7 @@ document.addEventListener("DOMContentLoaded", function() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Syllabus Planner</h1>
           <p className="text-sm text-muted-foreground">
-            Select topics and plan your Flipped Classroom lesson per week
+            Plan, organise, and manage weekly syllabi across subjects. Select a grade and week, define topics, set learning objectives, add activity questions and problems, and publish for student access.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">

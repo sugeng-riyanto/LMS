@@ -249,7 +249,7 @@ export default function GradingPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Grading Center</h1>
-          <p className="text-sm text-muted-foreground">Review, score, and publish student work</p>
+          <p className="text-sm text-muted-foreground">Review and grade student submissions. Filter by grade and subject, assign scores and feedback, set assessment categories, and publish or unpublish results to students.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">

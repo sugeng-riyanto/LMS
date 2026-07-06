@@ -126,7 +126,7 @@ export default function MemoryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Class Memory</h1>
-          <p className="text-muted-foreground">Track misconceptions, struggling students, and notes</p>
+          <p className="text-muted-foreground">Record observations about each class session — misconceptions, student performance, lab equipment status, and notes for the following week. Use this to maintain continuity across lessons.</p>
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)}>

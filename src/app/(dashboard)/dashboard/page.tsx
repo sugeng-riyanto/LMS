@@ -131,7 +131,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             Welcome, {profile?.full_name?.split(" ")[0] ?? "Student"}
           </h1>
-          <p className="text-muted-foreground">Your learning dashboard for this week.</p>
+          <p className="text-muted-foreground">Your personalised overview. Access weekly packages, published worksheets, syllabus assignments, and quick links to My Week, Mistake Journal, and Pre-Class preparation.</p>
         </div>
 
         <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />

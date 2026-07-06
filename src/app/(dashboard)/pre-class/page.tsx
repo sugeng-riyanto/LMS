@@ -131,7 +131,7 @@ export default function PreClassPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pre-Class</h1>
         <p className="text-muted-foreground">
-          Review materials and complete the entry ticket quiz
+          Complete pre-class preparation materials including entry ticket quizzes, instructional videos, and review of published syllabus documents before each lesson.
         </p>
       </div>
 

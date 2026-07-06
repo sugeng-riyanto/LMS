@@ -132,7 +132,7 @@ export default function MyJournalPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Mistake Journal</h1>
-          <p className="text-muted-foreground">Track mistakes and learn from them</p>
+          <p className="text-muted-foreground">Log mistakes from each subject to track your learning. Describe the error, identify the root cause, document the correct approach, and receive teacher feedback.</p>
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)}>

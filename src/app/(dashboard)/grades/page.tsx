@@ -32,7 +32,7 @@ export default function GradesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Grades</h1>
-        <p className="text-muted-foreground">Select a grade to manage weekly physics packages</p>
+        <p className="text-muted-foreground">Browse and manage weekly packages by grade. Select a grade to view or edit lesson plans, worksheets, pre-class materials, and assessment keys for each week.</p>
       </div>
 
       {isLoading ? (

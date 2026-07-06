@@ -150,7 +150,7 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
-          <p className="text-muted-foreground">SHB academic calendar and events</p>
+          <p className="text-muted-foreground">Manage the academic calendar. Add or edit events such as holidays, exams, tryouts, and off-site activities.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant={view === "calendar" ? "default" : "outline"} size="sm" onClick={() => setView("calendar")}>

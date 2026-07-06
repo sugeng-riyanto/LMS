@@ -81,7 +81,8 @@ export default function MyWeekPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Week</h1>
-          <p className="text-sm text-muted-foreground">Grade {grade} · Week {thisWeek} · {pkg?.topic ?? "—"}</p>
+          <p className="text-sm text-muted-foreground">View your weekly learning package including lesson summaries, worksheets, pre-class videos, and assignments. Track your progress and submit your work.</p>
+          <p className="text-xs text-muted-foreground mt-1">Grade {grade} · Week {thisWeek} · {pkg?.topic ?? "—"}</p>
         </div>
         <div className="flex items-center gap-2">
           {workStatus.submitted > 0 && <Badge variant="secondary"><CheckCircle className="mr-1 h-3 w-3" />{workStatus.submitted}/3 done</Badge>}

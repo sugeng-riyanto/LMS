@@ -266,9 +266,8 @@ export default function MyWorkPage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Work</h1>
-        <p className="text-sm text-muted-foreground">
-          {totalAssignments > 0 ? `${totalAssignments} assignment${totalAssignments > 1 ? "s" : ""} available` : "No assignments yet"}
-        </p>
+          <p className="text-sm text-muted-foreground">Access all published worksheets and syllabus assignments from your subject teachers. Complete interactive worksheets, submit your work, and track grading status.</p>
+          <p className="text-xs text-muted-foreground mt-1">{totalAssignments > 0 ? `${totalAssignments} assignment${totalAssignments > 1 ? "s" : ""} available` : "No assignments yet"}</p>
       </div>
 
       {/* Subject Filter */}

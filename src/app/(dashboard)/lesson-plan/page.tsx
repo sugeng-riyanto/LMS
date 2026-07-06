@@ -241,7 +241,7 @@ export default function LessonPlanPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Lesson Plan Generator</h1>
           <p className="text-sm text-muted-foreground">
-            Fill in the template variables, click generate, then preview and download your SHB lesson plan
+            Create lesson plans using the official SHB template. Fill in the form fields, preview in Markdown or PDF, and download in DOCX format for classroom use.
           </p>
         </div>
         <div className="flex items-center gap-2">

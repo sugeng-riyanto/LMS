@@ -299,7 +299,7 @@ export default function WorksheetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Shared Worksheets</h1>
-          <p className="text-sm text-muted-foreground">Upload PDF worksheets for students to annotate online</p>
+          <p className="text-sm text-muted-foreground">Upload PDF worksheets and publish them for students. Each worksheet can be assigned to a specific grade, week, subject, and assessment category such as Classwork or Homework.</p>
         </div>
         <Button onClick={() => showForm ? handleCancel() : setShowForm(true)}>
           <Plus className="mr-1 h-4 w-4" /> {showForm ? "Close" : "New Worksheet"}
