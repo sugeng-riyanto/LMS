@@ -41,7 +41,7 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["super_admin", "teacher"] },
   { href: "/syllabus-manager", label: "Syllabus Files", icon: ClipboardList, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
 
@@ -51,6 +51,7 @@ const allNavItems: NavItem[] = [
   { href: "/pre-class", label: "Pre-Class", icon: GraduationCap, roles: ["student"] },
   { href: "/my-progress", label: "My Progress", icon: BarChart3, roles: ["student"] },
   { href: "/my-journal", label: "My Journal", icon: ClipboardList, roles: ["student"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["student"] },
 
   // ── Account & Help ──
   { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
