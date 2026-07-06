@@ -3,13 +3,12 @@
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Eye, Send, CheckCircle, FileText } from "lucide-react"
+import { Plus, Eye, Send, CheckCircle, FileText, X } from "lucide-react"
 import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
 import toast from "react-hot-toast"
 
@@ -183,120 +182,114 @@ export default function SupervisionsPage() {
         </div>
       )}
 
-      {/* Compact Scoring Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] overflow-y-auto p-3 sm:p-6">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-base">{editing ? "Edit" : "New"} Supervision — Full Rubric</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="space-y-1"><Label className="text-[11px]">Teacher</Label>
-                <select value={form.teacher_id} onChange={e => setForm(p => ({ ...p, teacher_id: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" disabled={!!editing}>
-                  <option value="">Select...</option>{teachers.map((t: any) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-                </select></div>
-              <div className="space-y-1"><Label className="text-[11px]">Grade</Label>
-                <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
-                  {[7,8,9,10,11,12].map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
-              <div className="space-y-1"><Label className="text-[11px]">Subject</Label>
-                <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
-                  {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
-              <div className="space-y-1"><Label className="text-[11px]">Class</Label>
-                <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" /></div>
-            </div>
-            <div className="flex gap-2 items-center">
-              <Label className="text-[11px] shrink-0">Date</Label>
-              <input type="date" value={form.observation_date} onChange={e => setForm(p => ({ ...p, observation_date: e.target.value }))} className="h-8 text-xs rounded-md border border-input bg-background px-2" />
-            </div>
+      {/* Inline scoring form — no card, no dialog */}
+      {createOpen && (
+        <div className="space-y-4 py-4 border-y border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">{editing ? "Edit" : "New"} Supervision — Full Rubric</h2>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setCreateOpen(false)}><X className="h-4 w-4" /></Button>
+          </div>
 
-            <Separator />
-            <p className="text-[11px] text-muted-foreground">Rate 0-4. Slider or click number. Default: <strong>4</strong> (All of the time).</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="space-y-1"><Label className="text-[11px]">Teacher</Label>
+              <select value={form.teacher_id} onChange={e => setForm(p => ({ ...p, teacher_id: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" disabled={!!editing}>
+                <option value="">Select...</option>{teachers.map((t: any) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+              </select></div>
+            <div className="space-y-1"><Label className="text-[11px]">Grade</Label>
+              <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
+                {[7,8,9,10,11,12].map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
+            <div className="space-y-1"><Label className="text-[11px]">Subject</Label>
+              <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
+                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
+            <div className="space-y-1"><Label className="text-[11px]">Class</Label>
+              <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" /></div>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Label className="text-[11px] shrink-0">Date</Label>
+            <input type="date" value={form.observation_date} onChange={e => setForm(p => ({ ...p, observation_date: e.target.value }))} className="h-8 text-xs rounded-md border border-input bg-background px-2" />
+          </div>
 
-            {/* Compact rubric */}
-            {TPA_CATEGORIES.map(cat => {
-              const catScores = scores[cat.key] || {}
-              const raw = cat.items.reduce((sum, item) => sum + (catScores[item.id] ?? 4), 0)
-              const max = cat.items.length * 4
-              return (
-                <div key={cat.key} className="border-b border-border pb-2 last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-xs sm:text-sm">{cat.label} <span className="text-muted-foreground font-normal">({cat.weight}%)</span></h3>
-                    <span className="text-[10px] text-muted-foreground">{raw}/{max} · {max > 0 ? Math.round((raw / max) * 100) : 0}%</span>
-                  </div>
-                  <div className="divide-y divide-border/30">
-                    {cat.items.map(item => (
-                      <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1">
-                        <span className="text-[10px] sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 4}
-                            onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
-                            className="w-14 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
-                          <span className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${(catScores[item.id] ?? 4) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 4) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                            {catScores[item.id] ?? 4}
-                          </span>
-                          <div className="flex gap-px">
-                            {[0,1,2,3,4].map(v => (
-                              <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm text-[7px] sm:text-[9px] font-medium transition-all ${(catScores[item.id] ?? 4) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          <Separator />
+          <p className="text-[11px] text-muted-foreground">Rate 0-4. Slider or click number. Default: <strong>4</strong> (All of the time).</p>
+
+          {TPA_CATEGORIES.map(cat => {
+            const catScores = scores[cat.key] || {}
+            const raw = cat.items.reduce((sum, item) => sum + (catScores[item.id] ?? 4), 0)
+            const max = cat.items.length * 4
+            return (
+              <div key={cat.key} className="border-b border-border pb-2 last:border-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-semibold text-xs sm:text-sm">{cat.label} <span className="text-muted-foreground font-normal">({cat.weight}%)</span></h3>
+                  <span className="text-[10px] text-muted-foreground">{raw}/{max} · {max > 0 ? Math.round((raw / max) * 100) : 0}%</span>
                 </div>
-              )
-            })}
-
-            {/* Compact results */}
-            {computedTotals && (
-              <div className="py-2">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
-                  {computedTotals.details.map(d => (
-                    <div key={d.key} className="text-center">
-                      <p className="text-[9px] text-muted-foreground truncate">{d.label}</p>
-                      <p className="text-xs font-bold">{d.max > 0 ? ((d.raw / d.max) * d.weight).toFixed(1) : "0"}%</p>
-                      <div className="h-1 rounded-full bg-muted mt-0.5 overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${d.max > 0 ? (d.raw / d.max) * 100 : 0}%` }} />
+                <div className="divide-y divide-border/30">
+                  {cat.items.map(item => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 4}
+                          onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
+                          className="w-14 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
+                        <span className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${(catScores[item.id] ?? 4) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 4) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                          {catScores[item.id] ?? 4}
+                        </span>
+                        <div className="flex gap-px">
+                          {[0,1,2,3,4].map(v => (
+                            <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm text-[7px] sm:text-[9px] font-medium transition-all ${(catScores[item.id] ?? 4) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-sm font-bold">Total: {computedTotals.total.toFixed(1)}%</span>
-                  <Badge className={`text-[10px] ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
-                    {getGradeLabel(computedTotals.total)}
-                  </Badge>
-                </div>
               </div>
-            )}
+            )
+          })}
 
-            {/* AI Feedback */}
-            {computedTotals && (
-              <div className="py-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-semibold">AI Feedback</h3>
-                  <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={generateFeedback}>
-                    Generate
-                  </Button>
-                </div>
-                {aiFeedback && (
-                  <textarea readOnly value={aiFeedback} rows={3}
-                    className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
-                )}
+          {computedTotals && (
+            <div className="py-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
+                {computedTotals.details.map(d => (
+                  <div key={d.key} className="text-center">
+                    <p className="text-[9px] text-muted-foreground truncate">{d.label}</p>
+                    <p className="text-xs font-bold">{d.max > 0 ? ((d.raw / d.max) * d.weight).toFixed(1) : "0"}%</p>
+                    <div className="h-1 rounded-full bg-muted mt-0.5 overflow-hidden">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${d.max > 0 ? (d.raw / d.max) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-sm font-bold">Total: {computedTotals.total.toFixed(1)}%</span>
+                <Badge className={`text-[10px] ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                  {getGradeLabel(computedTotals.total)}
+                </Badge>
+              </div>
+            </div>
+          )}
 
-            <DialogFooter className="gap-2">
-              <Button size="sm" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button size="sm" variant="outline" onClick={() => handleSave(false)} disabled={saving}>Save Draft</Button>
-              <Button size="sm" onClick={() => handleSave(true)} disabled={saving} className="bg-green-600 hover:bg-green-700">
-                <Send className="mr-1 h-3 w-3" /> Submit & Publish
-              </Button>
-            </DialogFooter>
+          {computedTotals && (
+            <div className="py-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-semibold">AI Feedback</h3>
+                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={generateFeedback}>Generate</Button>
+              </div>
+              {aiFeedback && (
+                <textarea readOnly value={aiFeedback} rows={3} className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button size="sm" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => handleSave(false)} disabled={saving}>Save Draft</Button>
+            <Button size="sm" onClick={() => handleSave(true)} disabled={saving} className="bg-green-600 hover:bg-green-700">
+              <Send className="mr-1 h-3 w-3" /> Submit & Publish
+            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* View Dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null) }}>
