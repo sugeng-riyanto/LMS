@@ -29,8 +29,8 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
-  const { isSuperAdmin, isTeacher } = useRBAC()
-  const canView = isSuperAdmin || isTeacher
+  const { isSuperAdmin, isTeacher, isPrincipal } = useRBAC()
+  const canView = isSuperAdmin || isTeacher || isPrincipal
   const [filterGrade, setFilterGrade] = useState<number | "all">("all")
   const [subjectFilter, setSubjectFilter] = useState("all")
   const [data, setData] = useState<AnalyticsData | null>(null)

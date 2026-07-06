@@ -9,8 +9,8 @@ import { GRADES, GRADE_LABELS, ROUTES } from "@/lib/utils/constants"
 
 export default function GradesPage() {
   const { data: packages, isLoading } = usePackages()
-  const { isSuperAdmin, isTeacher } = useRBAC()
-  const canView = isSuperAdmin || isTeacher
+  const { isSuperAdmin, isTeacher, isPrincipal } = useRBAC()
+  const canView = isSuperAdmin || isTeacher || isPrincipal
 
   if (!canView) {
     return (
