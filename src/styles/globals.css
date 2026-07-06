@@ -140,4 +140,25 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* Responsive table wrapper */
+  table {
+    @apply w-full;
+  }
+  .responsive-table {
+    @apply overflow-x-auto -mx-3 sm:-mx-0;
+  }
+  .responsive-table > table {
+    @apply min-w-[600px] sm:min-w-0;
+  }
+  /* Card grid responsive */
+  .card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+  /* Responsive stack */
+  .stack-responsive {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4;
+  }
+  /* Hide scrollbar for mobile nav */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }

@@ -49,7 +49,7 @@ export default function MobileNav() {
     : allMobileNavItems
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t bg-background lg:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex overflow-x-auto border-t bg-background lg:hidden scrollbar-hide">
       {mobileNavItems.map((item) => {
         const Icon = item.icon
         const active = pathname === item.href
@@ -58,12 +58,12 @@ export default function MobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium",
+              "flex shrink-0 flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] font-medium min-w-0",
               active ? "text-primary" : "text-muted-foreground",
             )}
           >
-            <Icon className="h-5 w-5" />
-            {item.label}
+            <Icon className="h-4 w-4" />
+            <span className="whitespace-nowrap">{item.label}</span>
           </Link>
         )
       })}
