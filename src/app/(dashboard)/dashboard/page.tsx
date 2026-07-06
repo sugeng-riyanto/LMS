@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { usePackages } from "@/hooks/use-packages"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   FileText,
@@ -80,7 +81,13 @@ function StatusBadge({ status }: { status: WeeklyPackage["status"] }) {
 export default function DashboardPage() {
   const { profile } = useAuth()
   const { data: packages, isLoading } = usePackages()
-  const { role, canManagePackages, isStudent, isSuperAdmin, isTeacher } = useRBAC()
+  const { role, canManagePackages, isStudent, isSuperAdmin, isTeacher, isPrincipal } = useRBAC()
+  const router = useRouter()
+
+  // Redirect principals to their dedicated dashboard
+  useEffect(() => {
+    if (isPrincipal) router.replace("/principal")
+  }, [isPrincipal, router])
 
   const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; syllabus_plans: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], syllabus_plans: [], submissions: {} })
   const [subjectFilter, setSubjectFilter] = useState("all")
