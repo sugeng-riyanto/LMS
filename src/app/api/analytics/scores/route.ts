@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { data: students } = await query
 
     if (!students || students.length === 0) {
-      return NextResponse.json({ students: [], summary: {} })
+      return NextResponse.json({ students: [], summary: [], total_submissions: 0, grand_weighted_total: 0 })
     }
 
     const studentIds = students.map((s: any) => s.id)

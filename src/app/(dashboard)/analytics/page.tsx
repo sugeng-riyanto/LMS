@@ -257,7 +257,7 @@ export default function AnalyticsPage() {
                     {sortAsc ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => {
-                    if (!scoreData?.students) return
+                    if (!scoreData?.students || !Array.isArray(scoreData.summary)) return
                     const rows = [["Grade", "Student", ...scoreData.summary.map((s: any) => s.label), "Weighted Total"]]
                     filteredStudents.forEach((st: any) => {
                       rows.push([`G${st.grade_assigned}`, st.full_name, ...st.breakdown.map((b: any) => b.average.toFixed(1)), st.weighted_total.toFixed(1)])
@@ -283,7 +283,7 @@ export default function AnalyticsPage() {
                 <div className="space-y-6">
                   {/* Grade Summary */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                    {scoreData.summary.map((s: any) => (
+                    {Array.isArray(scoreData.summary) && scoreData.summary.map((s: any) => (
                       <div key={s.category} className="rounded-lg border p-2 text-center">
                         <p className="text-[10px] text-muted-foreground uppercase">{s.label}</p>
                         <p className="text-lg font-bold">{s.average.toFixed(1)}</p>
@@ -307,7 +307,7 @@ export default function AnalyticsPage() {
                             Student {sortAsc ? "↑" : "↓"}
                           </th>
                           <th className="p-1.5 text-center font-medium w-10">Grade</th>
-                          {scoreData.summary.map((s: any) => (
+                          {Array.isArray(scoreData.summary) && scoreData.summary.map((s: any) => (
                             <th key={s.category} className="p-1.5 text-center font-medium">{s.label}<br /><span className="text-[9px] text-muted-foreground">({s.weight*100}%)</span></th>
                           ))}
                           <th className="p-1.5 text-center font-medium">Total</th>
@@ -317,7 +317,7 @@ export default function AnalyticsPage() {
                       </thead>
                       <tbody>
                         {filteredStudents.length === 0 ? (
-                          <tr><td colSpan={scoreData.summary.length + 5} className="p-4 text-center text-muted-foreground text-xs">No students match your search.</td></tr>
+                          <tr><td colSpan={Array.isArray(scoreData.summary) ? scoreData.summary.length + 5 : 5} className="p-4 text-center text-muted-foreground text-xs">No students match your search.</td></tr>
                         ) : filteredStudents.map((st: any, idx: number) => (
                           <tr key={st.student_id} className="border-b hover:bg-muted/50">
                             <td className="p-1.5 text-muted-foreground text-[10px]">{idx + 1}</td>
