@@ -32,15 +32,15 @@ export default function UpdatePasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return }
-    if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return }
+    if (newPassword.length < 6) { toast.error("Password minimal 6 karakter"); return }
+    if (newPassword !== confirmPassword) { toast.error("Konfirmasi password tidak cocok"); return }
     setLoading(true)
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) { toast.error(error.message); return }
       setDone(true)
-      toast.success("Password updated! Redirecting to login...")
+      toast.success("Password berhasil diubah! Mengalihkan ke login...")
       setTimeout(() => router.push("/login"), 2000)
     } catch { toast.error("Failed to update password") }
     finally { setLoading(false) }

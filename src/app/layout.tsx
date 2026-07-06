@@ -7,6 +7,7 @@ import { ToastProvider } from "@/providers/toast-provider"
 import { AuthProvider } from "@/providers/auth-provider"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { CriticalPagePrefetcher } from "@/components/critical-page-prefetcher"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,11 +15,22 @@ const inter = Inter({
   display: "swap",
 })
 
-export const metadata: Metadata = {
-  title: "Physics Command Center",
-  description: "AI-Powered Physics Teaching Platform for SHB Modernhill",
-  manifest: "/manifest.json",
-  icons: { icon: "/api/favicon", apple: "/icons/icon.svg" },
+export async function generateMetadata(): Promise<Metadata> {
+  let brandName = "SHB Learning Hub"
+  try {
+    const supabase = createAdminClient()
+    const { data } = await (supabase.from("school_settings") as any)
+      .select("brand_name")
+      .eq("id", 1)
+      .single()
+    if (data?.brand_name) brandName = data.brand_name
+  } catch {}
+  return {
+    title: brandName,
+    description: `${brandName} — AI-Powered Learning Platform for SHB Modernhill`,
+    manifest: "/manifest.json",
+    icons: { icon: "/api/favicon", apple: "/icons/icon.svg" },
+  }
 }
 
 export default function RootLayout({

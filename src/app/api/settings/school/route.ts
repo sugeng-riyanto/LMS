@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const allowed = [
-      "school_name", "vp_name", "principal_name",
+      "school_name", "brand_name", "vp_name", "principal_name",
       "shs_vp_name", "shs_principal_name",
       "unit", "address", "phone", "email", "logo_url",
     ]

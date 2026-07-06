@@ -898,6 +898,7 @@ export default function SettingsPage() {
 function SchoolSettings() {
   const [form, setForm] = useState({
     school_name: "Sekolah Harapan Bangsa - Modernhill",
+    brand_name: "SHB Learning Hub",
     vp_name: "Christina Sri Waryanti, S.Pd.",
     principal_name: "Sisilia Juni Arianti, S.Pd., M.Pd.",
     shs_vp_name: "Aji Wahyu Budiyanto, M.Si",
@@ -913,6 +914,7 @@ function SchoolSettings() {
     fetch("/api/settings/school").then((r) => r.json()).then((d) => {
       setForm({
         school_name: d.school_name ?? "",
+        brand_name: d.brand_name ?? "SHB Learning Hub",
         vp_name: d.vp_name ?? "", principal_name: d.principal_name ?? "",
         shs_vp_name: d.shs_vp_name ?? "", shs_principal_name: d.shs_principal_name ?? "",
         unit: d.unit ?? "", logo_url: d.logo_url ?? "",
@@ -983,6 +985,11 @@ function SchoolSettings() {
         <div className="space-y-1">
           <Label>School Name</Label>
           <Input value={form.school_name} onChange={(e) => setForm((p) => ({ ...p, school_name: e.target.value }))} />
+        </div>
+
+        <div className="space-y-1">
+          <Label>Brand Name (app title shown to users)</Label>
+          <Input value={form.brand_name} onChange={(e) => setForm((p) => ({ ...p, brand_name: e.target.value }))} />
         </div>
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">

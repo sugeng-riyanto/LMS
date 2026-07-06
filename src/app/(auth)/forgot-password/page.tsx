@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import toast from "react-hot-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle } from "lucide-react"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -24,22 +24,24 @@ export default function ForgotPasswordPage() {
       toast.error(error.message)
     } else {
       setSent(true)
-      toast.success("Check your email for the reset link.")
+      toast.success("Tautan reset telah dikirim ke email.")
     }
   }
 
   if (sent) {
     return (
       <div className="space-y-4 text-center">
-        <h2 className="text-lg font-semibold">Check your inbox</h2>
+        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+        <h2 className="text-lg font-semibold">Email Terkirim</h2>
         <p className="text-sm text-muted-foreground">
-          If an account exists for <strong>{email}</strong>, you&apos;ll receive a password reset link shortly.
+          Jika akun dengan <strong>{email}</strong> terdaftar, Anda akan menerima tautan reset password dalam beberapa saat.
+          Periksa kotak masuk atau folder spam Anda.
         </p>
         <Link
           href="/login"
           className="inline-block text-sm text-primary hover:underline"
         >
-          Back to sign in
+          Kembali ke Login
         </Link>
       </div>
     )
@@ -48,9 +50,9 @@ export default function ForgotPasswordPage() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Reset password</h2>
+        <h2 className="text-lg font-semibold">Lupa Password</h2>
         <p className="text-sm text-muted-foreground">
-          Enter your email and we&apos;ll send you a reset link.
+          Masukkan email Anda dan kami akan mengirimkan tautan reset password.
         </p>
       </div>
       <div className="space-y-2">
@@ -60,7 +62,7 @@ export default function ForgotPasswordPage() {
         <input
           id="reset-email"
           type="email"
-          placeholder="you@school.edu"
+          placeholder="nama@shb.sch.id"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -73,12 +75,12 @@ export default function ForgotPasswordPage() {
         className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Send reset link
+        Kirim Tautan Reset
       </button>
       <p className="text-center text-sm text-muted-foreground">
-        Remember your password?{" "}
+        Ingat password?{" "}
         <Link href="/login" className="text-primary hover:underline">
-          Sign in
+          Masuk
         </Link>
       </p>
     </form>
