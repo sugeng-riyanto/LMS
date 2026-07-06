@@ -187,6 +187,54 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── Demo Access ── */}
+      <section className="py-16 bg-gradient-to-b from-background to-secondary/30">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-12">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Demo Access</p>
+            <h2 className="mt-3 text-2xl font-bold text-foreground">Try the Platform</h2>
+            <p className="mt-2 text-muted-foreground">Use these credentials to explore the platform. All demo data is isolated from production content.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="font-bold text-foreground mb-3">👩‍🏫 Teachers</h3>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">JHS (Grades 7–9) — Physics & Mathematics</p>
+                  <p className="font-mono text-sm font-medium text-foreground">budi@shb.sch.id</p>
+                  <p className="font-mono text-sm text-muted-foreground">demo123</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">SHS (Grades 10–12) — Chemistry & Biology</p>
+                  <p className="font-mono text-sm font-medium text-foreground">dewi@shb.sch.id</p>
+                  <p className="font-mono text-sm text-muted-foreground">demo123</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="font-bold text-foreground mb-3">🧑‍🎓 Students</h3>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Grade 8A — Physics & Mathematics</p>
+                  <p className="font-mono text-sm text-foreground">ahmad8 / bella8 / citra8 / dimas8 / eka8</p>
+                  <p className="font-mono text-xs text-muted-foreground">@shb.sch.id · password: demo123</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Grade 11A — Chemistry & Biology</p>
+                  <p className="font-mono text-sm text-foreground">fajar11 / gita11 / hendra11 / intan11 / joko11</p>
+                  <p className="font-mono text-xs text-muted-foreground">@shb.sch.id · password: demo123</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:scale-105 active:scale-95">
+              Sign In with Demo Account
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="bg-gradient-to-r from-primary/90 via-primary to-[oklch(0.4_0.12_280)] py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
