@@ -74,9 +74,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileSidebarOpen(false)} />
       )}
-      <div className="flex flex-1 flex-col pb-16 lg:pb-0 min-w-0">
+      <div className="flex flex-1 flex-col pb-16 lg:pb-0 min-w-0 max-w-full">
         <Header onMenuToggle={() => setMobileSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6">{children}</main>
       </div>
       <MobileNav />
     </div>
