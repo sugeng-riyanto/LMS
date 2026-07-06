@@ -2,8 +2,9 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
-import { LogOut, User, Shield, FlaskConical, Menu } from "lucide-react"
+import { LogOut, User, Shield, FlaskConical, Menu, Sun, Moon } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useTheme } from "next-themes"
 import { ROLE_LABELS } from "@/lib/utils/constants"
 import { useSchoolSettings } from "@/hooks/use-school-settings"
 import { NotificationBell } from "@/components/notifications/NotificationBell"
@@ -17,6 +18,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile, signOut } = useAuth()
   const { role, isStudent } = useRBAC()
   const { data: school } = useSchoolSettings()
+  const { theme, setTheme } = useTheme()
   const router = useRouter()
 
   async function handleSignOut() {
@@ -42,6 +44,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </div>
       <div className="flex-1" />
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="rounded-lg p-2 text-muted-foreground hover:bg-accent transition-colors"
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
         <FontSizeToggle />
         {isStudent && <NotificationBell />}
         <div className="flex items-center gap-2 text-sm">
