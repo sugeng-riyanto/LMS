@@ -35,7 +35,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       >
         <Menu className="h-5 w-5" />
       </button>
-      <div className="flex items-center gap-1.5 sm:gap-2 md:hidden min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden min-w-0">
         {school?.logo_url ? (
           <img src={school.logo_url} alt={school.school_name} className="h-5 w-5 sm:h-6 sm:w-6 rounded object-contain shrink-0" />
         ) : (

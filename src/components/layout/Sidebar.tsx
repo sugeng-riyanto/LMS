@@ -75,7 +75,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     : allNavItems
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar transition-transform duration-300 md:static md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-2">
           {school?.logo_url ? (
@@ -85,7 +85,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           )}
           <span className="text-sm font-semibold truncate">{school?.school_name ?? APP_NAME}</span>
         </div>
-        <button onClick={onMobileClose} className="rounded-lg p-1 text-muted-foreground hover:bg-accent md:hidden">
+        <button onClick={onMobileClose} className="rounded-lg p-1 text-muted-foreground hover:bg-accent lg:hidden">
           <X className="h-4 w-4" />
         </button>
       </div>

@@ -71,9 +71,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
       {/* Overlay for mobile/tablet */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 md:bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <div className="flex flex-1 flex-col pb-16 md:pb-0 min-w-0">
+      <div className="flex flex-1 flex-col pb-16 lg:pb-0 min-w-0">
         <Header onMenuToggle={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
       </div>
