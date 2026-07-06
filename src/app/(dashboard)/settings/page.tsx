@@ -749,12 +749,20 @@ export default function SettingsPage() {
 
                 {PROVIDER_INSTRUCTIONS[providerForm.provider_type] && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                    <div className="flex items-center gap-1 font-semibold mb-1">
+                    <div className="flex items-center gap-1 font-semibold mb-2">
                       <Info className="h-3 w-3" />
                       {PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_source}
                     </div>
-                    <p>Dapatkan API key di: <a href={PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_url} target="_blank" rel="noopener noreferrer" className="underline">{PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_url}</a></p>
-                    <p className="mt-1">{PROVIDER_INSTRUCTIONS[providerForm.provider_type].notes}</p>
+                    <p className="mb-2">
+                      <a href={PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_url} target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                        Open {PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_source} →
+                      </a>
+                    </p>
+                    <ol className="space-y-1.5 list-decimal list-inside">
+                      {PROVIDER_INSTRUCTIONS[providerForm.provider_type].steps.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
                   </div>
                 )}
 
