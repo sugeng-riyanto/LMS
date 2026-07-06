@@ -118,7 +118,7 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  const authRoutes = ["/login", "/register", "/forgot-password"]
+  const authRoutes = ["/login", "/register", "/forgot-password", "/update-password"]
   const isAuthPage = authRoutes.some((route) => pathname.startsWith(route))
   const isProtectedRoute = pathname.startsWith("/dashboard") || matchProtectedRoute(pathname)
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(
@@ -64,6 +65,13 @@ export async function PUT(
       if (body[field] !== undefined) updates[field] = body[field]
     }
     updates.updated_at = new Date().toISOString()
+
+    // Sync email with Supabase Auth if super_admin changed it
+    if (user.role === "super_admin" && body.email !== undefined) {
+      const admin = createAdminClient()
+      const { error: authError } = await admin.auth.admin.updateUserById(id, { email: body.email })
+      if (authError) return NextResponse.json({ error: `Auth update failed: ${authError.message}` }, { status: 500 })
+    }
 
     const { data, error } = await (supabase
       .from("profiles") as any)

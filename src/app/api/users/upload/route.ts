@@ -26,11 +26,15 @@ export async function POST(request: NextRequest) {
 
     for (const row of rows) {
       rowNum++
-      const email = (row.email ?? "").trim()
+      let email = (row.email ?? "").trim()
       const full_name = (row.full_name ?? "").trim()
       const role = (row.role ?? "").trim().toLowerCase()
       const gradeRaw = (row.grade_assigned ?? "").toString().trim()
       const grade = gradeRaw ? parseInt(gradeRaw) : null
+
+      // Auto-append @shb.sch.id if no @ sign
+      if (email && !email.includes("@")) email += "@shb.sch.id"
+      email = email.toLowerCase()
 
       if (!email || !full_name) {
         results.push({ row: rowNum, email, status: "skipped", error: "email or full_name is empty" })

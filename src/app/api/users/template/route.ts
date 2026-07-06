@@ -11,26 +11,26 @@ export async function GET() {
 
     const data = [
       ["email", "full_name", "role", "grade_assigned"],
-      ["teacher@shb.sch.id", "Budi Santoso", "teacher", 10],
-      ["student7@shb.sch.id", "Ani Putri", "student", 7],
-      ["lab@shb.sch.id", "Siti Rahma", "lab_assistant", ""],
+      ["budi", "Budi Santoso", "teacher", 10],
+      ["ani.putri", "Ani Putri", "student", 7],
+      ["siti.rahma", "Siti Rahma", "lab_assistant", ""],
     ]
     const wsData = XLSX.utils.aoa_to_sheet(data)
-    wsData["!cols"] = [{ wch: 30 }, { wch: 20 }, { wch: 18 }, { wch: 15 }]
+    wsData["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 15 }]
     XLSX.utils.book_append_sheet(wb, wsData, "Data")
 
     const instructions = [
       ["COLUMN", "REQUIRED", "DESCRIPTION", "EXAMPLE"],
-      ["email", "YES", "Unique email address", "teacher@shb.sch.id"],
+      ["email", "YES", "Username (auto-appended @shb.sch.id) or full email", "budi"],
       ["full_name", "YES", "Full name", "Budi Santoso"],
       ["role", "YES", "super_admin | teacher | lab_assistant | student", "teacher"],
       ["grade_assigned", "NO", "Grade 7-12 (required for student & teacher)", "10"],
       [],
       ["NOTES:"],
-      ["- First row (header) must match: email, full_name, role, grade_assigned"],
+      ["- email: just type username (e.g. 'budi') → auto becomes budi@shb.sch.id. Or use full email."],
+      ["- Password auto-generated: SHB-xxxxxx (users must change on first login)"],
       ["- Role values: super_admin, teacher, lab_assistant, student (lowercase)"],
       ["- grade_assigned: 7-12 for students/teachers, leave blank for super_admin/lab_assistant"],
-      ["- Temporary password auto-generated: SHB-xxxxxx"],
       ["- Duplicate emails are skipped automatically"],
     ]
     const wsInstr = XLSX.utils.aoa_to_sheet(instructions)

@@ -46,7 +46,8 @@ export default function SettingsPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
   const [inviteForm, setInviteForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7 })
-  const [editForm, setEditForm] = useState({ role: "student" as UserProfile["role"], grade: 7 })
+  const [editForm, setEditForm] = useState({ email: "", role: "student" as UserProfile["role"], grade: 7 })
+  const [resettingPw, setResettingPw] = useState<string | null>(null)
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -92,17 +93,19 @@ export default function SettingsPage() {
 
   function openEditDialog(user: UserProfile) {
     setEditingUser(user)
-    setEditForm({ role: user.role, grade: user.grade_assigned ?? 7 })
+    setEditForm({ email: user.email ?? "", role: user.role, grade: user.grade_assigned ?? 7 })
     setEditOpen(true)
   }
 
   async function handleEditRole() {
     if (!editingUser) return
     try {
+      const body: Record<string, any> = { role: editForm.role, grade_assigned: editForm.grade }
+      if (editForm.email !== editingUser.email) body.email = editForm.email
       const res = await fetch(`/api/profiles/${editingUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: editForm.role, grade_assigned: editForm.grade }),
+        body: JSON.stringify(body),
       })
       if (res.ok) {
         toast.success("User updated!")
@@ -110,10 +113,33 @@ export default function SettingsPage() {
         setEditingUser(null)
         fetchUsers()
       } else {
-        toast.error("Failed to update user.")
+        const err = await res.json().catch(() => ({ error: "Failed" }))
+        toast.error(err.error ?? "Failed to update user.")
       }
     } catch {
       toast.error("Failed to update user.")
+    }
+  }
+
+  async function handleResetPassword(userId: string, userName: string) {
+    if (!confirm(`Reset password for ${userName}?`)) return
+    setResettingPw(userId)
+    try {
+      const res = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Temporary password: ${data.temp_password}`, { duration: 10000 })
+      } else {
+        toast.error(data.error ?? "Failed to reset password")
+      }
+    } catch {
+      toast.error("Failed to reset password")
+    } finally {
+      setResettingPw(null)
     }
   }
 
@@ -480,6 +506,10 @@ export default function SettingsPage() {
                               <Settings className="mr-1 h-3 w-3" />
                               Edit
                             </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleResetPassword(user.id, user.full_name)} disabled={resettingPw === user.id}>
+                              <Key className="mr-1 h-3 w-3" />
+                              {resettingPw === user.id ? "..." : "Reset PW"}
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -498,6 +528,14 @@ export default function SettingsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
+                  <div className="space-y-1">
+                    <Label>Email</Label>
+                    <Input
+                      value={editForm.email}
+                      onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+                      placeholder="user@shb.sch.id"
+                    />
+                  </div>
                   <div className="space-y-1">
                     <Label>Role</Label>
                     <select
