@@ -20,7 +20,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
   async function handleSignOut() {
     await signOut()
-    router.push("/login")
+    router.push("/")
   }
 
   return (

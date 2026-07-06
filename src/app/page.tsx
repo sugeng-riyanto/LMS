@@ -37,15 +37,15 @@ export default async function LandingPage() {
             <span className="text-lg font-bold text-gray-900">{name}</span>
           </div>
           <nav className="hidden items-center gap-6 sm:flex">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900">Fitur</a>
-            <a href="#teachers" className="text-sm font-medium text-gray-600 hover:text-gray-900">Guru</a>
-            <a href="#students" className="text-sm font-medium text-gray-600 hover:text-gray-900">Siswa</a>
+            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900">Features</a>
+            <a href="#teachers" className="text-sm font-medium text-gray-600 hover:text-gray-900">Teachers</a>
+            <a href="#students" className="text-sm font-medium text-gray-600 hover:text-gray-900">Students</a>
             <Link href="/login" className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md">
-              Masuk
+              Sign In
             </Link>
           </nav>
           <Link href="/login" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:hidden">
-            Masuk
+            Sign In
           </Link>
         </div>
       </header>
@@ -57,22 +57,23 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/80 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-green-400" />
-              Platform Resmi SHB Modernhill
+              Official Platform — SHB Modernhill
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Kelola Pembelajaran <br />
-              <span className="text-blue-200">Multi-Mata Pelajaran</span>
+              Multi-Subject Learning <br />
+              <span className="text-blue-200">Management, Reimagined</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-blue-100">
-              {name} membantu guru merencanakan, mengelola, dan mengevaluasi pembelajaran Fisika, Matematika, Kimia, Biologi, dan Ekonomi — terintegrasi dalam satu platform.
+              {name} empowers educators to design, deliver, and evaluate instruction across Physics,
+              Mathematics, Chemistry, Biology, and Economics — all within a single, integrated ecosystem.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 hover:shadow-xl">
-                Mulai Sekarang
+                Get Started
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
               </Link>
               <a href="#features" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 text-base font-medium text-white transition hover:bg-white/10">
-                Lihat Fitur
+                Explore Features
               </a>
             </div>
           </div>
@@ -85,10 +86,10 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {[
-              { label: "Mata Pelajaran", value: "5" },
-              { label: "Jenjang Kelas", value: "7–12" },
-              { label: "Pengguna Aktif", value: "500+" },
-              { label: "Materi Digital", value: "1000+" },
+              { label: "Subjects Covered", value: "5" },
+              { label: "Grade Levels", value: "7–12" },
+              { label: "Active Users", value: "500+" },
+              { label: "Digital Resources", value: "1,000+" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <p className="text-3xl font-bold text-blue-600">{s.value}</p>
@@ -103,18 +104,18 @@ export default async function LandingPage() {
       <section id="features" className="scroll-mt-20 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">Fitur Unggulan</p>
-            <h2 className="mt-3 text-3xl font-bold text-gray-900">Semua yang Anda Butuhkan</h2>
-            <p className="mt-4 text-gray-600">Dari perencanaan silabus hingga publikasi nilai — satu ekosistem untuk seluruh mata pelajaran.</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">Core Capabilities</p>
+            <h2 className="mt-3 text-3xl font-bold text-gray-900">Everything You Need</h2>
+            <p className="mt-4 text-gray-600">From syllabus planning to grade publication — a unified platform spanning every subject.</p>
           </div>
           <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: "📋", title: "Silabus Digital", desc: "Rencanakan silabus per minggu, per kelas, dan per mata pelajaran. Lengkap dengan referensi Cambridge." },
-              { icon: "📝", title: "Worksheet Interaktif", desc: "Unggah PDF, siswa mengerjakan langsung di browser — annotasi, drawing, dan teks." },
-              { icon: "🤖", title: "AI Content Generator", desc: "Buat rencana pelajaran, worksheet, dan soal secara otomatis dengan bantuan AI." },
-              { icon: "📊", title: "Analitik Akademik", desc: "Pantau perkembangan siswa per kategori nilai dengan visualisasi grafik dan bobot otomatis." },
-              { icon: "✅", title: "Grading & Publish", desc: "Koreksi, beri skor, feedback, dan publikasikan nilai ke siswa dalam satu klik." },
-              { icon: "📱", title: "Akses Mobile", desc: "Siswa bisa mengakses tugas, mengumpulkan, dan melihat nilai dari ponsel." },
+              { icon: "📋", title: "Digital Syllabus", desc: "Plan syllabi by week, grade level, and subject. Fully aligned with Cambridge curriculum references." },
+              { icon: "📝", title: "Interactive Worksheets", desc: "Upload PDF worksheets; students annotate, draw, and respond directly in the browser." },
+              { icon: "🤖", title: "AI-Assisted Generation", desc: "Automatically generate lesson plans, worksheets, and assessment items using artificial intelligence." },
+              { icon: "📊", title: "Academic Analytics", desc: "Monitor student progress across assessment categories with graphical visualisations and weighted calculations." },
+              { icon: "✅", title: "Grading & Publishing", desc: "Evaluate submissions, provide targeted feedback, and publish scores to students with a single action." },
+              { icon: "📱", title: "Mobile Accessibility", desc: "Students can access assignments, submit work, and review scores from any device." },
             ].map((f) => (
               <div key={f.title} className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-blue-100 hover:shadow-md">
                 <div className="mb-4 text-3xl">{f.icon}</div>
@@ -131,15 +132,15 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">Untuk Guru</p>
-              <h2 className="mt-3 text-3xl font-bold text-gray-900">Fokus Mengajar, Bukan Administrasi</h2>
+              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">For Educators</p>
+              <h2 className="mt-3 text-3xl font-bold text-gray-900">Teach, Don&apos;t Administrative</h2>
               <ul className="mt-8 space-y-4">
                 {[
-                  "Buat silabus & RPP dengan template Cambridge — satu klik untuk semua kelas.",
-                  "Unggah worksheet PDF, siswa mengerjakan & mengumpulkan secara digital.",
-                  "Koreksi otomatis dengan AI, beri feedback personal, publikasi nilai instant.",
-                  "Pantau progress tiap siswa per kategori: Classwork, UTS, Proyek, dll.",
-                  "Ekspor nilai ke Excel untuk rapor dan distribusi.",
+                  "Create syllabi and lesson plans using Cambridge-aligned templates — deploy across all your classes simultaneously.",
+                  "Upload PDF worksheets that students complete and submit digitally, eliminating paper workflows.",
+                  "Leverage AI for preliminary grading, deliver personalised feedback, and publish results instantly.",
+                  "Track each student's performance by category: Classwork, Unit Tests, Projects, Homework, and Semester Examinations.",
+                  "Export comprehensive grade reports to Excel for report cards and administrative distribution.",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">{i + 1}</span>
@@ -153,11 +154,11 @@ export default async function LandingPage() {
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg">👩‍🏫</div>
                   <div>
-                    <p className="font-semibold text-gray-900">Pak Sugeng</p>
-                    <p className="text-sm text-gray-500">Guru Fisika & Kimia</p>
+                    <p className="font-semibold text-gray-900">Mr. Sugeng</p>
+                    <p className="text-sm text-gray-500">Physics & Chemistry Instructor</p>
                   </div>
                 </div>
-                <p className="text-gray-700 italic">&ldquo;Saya bisa mengelola 6 kelas dan 2 mata pelajaran sekaligus dari satu dashboard. Upload silabus, generate RPP, langsung publish ke siswa.&rdquo;</p>
+                <p className="text-gray-700 italic">&ldquo;I manage six classes across two subjects from a single dashboard. I upload syllabi, generate lesson plans, and publish everything to my students in minutes.&rdquo;</p>
               </div>
             </div>
           </div>
@@ -174,22 +175,22 @@ export default async function LandingPage() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-lg">🧑‍🎓</div>
                   <div>
                     <p className="font-semibold text-gray-900">Aisha</p>
-                    <p className="text-sm text-gray-500">Siswi Kelas 10</p>
+                    <p className="text-sm text-gray-500">Grade 10 Student</p>
                   </div>
                 </div>
-                <p className="text-gray-700 italic">&ldquo;Saya bisa lihat semua tugas dari berbagai guru di satu tempat. Kerjakan worksheet online, kumpul, dan lihat nilai langsung.&rdquo;</p>
+                <p className="text-gray-700 italic">&ldquo;I can see all my assignments from every teacher in one place. I complete worksheets online, submit them, and check my scores immediately.&rdquo;</p>
               </div>
             </div>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">Untuk Siswa</p>
-              <h2 className="mt-3 text-3xl font-bold text-gray-900">Belajar Jadi Lebih Mudah</h2>
+              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">For Learners</p>
+              <h2 className="mt-3 text-3xl font-bold text-gray-900">Learning, Simplified</h2>
               <ul className="mt-8 space-y-4">
                 {[
-                  "Lihat tugas & materi dari semua guru mata pelajaran di satu dashboard.",
-                  "Kerjakan worksheet langsung di browser — annotasi, drawing, dan teks.",
-                  "Kumpulkan tugas dengan sekali klik; status otomatis terpantau.",
-                  "Lihat nilai dan progres belajar per kategori dengan grafik interaktif.",
-                  "Catat mistake journal untuk setiap mata pelajaran — guru bisa beri feedback.",
+                  "Access assignments and materials from all subject teachers through a consolidated dashboard.",
+                  "Complete interactive worksheets directly in your browser with annotation, drawing, and text tools.",
+                  "Submit work with a single click; submission status updates automatically.",
+                  "Review your scores and academic progress across categories through interactive charts.",
+                  "Maintain a mistake journal for each subject — teachers can review and provide feedback.",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-600">{i + 1}</span>
@@ -206,16 +207,16 @@ export default async function LandingPage() {
       <section className="border-y border-gray-100 bg-gray-50/50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Mata Pelajaran yang Didukung</h2>
-            <p className="mt-2 text-gray-600">Setiap mata pelajaran memiliki silabus, worksheet, dan grading yang terpisah — guru hanya mengelola subjeknya masing-masing.</p>
+            <h2 className="text-2xl font-bold text-gray-900">Supported Subjects</h2>
+            <p className="mt-2 text-gray-600">Each subject maintains its own syllabus, worksheets, and grading pipeline — teachers manage only the disciplines assigned to them.</p>
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
             {[
-              { code: "PHY", name: "Fisika", icon: "⚛️" },
-              { code: "MAT", name: "Matematika", icon: "📐" },
-              { code: "CHE", name: "Kimia", icon: "🧪" },
-              { code: "BIO", name: "Biologi", icon: "🧬" },
-              { code: "ECO", name: "Ekonomi", icon: "📊" },
+              { code: "PHY", name: "Physics", icon: "⚛️" },
+              { code: "MAT", name: "Mathematics", icon: "📐" },
+              { code: "CHE", name: "Chemistry", icon: "🧪" },
+              { code: "BIO", name: "Biology", icon: "🧬" },
+              { code: "ECO", name: "Economics", icon: "📊" },
             ].map((s) => (
               <div key={s.code} className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm transition hover:border-blue-200 hover:shadow">
                 <div className="text-3xl">{s.icon}</div>
@@ -230,11 +231,11 @@ export default async function LandingPage() {
       {/* ── CTA ── */}
       <section className="bg-gradient-to-r from-blue-600 to-indigo-700 py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white">Siap Mengelola Pembelajaran dengan Lebih Baik?</h2>
-          <p className="mt-4 text-lg text-blue-100">Gabung sekarang — gratis untuk guru SHB Modernhill.</p>
+          <h2 className="text-3xl font-bold text-white">Ready to Transform Your Teaching?</h2>
+          <p className="mt-4 text-lg text-blue-100">Join your colleagues — complimentary access for all SHB Modernhill educators.</p>
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 hover:shadow-xl">
-              Masuk ke {name}
+              Sign In to {name}
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </Link>
           </div>
@@ -256,8 +257,8 @@ export default async function LandingPage() {
               <span className="text-sm font-semibold text-gray-900">{name}</span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="#features" className="text-sm text-gray-500 hover:text-gray-900">Fitur</a>
-              <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900">Masuk</Link>
+              <a href="#features" className="text-sm text-gray-500 hover:text-gray-900">Features</a>
+              <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900">Sign In</Link>
             </div>
           </div>
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">

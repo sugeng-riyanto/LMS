@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import toast from "react-hot-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Home } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -30,7 +30,12 @@ export default function LoginPage() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Sign in</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Sign in</h2>
+          <Link href="/" className="text-muted-foreground hover:text-primary transition-colors" title="Home">
+            <Home className="h-4 w-4" />
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground">Enter your credentials to continue</p>
       </div>
       <div className="space-y-2">
