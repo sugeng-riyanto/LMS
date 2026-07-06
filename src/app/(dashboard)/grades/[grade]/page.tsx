@@ -29,6 +29,10 @@ export default function GradePackagesPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const canEdit = isSuperAdmin || isTeacher
 
+  if (!isSuperAdmin && !isTeacher) {
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">Access denied.</div>
+  }
+
   const existingWeekNumbers = new Set(packages?.map((p) => p.week) ?? [])
   const needsCurrentWeek = !existingWeekNumbers.has(CURRENT_WEEK)
 

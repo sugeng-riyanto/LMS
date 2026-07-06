@@ -24,6 +24,10 @@ export default function PackageDetailPage() {
   const pkg = packages?.[0]
   const { isSuperAdmin, isTeacher } = useRBAC()
   const { mutateAsync: approvePackage } = useApprovePackage()
+
+  if (!isSuperAdmin && !isTeacher) {
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">Access denied.</div>
+  }
   const { mutateAsync: publishPackage } = usePublishPackage()
   const { mutateAsync: updatePackage } = useUpdatePackage()
   const [exportOpen, setExportOpen] = useState(false)

@@ -6,9 +6,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const supabase = createAdminClient()
+    const { createServerSupabaseClient } = await import("@/lib/supabase/server")
+    const { requireRole } = await import("@/lib/supabase/require-role")
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    if (authError) return authError
 
+    const { id } = await params
     const { data, error } = await (supabase.from("shared_worksheets") as any)
       .select("*")
       .eq("id", id)

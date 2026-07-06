@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Save, Sparkles, Send, RotateCcw, ArrowLeft } from "lucide-react"
 import toast from "react-hot-toast"
 import { PDFPageBackground } from "@/components/pdf-page-background"
+import { useRBAC } from "@/hooks/use-rbac"
 
 const CATEGORIES = [
   { value: "classwork", label: "Classwork", weight: "40%" },
@@ -37,6 +38,11 @@ function ReviewContent() {
   const studentId = searchParams.get("studentId") || ""
   const studentName = searchParams.get("studentName") || "Student"
   const studentGrade = searchParams.get("studentGrade") || ""
+
+  const { isSuperAdmin, isTeacher } = useRBAC()
+  if (!isSuperAdmin && !isTeacher) {
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">Access denied.</div>
+  }
 
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
