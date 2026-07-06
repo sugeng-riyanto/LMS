@@ -239,9 +239,9 @@ export default function WorksheetsPage() {
         if (!(window as any).pdfjsLib) {
           await new Promise<void>((resolve, reject) => {
             const script = document.createElement("script")
-            script.src = "/pdfjs/pdf.js"
+            script.src = "/pdfjs/pdf.min.js"
             script.onload = () => {
-              ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.js"
+              ;(window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js"
               resolve()
             }
             script.onerror = reject

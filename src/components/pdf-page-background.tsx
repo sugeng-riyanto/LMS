@@ -11,7 +11,7 @@ function ensurePdfjsLib(): Promise<any> {
   if (pdfjsLibPromise) return pdfjsLibPromise
   if (typeof window !== "undefined" && (window as any).pdfjsLib) {
     const lib = (window as any).pdfjsLib
-    lib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.js"
+    lib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js"
     pdfjsLibPromise = Promise.resolve(lib)
     return pdfjsLibPromise
   }
@@ -19,17 +19,17 @@ function ensurePdfjsLib(): Promise<any> {
     pdfjsLoading = true
     pdfjsLibPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script")
-      script.src = "/pdfjs/pdf.js"
+      script.src = "/pdfjs/pdf.min.js"
       script.onload = () => {
         const lib = (window as any).pdfjsLib
         if (!lib) { reject(new Error("pdfjsLib not found after script load")); return }
-        lib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.js"
+        lib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js"
         resolve(lib)
         pendingCallbacks.forEach(cb => cb(lib))
         pendingCallbacks.length = 0
       }
       script.onerror = () => {
-        const err = new Error("Failed to load /pdfjs/pdf.js")
+        const err = new Error("Failed to load /pdfjs/pdf.min.js")
         reject(err)
         pendingCallbacks.forEach(cb => cb(null))
         pendingCallbacks.length = 0

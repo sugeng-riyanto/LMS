@@ -392,7 +392,7 @@ ${mediaHtml ? `<div class="bg-white rounded-2xl shadow-sm border p-6 space-y-3">
 </div>
 </div>
 
-<script src="/pdfjs/pdf.js"></script>
+<script src="/pdfjs/pdf.min.js"></script>
 <script>
 var PDF_URL = ${JSON.stringify(directPdfUrl)}
 var PDF_EMBED = ${JSON.stringify(embedPdfUrl)}
@@ -401,7 +401,7 @@ var WORKSHEET_ID = ${JSON.stringify(id)}
 var GRADE = ${grade}
 var SAVE_DIRTY = false
 function markDirty() { SAVE_DIRTY = true }
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js'
 
 var CS = {}
 var TOTAL_PAGES = 0

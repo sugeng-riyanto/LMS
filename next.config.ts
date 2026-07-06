@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+    optimizePackageImports: ["lucide-react", "date-fns", "@radix-ui/react-checkbox"],
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
 }
 
