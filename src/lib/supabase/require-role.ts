@@ -36,3 +36,11 @@ export async function requireRole(allowedRoles: Role[]) {
 
   return { supabase, user, profile, error: null }
 }
+
+export async function getTeacherSubjects(supabase: any, userId: string): Promise<string[]> {
+  const { data } = await (supabase
+    .from("teacher_assignments") as any)
+    .select("subject")
+    .eq("teacher_id", userId)
+  return [...new Set<string>((data ?? []).map((r: any) => r.subject))]
+}

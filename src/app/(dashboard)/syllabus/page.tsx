@@ -108,9 +108,9 @@ export default function SyllabusPlannerPage() {
     setLoading(true)
     try {
       const [topicsRes, eventsRes, planRes] = await Promise.all([
-        supabase.from("syllabus_topics").select("*").eq("grade", selectedGrade).order("unit_id"),
+        supabase.from("syllabus_topics").select("*").eq("grade", selectedGrade).eq("subject", plan.subject).order("unit_id"),
         supabase.from("academic_calendars").select("*").contains("affected_grades", [selectedGrade]).eq("week_number", selectedWeek).order("start_date"),
-        supabase.from("syllabus_planning").select("*").eq("grade", selectedGrade).eq("week_number", selectedWeek).maybeSingle(),
+        supabase.from("syllabus_planning").select("*").eq("grade", selectedGrade).eq("week_number", selectedWeek).eq("subject", plan.subject || "PHY").maybeSingle(),
       ])
 
       if (topicsRes.data) setTopics(topicsRes.data as SyllabusTopic[])
@@ -154,7 +154,7 @@ export default function SyllabusPlannerPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedGrade, selectedWeek])
+  }, [selectedGrade, selectedWeek, plan.subject])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -298,6 +298,7 @@ export default function SyllabusPlannerPage() {
         .eq("academic_year", "2026-2027")
         .eq("grade", selectedGrade)
         .eq("week_number", selectedWeek)
+        .eq("subject", plan.subject || "PHY")
         .maybeSingle()
 
       const payload = {

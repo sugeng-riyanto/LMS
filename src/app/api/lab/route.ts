@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -15,6 +15,12 @@ export async function GET(request: NextRequest) {
 
     if (category) query = query.eq("category", category)
     if (subject) query = query.eq("subject", subject)
+    // Teachers can only see their own subject's inventory
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (subjects.length > 0) query = query.in("subject", subjects)
+    }
 
     query = query.order("item_name")
 

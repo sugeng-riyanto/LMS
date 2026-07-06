@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const studentId = searchParams.get("student_id")
     const grade = searchParams.get("grade")
+    const subject = searchParams.get("subject")
 
     let query = (supabase.from("mistake_journals") as any).select("*")
 
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
     } else {
       if (studentId) query = query.eq("student_id", studentId)
       if (grade) query = query.eq("grade", parseInt(grade))
+      if (subject) query = query.eq("subject", subject)
     }
 
     query = query.order("created_at", { ascending: false })
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest) {
         root_cause: body.root_cause ?? null,
         correct_approach: body.correct_approach ?? null,
         law_or_principle: body.law_or_principle ?? null,
+        subject: body.subject ?? null,
         related_package_id: body.related_package_id ?? null,
         teacher_feedback: canGiveFeedback ? (body.teacher_feedback ?? null) : null,
       })

@@ -19,9 +19,10 @@ export async function GET(request: NextRequest) {
     if (subject) wsQuery = wsQuery.eq("subject", subject)
 
     let sylDocQuery = (supabase.from("syllabus_documents") as any)
-      .select("id,grade,file_name,file_type,published,created_at,score_category")
+      .select("id,grade,file_name,file_type,published,created_at,score_category,subject")
       .eq("grade", parseInt(grade))
       .eq("published", true)
+    if (subject) sylDocQuery = sylDocQuery.eq("subject", subject)
 
     let sylPlanQuery = (supabase.from("syllabus_planning") as any)
       .select("id,grade,week_number,topic,published,created_at,score_category,status,subject")

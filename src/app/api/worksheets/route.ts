@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -20,6 +20,12 @@ export async function GET(request: NextRequest) {
       const idArr = ids.split(",").filter(Boolean)
       if (idArr.length > 0) query = query.in("id", idArr)
     }
+    // Teachers can only see their own subject's worksheets
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (subjects.length > 0) query = query.in("subject", subjects)
+    }
 
     const { data, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -31,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const body = await request.json()
@@ -40,6 +46,15 @@ export async function POST(request: NextRequest) {
     }
     if (!body.pdf_url && (!body.page_images || body.page_images.length === 0)) {
       return NextResponse.json({ error: "pdf_url or page_images is required" }, { status: 400 })
+    }
+
+    // Teachers can only create worksheets for their own subjects
+    if (profile?.role === "teacher" && body.subject) {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (!subjects.includes(body.subject)) {
+        return NextResponse.json({ error: "You can only create worksheets for your assigned subjects" }, { status: 403 })
+      }
     }
 
     const validCats = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]

@@ -30,6 +30,12 @@ export async function GET(request: NextRequest) {
     if (profile?.role === "lab_assistant") {
       query = query.select("id, grade, week_number, topic, lab_logistics, status, calendar_status")
     }
+    // Teachers can only see their own subject's packages
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (subjects.length > 0) query = query.in("subject", subjects)
+    }
     if (grade && profile?.role !== "student") {
       query = query.eq("grade", parseInt(grade))
     }

@@ -94,6 +94,7 @@ async function runSingleOrchestration(executionId: string, grade: number, _body:
         lab_logistics: result.lab_logistics,
         answer_keys: result.answer_keys,
         wa_blast: result.broadcast.wa_message,
+        subject: "PHY",
         status: "pending_review",
     }, { onConflict: "academic_year, grade, week_number" })
 

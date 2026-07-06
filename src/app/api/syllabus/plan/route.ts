@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "student"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
     if (grade) query = query.eq("grade", parseInt(grade))
     if (week) query = query.eq("week_number", parseInt(week))
     if (subject) query = query.eq("subject", subject)
+    // Teachers can only see their own subject's plans
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (subjects.length > 0) query = query.in("subject", subjects)
+    }
 
     const { data, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -31,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const body = await request.json()
@@ -39,6 +45,15 @@ export async function POST(request: NextRequest) {
 
     if (!grade || !week_number || !topic) {
       return NextResponse.json({ error: "grade, week_number, and topic are required" }, { status: 400 })
+    }
+
+    // Teachers can only create plans for their own subjects
+    if (profile?.role === "teacher" && body.subject) {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (!subjects.includes(body.subject)) {
+        return NextResponse.json({ error: "You can only create plans for your assigned subjects" }, { status: 403 })
+      }
     }
 
     const validCats = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]

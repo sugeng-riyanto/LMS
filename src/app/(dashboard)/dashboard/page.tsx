@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils/cn"
 import { Badge } from "@/components/ui/badge"
 import SubjectTabs from "@/components/ui/subject-tabs"
-import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS } from "@/lib/utils/constants"
+import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS, SUBJECTS } from "@/lib/utils/constants"
 import type { WeeklyPackage } from "@/types/package"
 
 function StatCard({
@@ -182,6 +182,10 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-medium">{ws.title}</p>
                       <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}</p>
+                      {ws.subject && (() => {
+                        const s = SUBJECTS.find(x => x.code === ws.subject)
+                        return <span className="text-[10px] text-muted-foreground">{s ? `${s.icon} ${s.name}` : ws.subject}</span>
+                      })()}
                     </div>
                     {sub && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -216,6 +220,10 @@ export default function DashboardPage() {
                 <div key={sp.id} className="flex items-center gap-2 rounded-lg border p-3">
                   <BookOpen className="h-4 w-4 text-violet-500 shrink-0" />
                   <span className="text-sm font-medium">{sp.topic || "Syllabus Plan"}{sp.week_number ? ` (Week ${sp.week_number})` : ""}</span>
+                  {sp.subject && (() => {
+                    const s = SUBJECTS.find(x => x.code === sp.subject)
+                    return <span className="text-[10px] text-muted-foreground ml-auto">{s ? `${s.icon} ${s.name}` : sp.subject}</span>
+                  })()}
                 </div>
               ))}
               {(published.syllabi.length + (published.syllabus_plans?.length || 0)) > 4 && (

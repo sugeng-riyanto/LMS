@@ -3,15 +3,25 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const formData = await request.formData()
     const file = formData.get("file") as File | null
     const grade = formData.get("grade") as string | null
+    const subject = formData.get("subject") as string | null
 
-    if (!file || !grade) {
-      return NextResponse.json({ error: "File and grade are required" }, { status: 400 })
+    if (!file || !grade || !subject) {
+      return NextResponse.json({ error: "File, grade, and subject are required" }, { status: 400 })
+    }
+
+    // Teachers can only upload for their own subjects
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (!subjects.includes(subject)) {
+        return NextResponse.json({ error: "You can only upload documents for your assigned subjects" }, { status: 403 })
+      }
     }
 
     const buf = Buffer.from(await file.arrayBuffer())
@@ -24,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await (supabase.from("syllabus_documents") as any).insert({
       grade: parseInt(grade),
-      subject: "Physics",
+      subject,
       file_name: file.name,
       file_type: ext,
       file_content: ext === "pdf" || ext === "xlsx" ? "[binary file]" : content,

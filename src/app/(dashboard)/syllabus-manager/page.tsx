@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Download, FileText, FileSpreadsheet, BookOpen, CheckCircle, Trash2, ExternalLink, Video, Music, Link } from "lucide-react"
-import { GRADES } from "@/lib/utils/constants"
+import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 export default function SyllabusManagerPage() {
@@ -18,13 +18,14 @@ export default function SyllabusManagerPage() {
 
   const [activeTab, setActiveTab] = useState("upload")
   const [selectedGrade, setSelectedGrade] = useState(10)
+  const [selectedSubject, setSelectedSubject] = useState("PHY")
   const [uploading, setUploading] = useState<string | null>(null)
   const [docs, setDocs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (canManage) {
-      fetch(`/api/syllabus/documents?grade=${selectedGrade}`)
+      fetch(`/api/syllabus/documents?grade=${selectedGrade}&subject=${selectedSubject}`)
         .then((r) => r.json())
         .then((d) => setDocs(Array.isArray(d) ? d : []))
         .catch(() => {})
@@ -41,10 +42,10 @@ export default function SyllabusManagerPage() {
       if (!file) return
       setUploading(format)
       const fd = new FormData()
-      fd.append("file", file); fd.append("grade", String(selectedGrade))
+      fd.append("file", file); fd.append("grade", String(selectedGrade)); fd.append("subject", selectedSubject)
       try {
         const res = await fetch("/api/syllabus/upload", { method: "POST", body: fd })
-        if (res.ok) { toast.success("Uploaded!"); fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs) }
+        if (res.ok) { toast.success("Uploaded!"); fetch(`/api/syllabus/documents?grade=${selectedGrade}&subject=${selectedSubject}`).then(r => r.json()).then(setDocs) }
         else { const e = await res.json(); toast.error(e.error || "Failed") }
       } catch { toast.error("Failed") }
       finally { setUploading(null) }
@@ -82,6 +83,11 @@ export default function SyllabusManagerPage() {
           <select value={selectedGrade} onChange={(e) => setSelectedGrade(Number(e.target.value))}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm">
             {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+          </select>
+          <Label className="text-xs">Subject</Label>
+          <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm">
+            {SUBJECTS.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
           </select>
         </div>
       </div>
@@ -168,6 +174,7 @@ export default function SyllabusManagerPage() {
                             <option value="final_semester" selected={doc.score_category === "final_semester"}>Final Semester</option>
                           </select>
                           <Badge variant="outline" className="text-[10px]">G{doc.grade}</Badge>
+                          {doc.subject && <Badge variant="secondary" className="text-[10px]">{SUBJECTS.find(s => s.code === doc.subject)?.icon} {doc.subject}</Badge>}
                           <Button size="sm" variant={doc.published ? "default" : "outline"} className={"h-7 text-[10px] px-2" + (doc.published ? " bg-green-600 hover:bg-green-700 text-white border-green-600" : "")} onClick={async () => {
                             try {
                               const res = await fetch(`/api/syllabus/documents/${doc.id}`, {
@@ -178,7 +185,7 @@ export default function SyllabusManagerPage() {
                               if (res.ok) {
                                 doc.published = !doc.published
                                 toast.success(doc.published ? "Published to dashboard!" : "Unpublished")
-                                fetch(`/api/syllabus/documents?grade=${selectedGrade}`).then(r => r.json()).then(setDocs)
+                                fetch(`/api/syllabus/documents?grade=${selectedGrade}&subject=${selectedSubject}`).then(r => r.json()).then(setDocs)
                               } else toast.error("Failed")
                             } catch { toast.error("Failed") }
                           }}>

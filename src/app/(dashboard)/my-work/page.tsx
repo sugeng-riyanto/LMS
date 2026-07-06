@@ -12,6 +12,7 @@ import { Send, CheckCircle, Clock, Eye, EyeOff, Trash2, ArrowLeft, FileText, Ext
 import Link from "next/link"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
 import SubjectTabs from "@/components/ui/subject-tabs"
+import { SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 function getCanvasPos(canvas: HTMLCanvasElement, e: MouseEvent | TouchEvent) {
@@ -117,6 +118,7 @@ interface PublishedItem {
   topic?: string
   file_name?: string
   score_category?: string
+  subject?: string
   created_at: string
 }
 
@@ -367,6 +369,10 @@ export default function MyWorkPage() {
                   <div>
                     <p className="text-sm font-medium">{sy.file_name || "Syllabus Document"}</p>
                     <p className="text-xs text-muted-foreground">Grade {sy.grade} · {sy.topic || "Syllabus"}</p>
+                    {sy.subject && (() => {
+                      const s = SUBJECTS.find(x => x.code === sy.subject)
+                      return <span className="text-[10px] text-muted-foreground">{s ? `${s.icon} ${s.name}` : sy.subject}</span>
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -389,6 +395,10 @@ export default function MyWorkPage() {
                   <div>
                     <p className="text-sm font-medium">{sp.topic || "Syllabus Plan"}</p>
                     <p className="text-xs text-muted-foreground">Grade {sp.grade}{sp.week_number ? ` · Week ${sp.week_number}` : ""}{sp.score_category ? ` · ${sp.score_category.replace(/_/g, " ")}` : ""}</p>
+                    {sp.subject && (() => {
+                      const s = SUBJECTS.find(x => x.code === sp.subject)
+                      return <span className="text-[10px] text-muted-foreground">{s ? `${s.icon} ${s.name}` : sp.subject}</span>
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -417,6 +427,10 @@ export default function MyWorkPage() {
                   <div>
                     <p className="text-sm font-medium">{ws.title}</p>
                     <p className="text-xs text-muted-foreground">Grade {ws.grade}{ws.week_number ? ` · Week ${ws.week_number}` : ""}{ws.topic ? ` · ${ws.topic}` : ""}</p>
+                    {ws.subject && (() => {
+                      const s = SUBJECTS.find(x => x.code === ws.subject)
+                      return <span className="text-[10px] text-muted-foreground">{s ? `${s.icon} ${s.name}` : ws.subject}</span>
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

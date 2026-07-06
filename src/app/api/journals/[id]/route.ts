@@ -63,8 +63,8 @@ export async function PUT(
     }
 
     const allowedFields = user.role === "super_admin" || user.role === "teacher"
-      ? ["mistake_description", "root_cause", "correct_approach", "law_or_principle", "teacher_feedback", "topic", "grade"]
-      : ["mistake_description", "root_cause", "correct_approach", "law_or_principle"]
+      ? ["mistake_description", "root_cause", "correct_approach", "law_or_principle", "teacher_feedback", "topic", "grade", "subject"]
+      : ["mistake_description", "root_cause", "correct_approach", "law_or_principle", "subject"]
 
     const updates: Record<string, unknown> = {}
     for (const field of allowedFields) {

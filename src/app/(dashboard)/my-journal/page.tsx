@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Pencil, Trash2, Save, X } from "lucide-react"
+import { SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 interface JournalEntry {
@@ -18,6 +20,7 @@ interface JournalEntry {
   root_cause: string
   correct_approach: string
   law_or_principle: string
+  subject: string | null
   teacher_feedback: string | null
   created_at: string
 }
@@ -28,6 +31,7 @@ const emptyForm = {
   root_cause: "",
   correct_approach: "",
   law_or_principle: "",
+  subject: "PHY",
 }
 
 export default function MyJournalPage() {
@@ -61,6 +65,7 @@ export default function MyJournalPage() {
       const body = {
         ...form,
         grade: profile.grade_assigned,
+        subject: form.subject || null,
       }
       let res: Response
       if (editingId) {
@@ -110,6 +115,7 @@ export default function MyJournalPage() {
       root_cause: entry.root_cause ?? "",
       correct_approach: entry.correct_approach ?? "",
       law_or_principle: entry.law_or_principle ?? "",
+      subject: entry.subject ?? "PHY",
     })
     setEditingId(entry.id)
     setShowForm(true)
@@ -162,6 +168,13 @@ export default function MyJournalPage() {
               <Label>Law / Principle</Label>
               <Input value={form.law_or_principle} onChange={(e) => setForm((p) => ({ ...p, law_or_principle: e.target.value }))} placeholder="Relevant law or principle" />
             </div>
+            <div className="space-y-1">
+              <Label>Subject</Label>
+              <select value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+              </select>
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleSubmit}>
                 <Save className="mr-1 h-4 w-4" />
@@ -204,6 +217,10 @@ export default function MyJournalPage() {
                       <span className="text-xs text-muted-foreground">
                         {new Date(entry.created_at).toLocaleDateString()}
                       </span>
+                      {entry.subject && (() => {
+                        const s = SUBJECTS.find(x => x.code === entry.subject)
+                        return <Badge variant="outline" className="text-[10px]">{s ? `${s.icon} ${s.name}` : entry.subject}</Badge>
+                      })()}
                     </div>
                     <p className="text-sm">
                       <span className="font-medium">Mistake:</span> {entry.mistake_description}

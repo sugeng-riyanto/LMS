@@ -57,6 +57,7 @@ export default function WorksheetsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
   const [loading, setLoading] = useState(true)
+  const [subjectFilter, setSubjectFilter] = useState("PHY")
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -128,14 +129,18 @@ export default function WorksheetsPage() {
     })
   }
 
-  async function load() {
+  async function load(subject?: string) {
     try {
-      const res = await fetch("/api/worksheets")
+      const params = subject ? `?subject=${subject}` : ""
+      const res = await fetch("/api/worksheets" + params)
       if (res.ok) setWorksheets(await res.json())
     } catch {} finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    setLoading(true)
+    load(subjectFilter)
+  }, [subjectFilter])
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
@@ -285,6 +290,14 @@ export default function WorksheetsPage() {
         <Button onClick={() => showForm ? handleCancel() : setShowForm(true)}>
           <Plus className="mr-1 h-4 w-4" /> {showForm ? "Close" : "New Worksheet"}
         </Button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Label className="text-sm whitespace-nowrap">Subject:</Label>
+        <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm">
+          {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+        </select>
       </div>
 
       {showForm && (

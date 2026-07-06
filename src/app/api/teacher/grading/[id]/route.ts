@@ -7,11 +7,22 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
+
+    // Teachers can only grade their own subject's work
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      const { data: work } = await (supabase.from("student_work") as any)
+        .select("subject").eq("id", id).single()
+      if (work && work.subject && !subjects.includes(work.subject)) {
+        return NextResponse.json({ error: "You can only grade your own subject's submissions" }, { status: 403 })
+      }
+    }
 
     const updates: Record<string, unknown> = {
       score: body.score ?? null,
@@ -48,11 +59,22 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
+
+    // Teachers can only auto-grade their own subject's work
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      const { data: work } = await (supabase.from("student_work") as any)
+        .select("subject").eq("id", id).single()
+      if (work && work.subject && !subjects.includes(work.subject)) {
+        return NextResponse.json({ error: "You can only grade your own subject's submissions" }, { status: 403 })
+      }
+    }
 
     // Get the student's answer
     const { data: work, error: fetchError } = await (supabase.from("student_work") as any)

@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     if (studentId) query = query.eq("student_id", studentId)
     if (status && status !== "all") query = query.eq("status", status)
     if (subject) query = query.eq("subject", subject)
+    // Teachers can only grade their own subject's submissions
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      const subjects = await getTeacherSubjects(supabase, user.id)
+      if (subjects.length > 0) query = query.in("subject", subjects)
+    }
 
     // If grade filter, first get student IDs for that grade
     if (grade && grade !== "all") {

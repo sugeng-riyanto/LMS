@@ -31,6 +31,7 @@ export default function GradingPage() {
   const router = useRouter()
 
   const [assignedGrades, setAssignedGrades] = useState<number[]>([...GRADES])
+  const [assignedSubjects, setAssignedSubjects] = useState<string[]>([])
   const [grade, setGrade] = useState(0) // 0 = all
   const [filterCat, setFilterCat] = useState("all")
   const [subjectFilter, setSubjectFilter] = useState("all")
@@ -49,7 +50,9 @@ export default function GradingPage() {
       .then(r => r.json()).then((data: any[]) => {
         if (Array.isArray(data) && data.length) {
           const grades = [...new Set(data.map((a: any) => a.grade))].sort()
+          const subjects = [...new Set(data.map((a: any) => a.subject).filter(Boolean))]
           setAssignedGrades(grades)
+          setAssignedSubjects(subjects)
         }
       }).catch(() => {})
   }, [canView, profile])
@@ -264,7 +267,10 @@ export default function GradingPage() {
             <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm">
               <option value="all">All Subjects</option>
-              {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+              {(assignedSubjects.length > 0
+                ? SUBJECTS.filter(s => assignedSubjects.includes(s.code))
+                : SUBJECTS
+              ).map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>
         </div>
