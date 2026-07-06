@@ -28,10 +28,17 @@ export default function MyWeekPage() {
   const [progress, setProgress] = useState<any>(null)
   const [subjectFilter, setSubjectFilter] = useState("all")
   const [workStatus, setWorkStatus] = useState<{ submitted: number; total: number; graded: number; score: number | null }>({ submitted: 0, total: 3, graded: 0, score: null })
+  const [publishedItems, setPublishedItems] = useState<{ worksheets: any[]; syllabi: any[]; syllabus_plans: any[] }>({ worksheets: [], syllabi: [], syllabus_plans: [] })
 
   useEffect(() => {
     if (!profile?.id) return
     const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
+    // Fetch published items for this grade
+    fetch(`/api/published-items?grade=${grade}${subjectParam}`)
+      .then(r => r.json())
+      .then(d => setPublishedItems(d))
+      .catch(() => {})
+    // Fetch progress + work status
     Promise.all([
       fetch(`/api/student/progress${subjectParam}`).then(r => r.json()).catch(() => null),
       fetch(`/api/student-work?${pkg?.id ? `package_id=${pkg.id}` : ""}`).then(r => r.json()).catch(() => []),
@@ -44,7 +51,7 @@ export default function MyWeekPage() {
         setWorkStatus({ submitted, total: submitted || 3, graded, score: submitted > 0 ? score : null })
       }
     })
-  }, [profile, pkg, subjectFilter])
+  }, [profile, pkg, subjectFilter, grade])
 
   const lp = pkg?.lesson_plan as Record<string, unknown> | undefined
   const phases = (lp?.phases as Array<Record<string, unknown>>) ?? []
@@ -86,7 +93,10 @@ export default function MyWeekPage() {
       <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
       {!pkg ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">No published package for this week.</CardContent></Card>
+        <Card><CardContent className="py-8 text-center">
+          <p className="text-muted-foreground">No published weekly package for this week.</p>
+          <p className="text-xs text-muted-foreground mt-1">Your assigned worksheets and syllabi are shown below.</p>
+        </CardContent></Card>
       ) : (
         <>
           {/* BROADCAST */}
@@ -219,6 +229,40 @@ export default function MyWeekPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Published Worksheets & Syllabi */}
+      {publishedItems.worksheets.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">📝 Published Worksheets</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {publishedItems.worksheets.map((ws: any) => (
+              <div key={ws.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">{ws.title}</p>
+                  <p className="text-xs text-muted-foreground">{ws.subject} · {ws.score_category?.replace(/_/g, " ") || "No category"}</p>
+                </div>
+                <Badge variant="outline" className="text-[10px] capitalize">{ws.score_category?.replace(/_/g, " ") || "—"}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      {publishedItems.syllabus_plans.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">📋 Syllabus Plans</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {publishedItems.syllabus_plans.map((sp: any) => (
+              <div key={sp.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">{sp.topic || "Syllabus Plan"}</p>
+                  <p className="text-xs text-muted-foreground">{sp.subject} · Week {sp.week_number}</p>
+                </div>
+                <Badge variant="outline" className="text-[10px] capitalize">{sp.score_category?.replace(/_/g, " ") || "—"}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </div>
   )
