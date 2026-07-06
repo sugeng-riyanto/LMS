@@ -22,7 +22,7 @@ export async function GET() {
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#faf8f5",
-    theme_color: "#6d5acf",
+    theme_color: "#4f7bdf",
     orientation: "portrait-primary",
     icons: [
       {

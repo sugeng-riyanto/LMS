@@ -44,13 +44,13 @@ export default async function LandingPage() {
             <a href="#students" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Students</a>
             <a href="#demo" className="text-sm font-medium text-primary font-semibold hover:text-primary/80 transition-colors">Demo Access</a>
             <LandingThemeToggle />
-            <Link href="/login" className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:scale-105 active:scale-95">
+            <Link href="/login" className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:scale-105 active:scale-95">
               Sign In
             </Link>
           </nav>
           <div className="flex items-center gap-2 sm:hidden">
             <LandingThemeToggle />
-            <Link href="/login" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90">
+            <Link href="/login" className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition-all duration-300 hover:opacity-90">
               Sign In
             </Link>
           </div>
@@ -58,7 +58,7 @@ export default async function LandingPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/90 via-primary to-[oklch(0.4_0.12_280)]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/90 via-primary to-[oklch(0.4_0.12_255)]">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
@@ -242,7 +242,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="bg-gradient-to-r from-primary/90 via-primary to-[oklch(0.4_0.12_280)] py-20">
+      <section className="bg-gradient-to-r from-primary/90 via-primary to-[oklch(0.4_0.12_255)] py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-primary-foreground">Ready to Transform Your Teaching?</h2>
           <p className="mt-4 text-lg text-primary-foreground/80">Join your colleagues — complimentary access for all SHB Modernhill educators.</p>

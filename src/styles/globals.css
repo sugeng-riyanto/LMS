@@ -41,36 +41,40 @@
 
 :root {
   --radius: 0.75rem;
-  /* Warm, eye-comfort light palette — reduced blue light, soft contrast */
+  /* Psychology-based palette for LMS:
+     Blue → Trust, Reliability (education needs trust)
+     Orange → Action, Enthusiasm (CTAs without urgency)
+     Green → Growth, Learning (progress/success)
+     Warm neutrals → Eye comfort for long sessions
+     60-30-10 rule: 60% bg, 30% secondary, 10% accent */
   --background: oklch(0.97 0.008 80);
-  --foreground: oklch(0.22 0.015 70);
+  --foreground: oklch(0.2 0.015 70);
   --card: oklch(0.985 0.005 80);
-  --card-foreground: oklch(0.22 0.015 70);
+  --card-foreground: oklch(0.2 0.015 70);
   --popover: oklch(0.985 0.005 80);
-  --popover-foreground: oklch(0.22 0.015 70);
-  --primary: oklch(0.48 0.1 280);
+  --popover-foreground: oklch(0.2 0.015 70);
+  --primary: oklch(0.5 0.14 255);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.94 0.01 280);
-  --secondary-foreground: oklch(0.28 0.02 70);
-  --muted: oklch(0.945 0.008 280);
-  --muted-foreground: oklch(0.55 0.02 70);
-  --accent: oklch(0.92 0.015 290);
-  --accent-foreground: oklch(0.28 0.02 70);
+  --secondary: oklch(0.94 0.008 80);
+  --secondary-foreground: oklch(0.25 0.015 70);
+  --muted: oklch(0.945 0.006 80);
+  --muted-foreground: oklch(0.55 0.015 70);
+  --accent: oklch(0.65 0.15 40);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.55 0.18 25);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.88 0.01 80);
-  --input: oklch(0.88 0.01 80);
-  --ring: oklch(0.48 0.1 280);
+  --border: oklch(0.88 0.008 80);
+  --input: oklch(0.88 0.008 80);
+  --ring: oklch(0.5 0.14 255);
   --sidebar: oklch(0.98 0.004 80);
-  --sidebar-foreground: oklch(0.22 0.015 70);
-  --sidebar-accent: oklch(0.93 0.01 280);
-  --sidebar-accent-foreground: oklch(0.28 0.02 70);
-  --chart-1: oklch(0.55 0.12 280);
-  --chart-2: oklch(0.6 0.08 200);
-  --chart-3: oklch(0.42 0.07 230);
-  --chart-4: oklch(0.7 0.1 80);
-  --chart-5: oklch(0.65 0.09 40);
-  /* Font size scale */
+  --sidebar-foreground: oklch(0.2 0.015 70);
+  --sidebar-accent: oklch(0.93 0.008 80);
+  --sidebar-accent-foreground: oklch(0.25 0.015 70);
+  --chart-1: oklch(0.5 0.14 255);
+  --chart-2: oklch(0.6 0.12 200);
+  --chart-3: oklch(0.65 0.15 40);
+  --chart-4: oklch(0.55 0.15 145);
+  --chart-5: oklch(0.45 0.1 280);
   --font-size-base: 1rem;
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
@@ -81,34 +85,34 @@
 }
 
 .dark {
-  --background: oklch(0.15 0.01 70);
+  --background: oklch(0.14 0.01 70);
   --foreground: oklch(0.93 0.005 80);
-  --card: oklch(0.22 0.012 70);
+  --card: oklch(0.2 0.012 70);
   --card-foreground: oklch(0.93 0.005 80);
-  --popover: oklch(0.22 0.012 70);
+  --popover: oklch(0.2 0.012 70);
   --popover-foreground: oklch(0.93 0.005 80);
-  --primary: oklch(0.6 0.1 280);
+  --primary: oklch(0.6 0.12 255);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.26 0.015 70);
+  --secondary: oklch(0.25 0.015 70);
   --secondary-foreground: oklch(0.93 0.005 80);
-  --muted: oklch(0.26 0.015 70);
-  --muted-foreground: oklch(0.72 0.015 70);
-  --accent: oklch(0.28 0.02 280);
-  --accent-foreground: oklch(0.93 0.005 80);
+  --muted: oklch(0.25 0.015 70);
+  --muted-foreground: oklch(0.7 0.015 70);
+  --accent: oklch(0.65 0.15 40);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.6 0.15 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.6 0.1 280);
-  --sidebar: oklch(0.17 0.01 70);
+  --ring: oklch(0.6 0.12 255);
+  --sidebar: oklch(0.16 0.01 70);
   --sidebar-foreground: oklch(0.93 0.005 80);
-  --sidebar-accent: oklch(0.24 0.015 70);
+  --sidebar-accent: oklch(0.23 0.015 70);
   --sidebar-accent-foreground: oklch(0.93 0.005 80);
-  --chart-1: oklch(0.55 0.12 280);
-  --chart-2: oklch(0.6 0.08 200);
-  --chart-3: oklch(0.42 0.07 230);
-  --chart-4: oklch(0.7 0.1 80);
-  --chart-5: oklch(0.65 0.09 40);
+  --chart-1: oklch(0.6 0.12 255);
+  --chart-2: oklch(0.65 0.1 200);
+  --chart-3: oklch(0.65 0.15 40);
+  --chart-4: oklch(0.55 0.15 145);
+  --chart-5: oklch(0.45 0.1 280);
 }
 
 /* ── Font size modes ── */
