@@ -539,7 +539,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Upload an XLSX file with columns: email, full_name, role, grade_assigned.
+                  Upload an XLSX file (<strong>Data</strong> sheet). Columns: <code>email</code>, <code>full_name</code>, <code>role</code>, <code>grade_assigned</code>. Role: super_admin / teacher / lab_assistant / student. Password auto-generated.
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={async () => {
