@@ -351,7 +351,7 @@ export default function WorksheetsPage() {
                   placeholder="Auto-suggested from grade & week" />
                 {form.week_number && (
                   <p className="text-xs text-muted-foreground">
-                    Suggested: <button type="button" className="text-blue-600 underline"
+                    Suggested: <button type="button" className="text-primary underline"
                       onClick={() => updateForm({ title: `${getGradeSequence(Number(form.grade), Number(form.week_number))} Worksheet` })}>
                       {getGradeSequence(Number(form.grade), Number(form.week_number))} Worksheet
                     </button>
@@ -385,7 +385,7 @@ export default function WorksheetsPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="text-xs text-blue-600 underline"
+                  <button type="button" className="text-xs text-primary underline"
                     onClick={() => setSelectedObjectives(new Set(matchedObjectives))}>Select All</button>
                   <button type="button" className="text-xs text-muted-foreground underline"
                     onClick={() => setSelectedObjectives(new Set())}>Clear</button>
@@ -400,7 +400,7 @@ export default function WorksheetsPage() {
             {/* Worksheet — Upload PDF */}
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 text-blue-600" />
+                <FileText className="h-4 w-4 text-primary" />
                 Worksheet PDF
               </h3>
               <div className="space-y-2">

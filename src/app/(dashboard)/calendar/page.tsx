@@ -139,10 +139,10 @@ export default function CalendarPage() {
     holiday: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
     exam: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     tryout: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-    mock_test: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+    mock_test: "bg-primary/10 text-primary font-medium dark:bg-primary/20",
     offsite: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
     blackout: "bg-gray-700 text-white dark:bg-gray-600",
-    pd_day: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+    pd_day: "bg-primary/10 text-primary font-medium dark:bg-primary/20",
   }
 
   return (

@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
     { range: "0-20%", min: 0, max: 0.2, color: "bg-red-500" },
     { range: "21-40%", min: 0.2, max: 0.4, color: "bg-orange-500" },
     { range: "41-60%", min: 0.4, max: 0.6, color: "bg-yellow-500" },
-    { range: "61-80%", min: 0.6, max: 0.8, color: "bg-blue-500" },
+    { range: "61-80%", min: 0.6, max: 0.8, color: "bg-primary" },
     { range: "81-100%", min: 0.8, max: 1.0, color: "bg-green-500" },
   ]
   const scoreDist = accuracyRanges.map((r) => ({

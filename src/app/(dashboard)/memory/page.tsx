@@ -280,7 +280,7 @@ export default function MemoryPage() {
                     )}
                     {memory.notes_for_next_week && (
                       <div className="flex items-start gap-2">
-                        <StickyNote className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+                        <StickyNote className="mt-0.5 h-4 w-4 text-primary shrink-0" />
                         <div>
                           <p className="text-sm font-medium">Notes</p>
                           <p className="text-sm text-muted-foreground">{memory.notes_for_next_week}</p>

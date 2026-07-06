@@ -60,7 +60,7 @@ function StatusBadge({ status }: { status: WeeklyPackage["status"] }) {
   const variants: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
     pending_review: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-primary",
     published: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     archived: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   }
@@ -191,7 +191,7 @@ export default function DashboardPage() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                         sub.allReturned ? 'bg-green-100 text-green-700' :
                         sub.allGraded ? 'bg-amber-100 text-amber-700' :
-                        'bg-blue-100 text-blue-700'
+                        'bg-primary/10 text-primary font-medium'
                       }`}>{sub.status}</span>
                     )}
                   </div>
@@ -212,7 +212,7 @@ export default function DashboardPage() {
             <div className="mt-3 space-y-2">
               {published.syllabi.slice(0, 2).map((doc: any) => (
                 <div key={doc.id} className="flex items-center gap-2 rounded-lg border p-3">
-                  <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-sm font-medium">{doc.file_name}</span>
                 </div>
               ))}

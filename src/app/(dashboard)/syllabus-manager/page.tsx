@@ -116,7 +116,7 @@ export default function SyllabusManagerPage() {
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { format: "md", icon: FileText, label: "Markdown", desc: "Editable text format", color: "border-blue-200 bg-blue-50" },
+                  { format: "md", icon: FileText, label: "Markdown", desc: "Editable text format", color: "border-border bg-accent" },
                   { format: "qmd", icon: FileText, label: "Quarto", desc: "PDF-ready markdown", color: "border-purple-200 bg-purple-50" },
                   { format: "pdf", icon: FileText, label: "PDF", desc: "Document format", color: "border-red-200 bg-red-50" },
                   { format: "xlsx", icon: FileSpreadsheet, label: "Excel", desc: "Spreadsheet", color: "border-green-200 bg-green-50" },
@@ -158,7 +158,7 @@ export default function SyllabusManagerPage() {
                   {docs.map((doc: any) => (
                     <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        {doc.file_type === "pdf" ? <FileText className="h-5 w-5 text-red-500 shrink-0" /> : doc.file_type === "xlsx" ? <FileSpreadsheet className="h-5 w-5 text-green-500 shrink-0" /> : <FileText className="h-5 w-5 text-blue-500 shrink-0" />}
+                        {doc.file_type === "pdf" ? <FileText className="h-5 w-5 text-red-500 shrink-0" /> : doc.file_type === "xlsx" ? <FileSpreadsheet className="h-5 w-5 text-green-500 shrink-0" /> : <FileText className="h-5 w-5 text-primary shrink-0" />}
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{doc.file_name}</p>
                           <p className="text-[10px] text-muted-foreground">{doc.file_type?.toUpperCase()} · {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : "—"} · {new Date(doc.created_at).toLocaleDateString()}</p>

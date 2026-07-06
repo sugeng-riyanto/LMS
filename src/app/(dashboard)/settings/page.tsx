@@ -28,9 +28,9 @@ import toast from "react-hot-toast"
 
 const roleColors: Record<string, string> = {
   super_admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  teacher: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  teacher: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-primary",
   lab_assistant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  student: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  student: "bg-primary/10 text-primary font-medium dark:bg-primary/20",
 }
 
 const PROVIDER_TYPES = ["openai", "groq", "gemini", "opencodeai"] as const
@@ -748,7 +748,7 @@ export default function SettingsPage() {
                 </div>
 
                 {PROVIDER_INSTRUCTIONS[providerForm.provider_type] && (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  <div className="rounded-lg border border-border bg-accent p-3 text-xs text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
                     <div className="flex items-center gap-1 font-semibold mb-2">
                       <Info className="h-3 w-3" />
                       {PROVIDER_INSTRUCTIONS[providerForm.provider_type].key_source}
@@ -1000,7 +1000,7 @@ function SchoolSettings() {
           <Input value={form.brand_name} onChange={(e) => setForm((p) => ({ ...p, brand_name: e.target.value }))} />
         </div>
 
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+        <div className="rounded-lg border border-border bg-accent p-4 dark:border-blue-800 dark:bg-blue-950">
           <h3 className="text-sm font-semibold mb-3">JHS (Grades 7-9)</h3>
           <div className="space-y-3">
             <div className="space-y-1">

@@ -26,7 +26,7 @@ const statusIcon: Record<string, React.ElementType> = {
 const statusColor: Record<string, string> = {
   completed: "text-green-500",
   failed: "text-red-500",
-  running: "text-blue-500",
+  running: "text-primary",
   pending: "text-muted-foreground",
 }
 
@@ -110,7 +110,7 @@ export default function GeneratePage() {
             <BrainCircuit className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Agent Execution Logs</h2>
             {hasActiveLogs && (
-              <span className="ml-auto flex items-center gap-1 text-sm text-blue-500">
+              <span className="ml-auto flex items-center gap-1 text-sm text-primary">
                 <RefreshCw className="h-3 w-3 animate-spin" /> Running
               </span>
             )}

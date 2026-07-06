@@ -109,7 +109,7 @@ export default function MyWeekPage() {
             <div className="lg:col-span-2 space-y-4">
               {/* Lesson Summary */}
               <Card className="border-l-4 border-l-purple-500">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BookOpen className="h-4 w-4 text-purple-500" />Lesson Summary</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" />Lesson Summary</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {phases.length > 0 ? phases.map((p, i) => (
                     <div key={i} className="flex items-start gap-2">
@@ -136,7 +136,7 @@ export default function MyWeekPage() {
 
               {/* Next Lesson */}
               <Card className="border-l-4 border-l-blue-500">
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-blue-500" />Next Lesson</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-primary" />Next Lesson</CardTitle></CardHeader>
                 <CardContent className="text-sm">
                   <p className="font-medium">Week {thisWeek + 1}: {nextWeekTopic}</p>
                   <p className="text-xs text-muted-foreground mt-1">Prepare by watching the pre-class video and completing the guided notes.</p>

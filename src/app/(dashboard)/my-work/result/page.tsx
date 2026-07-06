@@ -173,8 +173,8 @@ function ResultContent() {
               </div>
 
               {item.feedback && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                  <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">Feedback</p>
+                <div className="bg-accent dark:bg-blue-900/20 rounded-lg p-3 border border-border dark:border-blue-800">
+                  <p className="text-[10px] font-semibold text-primary dark:text-primary uppercase tracking-wide mb-1">Feedback</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{item.feedback}</p>
                 </div>
               )}

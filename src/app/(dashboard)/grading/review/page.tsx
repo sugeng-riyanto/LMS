@@ -452,7 +452,7 @@ function ReviewContent() {
             <span>items:{items.length}</span>
             <span>pdfUrl:{pdfUrl ? "yes" : "no"}</span>
             <span>bgImgs:{pageImages.length}</span>
-            {pdfUrl && <a href={pdfUrl} target="_blank" className="underline text-blue-500">open PDF</a>}
+            {pdfUrl && <a href={pdfUrl} target="_blank" className="underline text-primary">open PDF</a>}
           </div>
         )}
         {items.map((item: any, idx: number) => {

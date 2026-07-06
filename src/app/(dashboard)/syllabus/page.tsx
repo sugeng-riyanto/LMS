@@ -605,7 +605,7 @@ export default function SyllabusPlannerPage() {
           </div>
           <div class="px-2 pb-1 flex items-center justify-between">
             <span class="text-xs text-gray-400">${esc(src.title)}</span>
-            <a href="${esc(src.url)}" target="_blank" class="yt-link text-xs text-blue-400 underline" style="display:none">Watch on YouTube ↗</a>
+            <a href="${esc(src.url)}" target="_blank" class="yt-link text-xs text-primary underline" style="display:none">Watch on YouTube ↗</a>
           </div>
         </div>`
       }
@@ -616,7 +616,7 @@ export default function SyllabusPlannerPage() {
         return `<div class="mt-3 rounded-lg overflow-hidden border">
           <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
             <p class="text-sm font-medium truncate">${esc(src.title)}</p>
-            <a href="${src.url}" target="_blank" class="text-xs text-blue-600 underline shrink-0 ml-2">Open ↗</a>
+            <a href="${src.url}" target="_blank" class="text-xs text-primary underline shrink-0 ml-2">Open ↗</a>
           </div>
           <div style="aspect-ratio:16/9;max-height:500px">
             <div class="doc-preview cursor-pointer w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 hover:bg-gray-200" data-embed="${embedUrl || ""}">
@@ -624,7 +624,7 @@ export default function SyllabusPlannerPage() {
               <p class="text-sm font-medium">Click to preview</p>
               <p class="text-xs mt-1 text-center px-4">${esc(src.title)}</p>
             </div>
-            <a href="${src.url}" target="_blank" class="doc-link block text-center text-xs text-blue-600 underline py-2 bg-white" style="display:none">Open in new tab ↗</a>
+            <a href="${src.url}" target="_blank" class="doc-link block text-center text-xs text-primary underline py-2 bg-white" style="display:none">Open in new tab ↗</a>
           </div>
         </div>`
       }
@@ -633,7 +633,7 @@ export default function SyllabusPlannerPage() {
       if (src.type === "audio") return `<div class="mt-3"><audio controls class="w-full"><source src="${src.url}"></audio><p class="text-xs text-gray-400 mt-1">${esc(src.title)}</p></div>`
 
       // Default: link
-      return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-blue-600 underline text-sm">${esc(src.title)}</a></div>`
+      return `<div class="mt-2"><a href="${src.url}" target="_blank" class="text-primary underline text-sm">${esc(src.title)}</a></div>`
     }
 
     return `<!DOCTYPE html>
@@ -683,7 +683,7 @@ ${studentOptions}
 <div class="space-y-8 mt-6">
 ${allQs.map((item, idx) => {
   const sectionLabel = item.section === "opening" ? "Opening Ideas" : item.section === "question" ? "Activity Question" : "Problem"
-  const bgColor = item.section === "opening" ? "bg-blue-50" : item.section === "question" ? "bg-green-50" : "bg-purple-50"
+  const bgColor = item.section === "opening" ? "bg-accent" : item.section === "question" ? "bg-green-50" : "bg-purple-50"
   const srcList = item.section === "opening" ? openingSources : item.section === "question" ? questionSources : []
   return `
 <div class="rounded-xl border p-5 space-y-4">

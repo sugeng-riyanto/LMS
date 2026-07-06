@@ -256,7 +256,7 @@ export default function MyWorkPage() {
   function SubmissionBadge({ sub }: { sub?: SubmissionInfo }) {
     if (!sub) return null
     return (
-      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sub.allReturned ? 'bg-green-100 text-green-700' : sub.allGraded ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sub.allReturned ? 'bg-green-100 text-green-700' : sub.allGraded ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary font-medium'}`}>
         {sub.status}
       </span>
     )
@@ -370,7 +370,7 @@ export default function MyWorkPage() {
                 className="flex items-center justify-between rounded-xl border bg-card p-4 hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-medium">
                     <BookOpen className="h-5 w-5" />
                   </div>
                   <div>
