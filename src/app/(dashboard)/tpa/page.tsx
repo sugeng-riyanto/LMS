@@ -42,6 +42,34 @@ export default function TPAPage() {
   const [editingScores, setEditingScores] = useState<TPARecord | null>(null)
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({})
   const [saving, setSaving] = useState(false)
+  const [aiFeedback, setAiFeedback] = useState("")
+
+  // AI-generated feedback based on scores
+  function generateFeedback() {
+    if (!computedTotals) return ""
+    const lines: string[] = []
+    const strengths: string[] = []
+    const improvements: string[] = []
+    for (const d of computedTotals.details) {
+      const pct = d.max > 0 ? Math.round((d.raw / d.max) * 100) : 0
+      if (pct >= 80) strengths.push(`${d.label} (${pct}%)`)
+      else if (pct < 60) improvements.push(`${d.label} (${pct}%)`)
+    }
+    if (strengths.length > 0) lines.push(`Strengths: ${strengths.join(", ")}.`)
+    if (improvements.length > 0) lines.push(`Areas for improvement: ${improvements.join(", ")}.`)
+    else lines.push("Overall performance meets expectations across all areas.")
+    lines.push(`Combined weighted score: ${computedTotals.total.toFixed(1)}% — ${getGradeLabel(computedTotals.total)}.`)
+    if (computedTotals.total >= 90) lines.push("Exceptional performance. Continue to maintain high standards.")
+    else if (computedTotals.total >= 80) lines.push("Very good performance. Minor refinements will further enhance teaching effectiveness.")
+    else if (computedTotals.total >= 70) lines.push("Satisfactory performance. Focus on targeted areas for professional growth.")
+    else if (computedTotals.total >= 60) lines.push("Developing performance. A professional development plan is recommended.")
+    else lines.push("Unsatisfactory performance. Immediate intervention and support are required.")
+    return lines.join("\n")
+  }
+
+  function handleGenerateFeedback() {
+    setAiFeedback(generateFeedback())
+  }
   const [periodFilter, setPeriodFilter] = useState("all")
 
   const [form, setForm] = useState({
@@ -292,39 +320,48 @@ export default function TPAPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Scores Dialog */}
+      {/* Scores Dialog — compact responsive rubric */}
       <Dialog open={!!editingScores} onOpenChange={(o) => { if (!o) setEditingScores(null) }}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingScores?.teacher?.full_name} — {(isPrincipal || isSuperAdmin) ? "Principal Assessment" : "Self-Assessment"}</DialogTitle>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] overflow-y-auto p-3 sm:p-6">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-base">{editingScores?.teacher?.full_name} — {(isPrincipal || isSuperAdmin) ? "Principal Assessment" : "Self-Assessment"}</DialogTitle>
             <p className="text-xs text-muted-foreground">{editingScores?.period_label}</p>
           </DialogHeader>
           {editingScores && (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* Compact rubric grid */}
               {TPA_CATEGORIES.map(cat => {
                 const catScores = scores[cat.key] || {}
                 const raw = cat.items.reduce((sum, item) => sum + (catScores[item.id] ?? 0), 0)
                 const max = cat.items.length * 4
                 const pct = max > 0 ? Math.round((raw / max) * 100) : 0
                 return (
-                  <div key={cat.key}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-sm">{cat.label} ({cat.weight}%)</h3>
-                      <span className="text-xs text-muted-foreground">{raw}/{max} · {pct}%</span>
+                  <div key={cat.key} className="border-b border-border pb-3 last:border-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <h3 className="font-semibold text-xs sm:text-sm">{cat.label} <span className="text-muted-foreground font-normal">({cat.weight}%)</span></h3>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">{raw}/{max} · {pct}%</span>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="divide-y divide-border/50">
                       {cat.items.map(item => (
-                        <div key={item.id} className="flex items-center gap-2 text-xs">
-                          <span className="w-5 text-muted-foreground shrink-0 text-right">{item.id}.</span>
-                          <span className="flex-1 text-muted-foreground leading-tight">{item.text}</span>
-                          <div className="flex gap-0.5 shrink-0">
-                            {[0, 1, 2, 3, 4].map(v => (
-                              <button key={v} type="button"
-                                onClick={() => setScore(cat.key, item.id, v)}
-                                className={`w-6 h-6 rounded text-[10px] font-medium transition-all ${(catScores[item.id] ?? 0) === v ? SCORE_COLORS[v] : 'bg-muted text-muted-foreground hover:bg-accent'}`}
-                                title={['N', 'R', 'O', 'M', 'A'][v]}
-                              >{v}</button>
-                            ))}
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1.5">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground sm:w-5 shrink-0 text-right hidden sm:block">{item.id}.</span>
+                          <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight flex-1 min-w-0">{item.text}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <span className="text-[9px] text-red-400 w-3 text-center hidden sm:inline">0</span>
+                            <input type="range" min={0} max={4} step={1}
+                              value={catScores[item.id] ?? 0}
+                              onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
+                              className="w-16 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
+                            <span className="text-[9px] text-green-400 w-3 text-center hidden sm:inline">4</span>
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                              {catScores[item.id] ?? 0}
+                            </span>
+                            <div className="flex gap-px">
+                              {[0,1,2,3,4].map(v => (
+                                <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
+                                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm text-[8px] sm:text-[10px] font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -332,53 +369,65 @@ export default function TPAPage() {
                   </div>
                 )
               })}
-              <Separator />
-              {/* Auto-calculated Results */}
-              <div className="rounded-lg border bg-card p-4">
-                <h3 className="font-semibold text-sm mb-3">📊 Auto-Calculated Results</h3>
-                {computedTotals && (
-                  <div className="space-y-2">
+
+              {/* Compact results */}
+              {computedTotals && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
                     {computedTotals.details.map(d => (
-                      <div key={d.key} className="flex items-center gap-2 text-xs">
-                        <span className="w-32 shrink-0 text-muted-foreground">{d.label}</span>
-                        <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div key={d.key} className="text-center">
+                        <p className="text-[9px] text-muted-foreground truncate">{d.label}</p>
+                        <p className="text-xs font-bold">{d.max > 0 ? ((d.raw / d.max) * d.weight).toFixed(1) : "0"}%</p>
+                        <div className="h-1 rounded-full bg-muted mt-0.5 overflow-hidden">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${d.max > 0 ? (d.raw / d.max) * 100 : 0}%` }} />
                         </div>
-                        <span className="w-16 text-right font-medium">{d.max > 0 ? ((d.raw / d.max) * d.weight).toFixed(1) : "0"}%</span>
                       </div>
                     ))}
-                    <Separator />
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="font-bold text-sm">TOTAL SCORE</span>
-                      <span className={`text-lg font-bold ${computedTotals.total >= 60 ? "text-green-600" : "text-red-600"}`}>
-                        {computedTotals.total.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="text-center mt-1">
-                      <Badge className={computedTotals.total >= 90 ? "bg-green-100 text-green-700" : computedTotals.total >= 80 ? "bg-blue-100 text-blue-700" : computedTotals.total >= 70 ? "bg-amber-100 text-amber-700" : computedTotals.total >= 60 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}>
-                        {getGradeLabel(computedTotals.total)}
-                      </Badge>
-                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-sm font-bold">Total: {computedTotals.total.toFixed(1)}%</span>
+                    <Badge className={`text-[10px] ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                      {getGradeLabel(computedTotals.total)}
+                    </Badge>
+                  </div>
+                </div>
+              )}
 
-              <div className="flex items-center justify-between gap-2">
-                {(isPrincipal || isSuperAdmin) && editingScores.status === "draft" && (
-                  <Button onClick={() => handleSaveScores(false)} disabled={saving} variant="outline">Save Draft</Button>
-                )}
+              {/* AI-Generated Feedback */}
+              {computedTotals && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold">AI Feedback</h3>
+                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={handleGenerateFeedback}>
+                      Generate Feedback
+                    </Button>
+                  </div>
+                  {aiFeedback && (
+                    <textarea readOnly value={aiFeedback} rows={4}
+                      className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
+                  )}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                <div className="flex gap-2">
+                  {(isPrincipal || isSuperAdmin) && editingScores.status === "draft" && (
+                    <Button size="sm" variant="outline" onClick={() => handleSaveScores(false)} disabled={saving}>Save Draft</Button>
+                  )}
+                  {(isPrincipal || isSuperAdmin) && editingScores.status !== "draft" && (
+                    <Button size="sm" variant="outline" onClick={() => setEditingScores(null)}>Close</Button>
+                  )}
+                </div>
                 {(isPrincipal || isSuperAdmin) && editingScores.status === "draft" && computedTotals && (
-                  <Button onClick={() => handleSaveScores(true)} disabled={saving} className="bg-green-600 hover:bg-green-700">
-                    <Send className="mr-1 h-4 w-4" /> Publish to Teacher
+                  <Button size="sm" onClick={() => handleSaveScores(true)} disabled={saving} className="bg-green-600 hover:bg-green-700">
+                    <Send className="mr-1 h-3 w-3" /> Publish
                   </Button>
                 )}
                 {isTeacher && editingScores.status === "principal_submitted" && computedTotals && (
-                  <Button onClick={() => handleSaveScores(true)} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                    <CheckCircle className="mr-1 h-4 w-4" /> Submit Self-Assessment
+                  <Button size="sm" onClick={() => handleSaveScores(true)} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+                    <CheckCircle className="mr-1 h-3 w-3" /> Submit Self-Assessment
                   </Button>
-                )}
-                {(isPrincipal || isSuperAdmin) && editingScores.status !== "draft" && (
-                  <Button variant="outline" onClick={() => setEditingScores(null)}>Close</Button>
                 )}
               </div>
             </div>
