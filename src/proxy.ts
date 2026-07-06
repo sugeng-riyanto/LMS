@@ -90,6 +90,19 @@ function getSupabase(request: NextRequest) {
   return { supabase, supabaseResponse }
 }
 
+async function getUserRole(user: { id: string; app_metadata: Record<string, unknown> }, supabase: any): Promise<Role | null> {
+  // Fast path: role already in JWT app_metadata — zero DB queries
+  const role = user.app_metadata?.role as Role | undefined
+  if (role) return role
+  // Fallback: query profiles table (existing users before app_metadata)
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single() as { data: { role: Role } | null }
+  return data?.role ?? null
+}
+
 function matchProtectedRoute(pathname: string): string | null {
   // Public routes that should bypass auth
   if (pathname.startsWith("/syllabus/public/") || pathname.startsWith("/worksheet/public/")) return null
@@ -137,32 +150,20 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
-    const matched = matchProtectedRoute(pathname)
-    if (matched) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single() as { data: { role: Role } | null }
+    const role = await getUserRole(user, supabase)
+    if (!role) return supabaseResponse
 
-      if (profile && !ROLE_ROUTES[matched].includes(profile.role)) {
-        const url = request.nextUrl.clone()
-        url.pathname = "/dashboard"
-        return NextResponse.redirect(url)
-      }
+    const matched = matchProtectedRoute(pathname)
+    if (matched && !ROLE_ROUTES[matched].includes(role)) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/dashboard"
+      return NextResponse.redirect(url)
     }
 
-    // API route role check
     const apiRouteMatched = matchApiRoute(pathname)
     if (apiRouteMatched && pathname.startsWith("/api/")) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single() as { data: { role: Role } | null }
-
       const allowedRoles = API_ROLE_ROUTES[apiRouteMatched]
-      if (profile && allowedRoles.length > 0 && !allowedRoles.includes(profile.role)) {
+      if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }

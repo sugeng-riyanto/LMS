@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name, role: userRole },
+      app_metadata: { role: userRole, full_name },
     })
 
     if (signUpError) {

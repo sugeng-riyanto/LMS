@@ -31,14 +31,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [supabase] = useState(() => getSupabase())
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, user?: User) => {
     if (!supabase) return
+
+    // Fast path: build minimal profile from JWT app_metadata (zero DB)
+    if (user?.app_metadata?.role) {
+      setProfile({
+        id: userId,
+        email: user.email ?? "",
+        full_name: (user.app_metadata.full_name as string) || (user.user_metadata?.full_name as string) || "",
+        role: user.app_metadata.role as UserProfile['role'],
+        grade_assigned: null,
+        is_active: true,
+        created_at: "",
+        updated_at: "",
+      })
+    }
+
+    // Background fetch full profile from DB (grade_assigned, avatar_url, etc.)
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
-    setProfile(data as UserProfile | null)
+
+    if (data) {
+      setProfile(data as UserProfile)
+    } else if (!user?.app_metadata?.role) {
+      setProfile(null)
+    }
   }, [])
 
   useEffect(() => {
@@ -50,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
-        await fetchProfile(currentUser.id)
+        await fetchProfile(currentUser.id, currentUser)
       } else {
         setProfile(null)
       }
@@ -61,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
-        fetchProfile(currentUser.id).finally(() => setLoading(false))
+        fetchProfile(currentUser.id, currentUser).finally(() => setLoading(false))
       } else {
         setLoading(false)
       }
@@ -100,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id)
+    if (user) await fetchProfile(user.id, user)
   }, [user, fetchProfile])
 
   return (

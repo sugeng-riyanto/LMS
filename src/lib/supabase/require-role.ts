@@ -11,6 +11,19 @@ export async function requireRole(allowedRoles: Role[]) {
     return { supabase, user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
   }
 
+  // Fast path: role in JWT app_metadata — zero DB queries
+  const jwtRole = user.app_metadata?.role as Role | undefined
+  if (jwtRole && allowedRoles.includes(jwtRole)) {
+    const fullName = (user.app_metadata?.full_name as string) || ""
+    return {
+      supabase,
+      user,
+      profile: { role: jwtRole, full_name: fullName } as { role: Role; full_name: string },
+      error: null,
+    }
+  }
+
+  // Fallback: query profiles table (existing users without JWT role)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, full_name")
