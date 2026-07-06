@@ -58,7 +58,7 @@ export default async function LandingPage() {
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/80 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-green-400" />
-              Official Platform — SHB Modernhill
+              Further Platform — SHB Modernhill
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
               Multi-Subject Learning <br />
