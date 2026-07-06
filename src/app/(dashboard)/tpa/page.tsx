@@ -259,7 +259,9 @@ export default function TPAPage() {
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />)}</div>
       ) : items.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">No assessments yet.</CardContent></Card>
+        <div className="space-y-2">
+          <div className="py-8 text-center text-sm text-muted-foreground">No assessments yet.</div>
+        </div>
       ) : (
         <div className="space-y-2">
           {/* Bulk actions bar */}
@@ -277,7 +279,7 @@ export default function TPAPage() {
             </div>
           )}
           {items.map((tpa) => (
-            <div key={tpa.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 hover:bg-accent/50 transition-colors">
+            <div key={tpa.id} className="flex items-center gap-2 py-2 border-b border-border last:border-0">
               {/* Checkbox for bulk */}
               {(isPrincipal || isSuperAdmin) && tpa.status === "draft" && (
                 <input type="checkbox" checked={selected.has(tpa.id)} onChange={() => toggleSelect(tpa.id)}

@@ -154,11 +154,11 @@ export default function SupervisionsPage() {
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />)}</div>
       ) : items.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No supervisions yet.</CardContent></Card>
+        <div className="py-8 text-center text-sm text-muted-foreground">No supervisions yet.</div>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border">
           {items.map((s) => (
-            <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-3 hover:bg-accent/50 transition-colors">
+            <div key={s.id} className="flex items-center justify-between gap-2 py-2.5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-sm font-semibold">{s.teacher?.full_name}</span>
@@ -167,6 +167,10 @@ export default function SupervisionsPage() {
                   {statusBadge(s.status)}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{new Date(s.observation_date).toLocaleDateString()}</p>
+                <div className="flex gap-2 mt-0.5 text-[10px]">
+                  {s.principal_signature && <span className="text-green-600">✓ Principal</span>}
+                  {s.teacher_signature && <span className="text-blue-600">✓ Teacher</span>}
+                </div>
               </div>
               <div className="flex gap-1 shrink-0">
                 {(isPrincipal || isSuperAdmin) && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openEdit(s)}><FileText className="h-3 w-3 mr-1" />Edit</Button>}
