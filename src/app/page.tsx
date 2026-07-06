@@ -227,7 +227,7 @@ export default async function LandingPage() {
                 </div>
                 <div className="rounded-lg bg-secondary/50 p-3">
                   <p className="text-xs text-muted-foreground mb-1">Grade 11A — Chemistry & Biology</p>
-                  <p className="font-mono text-sm text-foreground">fajar11 / gita11 / hendra11 / intan11 / joko11</p>
+                  <p className="font-mono text-sm text-foreground">fajar11 / gita11 / nadia11 / intan11 / rizky11</p>
                   <p className="font-mono text-xs text-muted-foreground">@shb.sch.id · password: demo123</p>
                 </div>
               </div>
