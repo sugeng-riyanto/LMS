@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
@@ -53,11 +54,12 @@ interface Worksheet {
 
 export default function WorksheetsPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
+  const teacherSubjects = useTeacherSubjects()
   const canManage = isSuperAdmin || isTeacher
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
   const [loading, setLoading] = useState(true)
-  const [subjectFilter, setSubjectFilter] = useState("PHY")
+  const [subjectFilter, setSubjectFilter] = useState("")
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -141,6 +143,18 @@ export default function WorksheetsPage() {
     setLoading(true)
     load(subjectFilter)
   }, [subjectFilter])
+
+  // Default subject to teacher's first assigned subject
+  useEffect(() => {
+    if (teacherSubjects.length > 0 && !subjectFilter) {
+      setSubjectFilter(teacherSubjects[0])
+      setForm(p => ({ ...p, subject: teacherSubjects[0] }))
+    }
+  }, [teacherSubjects, subjectFilter])
+
+  const availableSubjects = useMemo(() => {
+    return SUBJECTS.filter(s => teacherSubjects.length === 0 || teacherSubjects.includes(s.code))
+  }, [teacherSubjects])
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }
@@ -296,7 +310,7 @@ export default function WorksheetsPage() {
         <Label className="text-sm whitespace-nowrap">Subject:</Label>
         <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
           className="h-8 rounded-md border border-input bg-background px-2 text-sm">
-          {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+          {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
         </select>
       </div>
 
@@ -453,7 +467,7 @@ export default function WorksheetsPage() {
               <Label>Subject</Label>
               <select value={form.subject} onChange={e => updateForm({ subject: e.target.value })}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+                {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
               </select>
             </div>
 

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -14,14 +15,25 @@ import toast from "react-hot-toast"
 
 export default function SyllabusManagerPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
+  const teacherSubjects = useTeacherSubjects()
   const canManage = isSuperAdmin || isTeacher
 
   const [activeTab, setActiveTab] = useState("upload")
   const [selectedGrade, setSelectedGrade] = useState(10)
-  const [selectedSubject, setSelectedSubject] = useState("PHY")
+  const [selectedSubject, setSelectedSubject] = useState("")
   const [uploading, setUploading] = useState<string | null>(null)
   const [docs, setDocs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const availableSubjects = useMemo(() => {
+    return SUBJECTS.filter(s => teacherSubjects.length === 0 || teacherSubjects.includes(s.code))
+  }, [teacherSubjects])
+
+  useEffect(() => {
+    if (availableSubjects.length > 0 && !selectedSubject) {
+      setSelectedSubject(availableSubjects[0].code)
+    }
+  }, [availableSubjects, selectedSubject])
 
   useEffect(() => {
     if (canManage) {
@@ -87,7 +99,7 @@ export default function SyllabusManagerPage() {
           <Label className="text-xs">Subject</Label>
           <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm">
-            {SUBJECTS.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
+            {availableSubjects.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
           </select>
         </div>
       </div>

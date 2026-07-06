@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2 } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
@@ -100,6 +101,18 @@ export default function SyllabusPlannerPage() {
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set())
   const [mediaSources, setMediaSources] = useState<Array<{ section: string; type: string; title: string; url: string }>>([])
   const [showMediaForm, setShowMediaForm] = useState<string | null>(null)
+
+  const teacherSubjects = useTeacherSubjects()
+  const availableSubjects = useMemo(() => {
+    return SUBJECTS.filter(s => teacherSubjects.length === 0 || teacherSubjects.includes(s.code))
+  }, [teacherSubjects])
+
+  // Sync plan.subject to first available subject if current not allowed
+  useEffect(() => {
+    if (availableSubjects.length > 0 && !availableSubjects.find(s => s.code === plan.subject)) {
+      setPlan(prev => ({ ...prev, subject: availableSubjects[0].code }))
+    }
+  }, [availableSubjects, plan.subject])
   const [mediaForm, setMediaForm] = useState({ section: "opening", type: "youtube", title: "", url: "" })
   const [editingMedia, setEditingMedia] = useState<{ section: string; index: number } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -1367,7 +1380,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <CardContent>
               <select value={plan.subject} onChange={e => setPlan(prev => ({ ...prev, subject: e.target.value }))}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+                {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
               </select>
             </CardContent>
           </Card>
