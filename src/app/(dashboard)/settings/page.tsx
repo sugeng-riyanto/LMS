@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save } from "lucide-react"
+import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap } from "lucide-react"
 import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
@@ -36,8 +36,8 @@ const roleColors: Record<string, string> = {
 const PROVIDER_TYPES = ["openai", "groq", "gemini", "opencodeai"] as const
 
 export default function SettingsPage() {
-  const { isSuperAdmin } = useRBAC()
-  const [tab, setTab] = useState("users")
+  const { isSuperAdmin, role } = useRBAC()
+  const [tab, setTab] = useState(() => role === "teacher" ? "ai-providers" : "users")
 
   // Users
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -71,9 +71,11 @@ export default function SettingsPage() {
   useEffect(() => {
     if (isSuperAdmin) {
       if (tab === "users") fetchUsers()
+    }
+    if (isSuperAdmin || role === "teacher") {
       if (tab === "ai-providers") fetchProviders()
     }
-  }, [isSuperAdmin, tab])
+  }, [isSuperAdmin, role, tab])
 
   // === USERS ===
   async function fetchUsers() {
@@ -298,7 +300,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (!isSuperAdmin) {
+  if (role !== "super_admin" && role !== "teacher") {
     return (
       <div className="space-y-6">
         <div>
@@ -318,62 +320,189 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">User management and system configuration</p>
+        <p className="text-muted-foreground">{isSuperAdmin ? "User management and system configuration" : "Your AI provider configuration"}</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="users">
-            <UserPlus className="mr-1 h-4 w-4" />
-            Users
-          </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="users">
+              <UserPlus className="mr-1 h-4 w-4" />
+              Users
+            </TabsTrigger>
+          )}
           <TabsTrigger value="ai-providers">
             <Key className="mr-1 h-4 w-4" />
             AI Providers
           </TabsTrigger>
-          <TabsTrigger value="school">
-            <Building2 className="mr-1 h-4 w-4" />
-            School
-          </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="subjects">
+              <BookOpen className="mr-1 h-4 w-4" />
+              Subjects
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="classes">
+              <GraduationCap className="mr-1 h-4 w-4" />
+              Classes
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="teacher-assignments">
+              <UserPlus className="mr-1 h-4 w-4" />
+              Teachers
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="school">
+              <Building2 className="mr-1 h-4 w-4" />
+              School
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="users" className="space-y-6">
-          <div className="flex items-center justify-end">
-            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="mr-1 h-4 w-4" />
-                  Invite User
-                </Button>
-              </DialogTrigger>
+        {isSuperAdmin && (
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex items-center justify-end">
+              <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <UserPlus className="mr-1 h-4 w-4" />
+                    Invite User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite New User</DialogTitle>
+                    <DialogDescription>Send an invitation to join the platform.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-1">
+                      <Label>Full Name</Label>
+                      <Input
+                        value={inviteForm.full_name}
+                        onChange={(e) => setInviteForm((p) => ({ ...p, full_name: e.target.value }))}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={inviteForm.email}
+                        onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Role</Label>
+                      <select
+                        value={inviteForm.role}
+                        onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Grade Assignment</Label>
+                      <select
+                        value={inviteForm.grade}
+                        onChange={(e) => setInviteForm((p) => ({ ...p, grade: Number(e.target.value) }))}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        {GRADES.map((g) => (
+                          <option key={g} value={g}>Grade {g}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                    <Button onClick={handleInvite}>
+                      <Mail className="mr-1 h-4 w-4" />
+                      Send Invite
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingUsers ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+                    ))}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Grade</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                  {user.full_name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{user.full_name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
+                          <TableCell>
+                            <Badge className={roleColors[user.role] ?? ""}>{ROLE_LABELS[user.role]}</Badge>
+                          </TableCell>
+                          <TableCell>{user.grade_assigned ? `Grade ${user.grade_assigned}` : "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
+                              <Settings className="mr-1 h-3 w-3" />
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Invite New User</DialogTitle>
-                  <DialogDescription>Send an invitation to join the platform.</DialogDescription>
+                  <DialogTitle>Edit User</DialogTitle>
+                  <DialogDescription>
+                    {editingUser ? `Update role and grade for ${editingUser.full_name}` : ""}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-1">
-                    <Label>Full Name</Label>
-                    <Input
-                      value={inviteForm.full_name}
-                      onChange={(e) => setInviteForm((p) => ({ ...p, full_name: e.target.value }))}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={inviteForm.email}
-                      onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div className="space-y-1">
                     <Label>Role</Label>
                     <select
-                      value={inviteForm.role}
-                      onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
+                      value={editForm.role}
+                      onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                     >
                       {ROLES.map((r) => (
@@ -384,8 +513,8 @@ export default function SettingsPage() {
                   <div className="space-y-1">
                     <Label>Grade Assignment</Label>
                     <select
-                      value={inviteForm.grade}
-                      onChange={(e) => setInviteForm((p) => ({ ...p, grade: Number(e.target.value) }))}
+                      value={editForm.grade}
+                      onChange={(e) => setEditForm((p) => ({ ...p, grade: Number(e.target.value) }))}
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                     >
                       {GRADES.map((g) => (
@@ -395,177 +524,74 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-                  <Button onClick={handleInvite}>
-                    <Mail className="mr-1 h-4 w-4" />
-                    Send Invite
+                  <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                  <Button onClick={handleEditRole}>
+                    <Shield className="mr-1 h-4 w-4" />
+                    Save Changes
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingUsers ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Grade</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>
-                                {user.full_name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()
-                                  .slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{user.full_name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
-                        <TableCell>
-                          <Badge className={roleColors[user.role] ?? ""}>{ROLE_LABELS[user.role]}</Badge>
-                        </TableCell>
-                        <TableCell>{user.grade_assigned ? `Grade ${user.grade_assigned}` : "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
-                            <Settings className="mr-1 h-3 w-3" />
-                            Edit
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit User</DialogTitle>
-                <DialogDescription>
-                  {editingUser ? `Update role and grade for ${editingUser.full_name}` : ""}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-1">
-                  <Label>Role</Label>
-                  <select
-                    value={editForm.role}
-                    onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Grade Assignment</Label>
-                  <select
-                    value={editForm.grade}
-                    onChange={(e) => setEditForm((p) => ({ ...p, grade: Number(e.target.value) }))}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                  >
-                    {GRADES.map((g) => (
-                      <option key={g} value={g}>Grade {g}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-                <Button onClick={handleEditRole}>
-                  <Shield className="mr-1 h-4 w-4" />
-                  Save Changes
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Bulk Import Users (XLSX)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-sm text-muted-foreground">
-                Upload an XLSX file with columns: email, full_name, role, grade_assigned.
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={async () => {
-                  try {
-                    const res = await fetch("/api/users/template")
-                    if (!res.ok) throw new Error("Failed")
-                    const blob = await res.blob()
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.href = url; a.download = "user-template.xlsx"; a.click()
-                    URL.revokeObjectURL(url)
-                    toast.success("Template downloaded")
-                  } catch {
-                    toast.error("Failed to download template")
-                  }
-                }}>
-                  <Download className="mr-1 h-3 w-3" />
-                  Download Template
-                </Button>
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
-                  <Upload className="h-3 w-3" />
-                  Upload XLSX
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const fd = new FormData()
-                      fd.append("file", file)
-                      try {
-                        const res = await fetch("/api/users/upload", { method: "POST", body: fd })
-                        const result = await res.json()
-                        if (res.ok) {
-                          toast.success(result.message ?? "Upload berhasil")
-                          fetchUsers()
-                        } else {
-                          toast.error(result.error ?? "Upload gagal")
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk Import Users (XLSX)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Upload an XLSX file with columns: email, full_name, role, grade_assigned.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    try {
+                      const res = await fetch("/api/users/template")
+                      if (!res.ok) throw new Error("Failed")
+                      const blob = await res.blob()
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement("a")
+                      a.href = url; a.download = "user-template.xlsx"; a.click()
+                      URL.revokeObjectURL(url)
+                      toast.success("Template downloaded")
+                    } catch {
+                      toast.error("Failed to download template")
+                    }
+                  }}>
+                    <Download className="mr-1 h-3 w-3" />
+                    Download Template
+                  </Button>
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
+                    <Upload className="h-3 w-3" />
+                    Upload XLSX
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const fd = new FormData()
+                        fd.append("file", file)
+                        try {
+                          const res = await fetch("/api/users/upload", { method: "POST", body: fd })
+                          const result = await res.json()
+                          if (res.ok) {
+                            toast.success(result.message ?? "Upload berhasil")
+                            fetchUsers()
+                          } else {
+                            toast.error(result.error ?? "Upload gagal")
+                          }
+                        } catch {
+                          toast.error("Upload gagal")
                         }
-                      } catch {
-                        toast.error("Upload gagal")
-                      }
-                      e.target.value = ""
-                    }}
-                  />
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="ai-providers" className="space-y-6">
           <div className="flex items-center justify-end">
@@ -789,9 +815,26 @@ export default function SettingsPage() {
           </Dialog>
         </TabsContent>
 
-        <TabsContent value="school" className="space-y-6">
-          <SchoolSettings />
-        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="subjects" className="space-y-6">
+            <SubjectsTab />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="classes" className="space-y-6">
+            <ClassesTab />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="teacher-assignments" className="space-y-6">
+            <TeacherAssignmentsTab />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="school" className="space-y-6">
+            <SchoolSettings />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
@@ -922,5 +965,440 @@ function SchoolSettings() {
         <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />Save School Settings</Button>
       </CardContent>
     </Card>
+  )
+}
+
+function SubjectsTab() {
+  const [subjects, setSubjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState({ code: "", name: "", icon: "📚", sort_order: 0 })
+
+  useEffect(() => { fetchSubjects() }, [])
+
+  async function fetchSubjects() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/subjects")
+      if (res.ok) setSubjects(await res.json())
+    } catch { toast.error("Failed to load subjects.") }
+    finally { setLoading(false) }
+  }
+
+  function openAdd() {
+    setEditing(null)
+    setForm({ code: "", name: "", icon: "📚", sort_order: subjects.length })
+    setDialogOpen(true)
+  }
+
+  function openEdit(subject: any) {
+    setEditing(subject)
+    setForm({ code: subject.code, name: subject.name, icon: subject.icon ?? "📚", sort_order: subject.sort_order ?? 0 })
+    setDialogOpen(true)
+  }
+
+  async function handleSave() {
+    try {
+      const url = editing ? `/api/subjects/${editing.id}` : "/api/subjects"
+      const method = editing ? "PUT" : "POST"
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      if (res.ok) {
+        toast.success(editing ? "Subject updated!" : "Subject added!")
+        setDialogOpen(false)
+        fetchSubjects()
+      } else {
+        const err = await res.json()
+        toast.error(err.error ?? "Failed to save.")
+      }
+    } catch { toast.error("Failed to save.") }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this subject?")) return
+    try {
+      const res = await fetch(`/api/subjects/${id}`, { method: "DELETE" })
+      if (res.ok) { toast.success("Subject deleted."); fetchSubjects() }
+      else toast.error("Failed to delete.")
+    } catch { toast.error("Failed to delete.") }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Subject</Button>
+      </div>
+      <Card>
+        <CardHeader><CardTitle>Subjects</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : subjects.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No subjects configured.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Icon</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {subjects.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-mono text-xs font-bold">{s.code}</TableCell>
+                    <TableCell>{s.name}</TableCell>
+                    <TableCell>{s.icon}</TableCell>
+                    <TableCell>{s.sort_order}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Settings className="mr-1 h-3 w-3" />Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}><Trash2 className="mr-1 h-3 w-3 text-destructive" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Subject</DialogTitle><DialogDescription>Configure subject code, name, and icon.</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1"><Label>Code (e.g. PHY, MAT)</Label><Input value={form.code} onChange={(e) => setForm(p => ({ ...p, code: e.target.value }))} placeholder="PHY" /></div>
+            <div className="space-y-1"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Physics" /></div>
+            <div className="space-y-1"><Label>Icon (emoji)</Label><Input value={form.icon} onChange={(e) => setForm(p => ({ ...p, icon: e.target.value }))} placeholder="⚛️" /></div>
+            <div className="space-y-1"><Label>Sort Order</Label><Input type="number" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>{editing ? "Update" : "Add"} Subject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function ClassesTab() {
+  const [classes, setClasses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState({ grade: 7, class_name: "" })
+
+  useEffect(() => { fetchClasses() }, [])
+
+  async function fetchClasses() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/classes")
+      if (res.ok) setClasses(await res.json())
+    } catch { toast.error("Failed to load classes.") }
+    finally { setLoading(false) }
+  }
+
+  function openAdd() { setEditing(null); setForm({ grade: 7, class_name: "" }); setDialogOpen(true) }
+  function openEdit(c: any) { setEditing(c); setForm({ grade: c.grade, class_name: c.class_name }); setDialogOpen(true) }
+
+  async function handleSave() {
+    try {
+      const url = editing ? `/api/classes/${editing.id}` : "/api/classes"
+      const method = editing ? "PUT" : "POST"
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      if (res.ok) {
+        toast.success(editing ? "Class updated!" : "Class added!")
+        setDialogOpen(false)
+        fetchClasses()
+      } else {
+        const err = await res.json()
+        toast.error(err.error ?? "Failed to save.")
+      }
+    } catch { toast.error("Failed to save.") }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this class?")) return
+    try {
+      const res = await fetch(`/api/classes/${id}`, { method: "DELETE" })
+      if (res.ok) { toast.success("Class deleted."); fetchClasses() }
+      else toast.error("Failed to delete.")
+    } catch { toast.error("Failed to delete.") }
+  }
+
+  const grouped = classes.reduce((acc: Record<number, any[]>, c: any) => {
+    if (!acc[c.grade]) acc[c.grade] = []
+    acc[c.grade].push(c)
+    return acc
+  }, {})
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Class</Button>
+      </div>
+      <Card>
+        <CardHeader><CardTitle>Parallel Classes</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : classes.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No classes configured.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b)).map(([grade, cls]: [string, any[]]) => (
+                <Card key={grade}>
+                  <CardHeader className="py-3"><CardTitle className="text-sm">Grade {grade}</CardTitle></CardHeader>
+                  <CardContent className="py-2">
+                    <div className="space-y-1">
+                      {cls.sort((a: any, b: any) => a.class_name.localeCompare(b.class_name)).map((c: any) => (
+                        <div key={c.id} className="flex items-center justify-between rounded border px-3 py-1.5 text-sm">
+                          <span className="font-medium">Class {c.class_name}</span>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(c)}><Settings className="h-3 w-3" /></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Class</DialogTitle><DialogDescription>Configure grade and class name.</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label>Grade</Label>
+              <select value={form.grade} onChange={(e) => setForm(p => ({ ...p, grade: Number(e.target.value) }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                {GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label>Class Name (e.g. A, B, C)</Label><Input value={form.class_name} onChange={(e) => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>{editing ? "Update" : "Add"} Class</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function TeacherAssignmentsTab() {
+  const [assignments, setAssignments] = useState<any[]>([])
+  const [teachers, setTeachers] = useState<any[]>([])
+  const [classes, setClasses] = useState<any[]>([])
+  const [subjects, setSubjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState({ teacher_id: "", grade: 7, subject: "", class_id: "" })
+  const [uploading, setUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    fetchAssignments()
+    fetchTeachers()
+    fetchClasses()
+    fetchSubjects()
+  }, [])
+
+  async function fetchAssignments() {
+    try {
+      const res = await fetch("/api/teacher-assignments")
+      if (res.ok) setAssignments(await res.json())
+    } catch { toast.error("Failed to load assignments.") }
+    finally { setLoading(false) }
+  }
+
+  async function fetchTeachers() {
+    try {
+      const res = await fetch("/api/profiles?role=teacher")
+      if (res.ok) setTeachers(await res.json())
+    } catch {}
+  }
+
+  async function fetchClasses() {
+    try {
+      const res = await fetch("/api/classes")
+      if (res.ok) setClasses(await res.json())
+    } catch {}
+  }
+
+  async function fetchSubjects() {
+    try {
+      const res = await fetch("/api/subjects")
+      if (res.ok) setSubjects(await res.json())
+    } catch {}
+  }
+
+  function openAdd() { setEditing(null); setForm({ teacher_id: "", grade: 7, subject: "", class_id: "" }); setDialogOpen(true) }
+  function openEdit(a: any) {
+    setEditing(a)
+    setForm({ teacher_id: a.teacher_id, grade: a.grade, subject: a.subject, class_id: a.class_id ?? "" })
+    setDialogOpen(true)
+  }
+
+  async function handleSave() {
+    try {
+      const url = editing ? `/api/teacher-assignments/${editing.id}` : "/api/teacher-assignments"
+      const method = editing ? "PUT" : "POST"
+      const body: any = { teacher_id: form.teacher_id, grade: form.grade, subject: form.subject }
+      if (form.class_id) body.class_id = form.class_id
+
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      if (res.ok) { toast.success(editing ? "Assignment updated!" : "Assignment added!"); setDialogOpen(false); fetchAssignments() }
+      else { const err = await res.json(); toast.error(err.error ?? "Failed to save.") }
+    } catch { toast.error("Failed to save.") }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this assignment?")) return
+    try {
+      const res = await fetch(`/api/teacher-assignments/${id}`, { method: "DELETE" })
+      if (res.ok) { toast.success("Assignment deleted."); fetchAssignments() }
+      else toast.error("Failed to delete.")
+    } catch { toast.error("Failed to delete.") }
+  }
+
+  async function downloadTemplate() {
+    try {
+      const res = await fetch("/api/teacher-assignments/template")
+      if (!res.ok) { toast.error("Failed to download template."); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url; a.download = "teacher-assignments-template.xlsx"
+      document.body.appendChild(a); a.click()
+      document.body.removeChild(a); URL.revokeObjectURL(url)
+    } catch { toast.error("Failed to download template.") }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true); setUploadResult(null)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const res = await fetch("/api/teacher-assignments/upload", { method: "POST", body: formData })
+      const data = await res.json()
+      setUploadResult(data.message ?? "Upload complete.")
+      if (res.ok) { fetchAssignments(); toast.success(data.message) }
+      else toast.error(data.message)
+    } catch { toast.error("Upload failed.") }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = "" }
+  }
+
+  const grouped = assignments.reduce((acc: Record<string, any[]>, a: any) => {
+    const key = a.profiles?.full_name || a.teacher_id
+    if (!acc[key]) acc[key] = []
+    acc[key].push(a)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" onClick={downloadTemplate}><Download className="mr-1 h-4 w-4" />Template</Button>
+        <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+          <Upload className="mr-1 h-4 w-4" />{uploading ? "Uploading..." : "Upload XLSX"}
+        </Button>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleUpload} />
+        <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Assignment</Button>
+      </div>
+      {uploadResult && <p className="text-sm text-muted-foreground">{uploadResult}</p>}
+      <Card>
+        <CardHeader><CardTitle>Teacher Assignments</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : assignments.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No assignments configured. Assign teachers to grades, subjects, and classes.</p>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(grouped).sort(([, a], [, b]) => a[0]?.profiles?.full_name?.localeCompare(b[0]?.profiles?.full_name) || 0).map(([teacherName, items]) => (
+                <div key={teacherName}>
+                  <h3 className="mb-2 text-sm font-semibold">{teacherName}</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Grade</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Class</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.sort((a: any, b: any) => a.grade - b.grade || a.subject.localeCompare(b.subject)).map((a: any) => (
+                        <TableRow key={a.id}>
+                          <TableCell>Grade {a.grade}</TableCell>
+                          <TableCell>{a.subject}</TableCell>
+                          <TableCell>{a.classes ? `Grade ${a.classes.grade}${a.classes.class_name}` : "All classes"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Settings className="mr-1 h-3 w-3" />Edit</Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)}><Trash2 className="mr-1 h-3 w-3 text-destructive" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Assignment</DialogTitle><DialogDescription>Map a teacher to a grade, subject, and optional class section.</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label>Teacher</Label>
+              <select value={form.teacher_id} onChange={(e) => setForm(p => ({ ...p, teacher_id: e.target.value }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                <option value="">Select teacher...</option>
+                {teachers.map((t: any) => <option key={t.id} value={t.id}>{t.full_name} ({t.email})</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Grade</Label>
+              <select value={form.grade} onChange={(e) => setForm(p => ({ ...p, grade: Number(e.target.value) }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                {GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Subject</Label>
+              <select value={form.subject} onChange={(e) => setForm(p => ({ ...p, subject: e.target.value }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                <option value="">Select subject...</option>
+                {subjects.map((s: any) => <option key={s.id} value={s.code}>{s.name} ({s.code})</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Class (optional — leave empty for all classes in this grade)</Label>
+              <select value={form.class_id} onChange={(e) => setForm(p => ({ ...p, class_id: e.target.value }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                <option value="">All classes</option>
+                {classes.filter((c: any) => c.grade === form.grade).map((c: any) => (
+                  <option key={c.id} value={c.id}>Grade {c.grade}{c.class_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={!form.teacher_id || !form.subject}>{editing ? "Update" : "Add"} Assignment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

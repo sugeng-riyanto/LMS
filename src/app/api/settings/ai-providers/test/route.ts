@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await request.json()

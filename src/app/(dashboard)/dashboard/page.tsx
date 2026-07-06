@@ -17,6 +17,8 @@ import {
   PenSquare,
   GraduationCap,
   ExternalLink,
+  Download,
+  BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
 import { Badge } from "@/components/ui/badge"
@@ -78,7 +80,7 @@ function StatusBadge({ status }: { status: WeeklyPackage["status"] }) {
 export default function DashboardPage() {
   const { profile } = useAuth()
   const { data: packages, isLoading } = usePackages()
-  const { role, canManagePackages, isStudent } = useRBAC()
+  const { role, canManagePackages, isStudent, isSuperAdmin, isTeacher } = useRBAC()
 
   const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; syllabus_plans: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], syllabus_plans: [], submissions: {} })
   const [subjectFilter, setSubjectFilter] = useState("all")
@@ -271,6 +273,15 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4" />
             Upload Calendar
           </Link>
+          {isSuperAdmin || isTeacher ? (
+            <Link
+              href={ROUTES.ANALYTICS}
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </Link>
+          ) : null}
         </div>
       )}
 

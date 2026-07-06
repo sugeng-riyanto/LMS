@@ -44,7 +44,7 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
-  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin"] },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin", "teacher"] },
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
   { href: "/my-progress", label: "My Progress", icon: BarChart3, roles: ["student"] },
