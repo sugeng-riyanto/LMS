@@ -257,7 +257,15 @@ export default function TPAPage() {
             <option value="quarterly">Quarterly</option>
             <option value="semester">Semester</option>
           </select>
-          {(isPrincipal || isSuperAdmin) && <Button onClick={() => setCreateOpen(true)}><Plus className="mr-1 h-4 w-4" /> New Assessment</Button>}
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.open(`/api/export/tpa?format=xlsx&period_type=${periodFilter}`, "_blank")} title="Download XLSX">
+              📊 XLSX
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.open(`/api/export/tpa?format=pdf&period_type=${periodFilter}`, "_blank")} title="Download PDF">
+              📄 PDF
+            </Button>
+          </div>
+          {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => setCreateOpen(true)}><Plus className="mr-1 h-4 w-4" /> New</Button>}
         </div>
       </div>
 

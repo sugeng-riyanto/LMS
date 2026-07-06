@@ -144,7 +144,11 @@ export default function SupervisionsPage() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Supervisions</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">{isPrincipal ? "Observe teachers using the SHB rubric (85 criteria, default score 4)." : "View your supervision results."}</p>
         </div>
-        {(isPrincipal || isSuperAdmin) && <Button size="sm" onClick={openNew}><Plus className="mr-1 h-4 w-4" /> New</Button>}
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.open("/api/export/supervisions?format=xlsx", "_blank")}>📊 XLSX</Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.open("/api/export/supervisions?format=pdf", "_blank")}>📄 PDF</Button>
+          {(isPrincipal || isSuperAdmin) && <Button size="sm" onClick={openNew}><Plus className="mr-1 h-4 w-4" /> New</Button>}
+        </div>
       </div>
 
       {loading ? (
