@@ -7,11 +7,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
+
+    // Verify ownership — super_admin can edit any, others only their own
+    if (profile.role !== "super_admin") {
+      const { data: evt } = await (supabase.from("academic_calendars") as any)
+        .select("created_by").eq("id", id).single()
+      if (!evt || evt.created_by !== user.id) {
+        return NextResponse.json({ error: "You can only edit your own events" }, { status: 403 })
+      }
+    }
 
     const allowedFields = [
       "academic_year", "semester", "month", "week_number",
@@ -46,10 +55,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
     if (authError) return authError
 
     const { id } = await params
+
+    // Verify ownership
+    if (profile.role !== "super_admin") {
+      const { data: evt } = await (supabase.from("academic_calendars") as any)
+        .select("created_by").eq("id", id).single()
+      if (!evt || evt.created_by !== user.id) {
+        return NextResponse.json({ error: "You can only delete your own events" }, { status: 403 })
+      }
+    }
 
     const { error } = await (supabase.from("academic_calendars") as any)
       .delete()
