@@ -46,14 +46,45 @@ export default function TPAPage() {
 
   const [form, setForm] = useState({
     teacher_id: "", semester: "1", subject: "PHY", grade: "10",
-    period_type: "semester", period_label: "",
+    period_type: "monthly", period_label: "",
   })
 
-  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
+  useEffect(() => { if (isPrincipal || isSuperAdmin) { fetchTeachers(); fetchAssignments() } }, [])
   useEffect(() => { fetchItems() }, [periodFilter])
 
+  const [gradeFilter, setGradeFilter] = useState<number[]>([])
+
+  async function fetchAssignments() {
+    try {
+      const r = await fetch("/api/teacher-assignments")
+      if (!r.ok) return
+      const data = await r.json()
+      // Get grades for the current principal from their profile level
+      // For principals, we determine level from the assignments data
+      const grades = [...new Set(data.map((a: any) => a.grade))].sort() as number[]
+      setGradeFilter(grades)
+    } catch {}
+  }
+
   async function fetchTeachers() {
-    try { const r = await fetch("/api/profiles?role=teacher"); if (r.ok) setTeachers(await r.json()) } catch {}
+    try {
+      const r = await fetch("/api/profiles?role=teacher")
+      if (r.ok) {
+        const all = await r.json()
+        // Filter by grade assignments for this principal level
+        const assignRes = await fetch("/api/teacher-assignments")
+        if (assignRes.ok) {
+          const assigns = await assignRes.json()
+          // Get unique grade levels from assignments
+          const grades = [...new Set(assigns.map((a: any) => a.grade))] as number[]
+          // Get teacher IDs that teach these grades
+          const teacherIds = new Set(assigns.map((a: any) => a.teacher_id))
+          setTeachers(all.filter((t: any) => teacherIds.has(t.id)))
+        } else {
+          setTeachers(all)
+        }
+      }
+    } catch {}
   }
   async function fetchItems() {
     setLoading(true)
