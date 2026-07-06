@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
       const gradeParam = filterGrade === "all" ? "" : `grade=${filterGrade}`
       const subjectParam = subjectFilter !== "all" ? `${gradeParam ? "&" : ""}subject=${subjectFilter}` : ""
       fetch(`/api/analytics/scores?${gradeParam}${subjectParam}`)
-        .then(r => r.json()).then(d => setScoreData(d)).catch(() => {}).finally(() => setScoreLoading(false))
+        .then(r => r.ok ? r.json() : null).then(d => setScoreData(d)).catch(() => {}).finally(() => setScoreLoading(false))
     }
   }, [filterGrade, subjectFilter, canView])
 
@@ -217,7 +217,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <TrendingUp className="h-3 w-3" />
-                  <span>{data.total_students > 0 ? `${(highPerformers.length / data.total_students * 100).toFixed(0)}% students are on track` : "No data"}</span>
+                  <span>{data?.total_students > 0 ? `${(highPerformers.length / data.total_students * 100).toFixed(0)}% students are on track` : "No data"}</span>
                 </div>
               </CardContent>
             </Card>
