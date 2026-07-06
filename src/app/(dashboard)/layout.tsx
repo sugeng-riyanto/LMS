@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex flex-1 flex-col pb-16 lg:pb-0 min-w-0">
         <Header />
