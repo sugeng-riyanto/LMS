@@ -69,11 +69,11 @@ export default async function LandingPage() {
               Mathematics, Chemistry, Biology, and Economics — all within a single, integrated ecosystem.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 hover:shadow-xl">
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition-all duration-300 hover:bg-blue-50 hover:shadow-xl hover:scale-105 active:scale-95">
                 Get Started
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
               </Link>
-              <a href="#features" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 text-base font-medium text-white transition hover:bg-white/10">
+              <a href="#features" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 text-base font-medium text-white transition-all duration-300 hover:bg-white/10 hover:scale-105 active:scale-95">
                 Explore Features
               </a>
             </div>
@@ -118,9 +118,9 @@ export default async function LandingPage() {
               { icon: "✅", title: "Grading & Publishing", desc: "Evaluate submissions, provide targeted feedback, and publish scores to students with a single action." },
               { icon: "📱", title: "Mobile Accessibility", desc: "Students can access assignments, submit work, and review scores from any device." },
             ].map((f) => (
-              <div key={f.title} className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-blue-100 hover:shadow-md">
-                <div className="mb-4 text-3xl">{f.icon}</div>
-                <h3 className="text-lg font-semibold text-gray-900">{f.title}</h3>
+              <div key={f.title} className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg">
+                <div className="mb-4 text-3xl transition-transform duration-300 group-hover:scale-110">{f.icon}</div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">{f.desc}</p>
               </div>
             ))}
@@ -142,9 +142,9 @@ export default async function LandingPage() {
                 "Track each student's performance by category: Classwork, Unit Tests, Projects, Homework, and Semester Examinations.",
                 "Export comprehensive grade reports to Excel for report cards and administrative distribution.",
               ].map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">{i + 1}</span>
-                  <span className="text-gray-700">{item}</span>
+                <li key={i} className="flex items-start gap-3 group cursor-default">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600 transition-all duration-300 group-hover:bg-blue-600 group-hover:text-white group-hover:scale-110">{i + 1}</span>
+                  <span className="text-gray-700 transition-colors duration-300 group-hover:text-gray-900">{item}</span>
                 </li>
               ))}
             </ul>
@@ -166,9 +166,9 @@ export default async function LandingPage() {
                 "Review your scores and academic progress across categories through interactive charts.",
                 "Maintain a mistake journal for each subject — teachers can review and provide feedback.",
               ].map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-600">{i + 1}</span>
-                  <span className="text-gray-700">{item}</span>
+                <li key={i} className="flex items-start gap-3 group cursor-default">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-600 transition-all duration-300 group-hover:bg-green-600 group-hover:text-white group-hover:scale-110">{i + 1}</span>
+                  <span className="text-gray-700 transition-colors duration-300 group-hover:text-gray-900">{item}</span>
                 </li>
               ))}
             </ul>
@@ -193,9 +193,9 @@ export default async function LandingPage() {
           <h2 className="text-3xl font-bold text-white">Ready to Transform Your Teaching?</h2>
           <p className="mt-4 text-lg text-blue-100">Join your colleagues — complimentary access for all SHB Modernhill educators.</p>
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 hover:shadow-xl">
+            <Link href="/login" className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition-all duration-300 hover:bg-blue-50 hover:shadow-xl hover:scale-105 active:scale-95">
               Sign In to {name}
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+              <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </Link>
           </div>
         </div>
