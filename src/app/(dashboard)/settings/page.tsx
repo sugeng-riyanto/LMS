@@ -582,6 +582,23 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={async () => {
                     try {
+                      const res = await fetch("/api/export/distribution-xlsx")
+                      if (!res.ok) throw new Error("Failed")
+                      const blob = await res.blob()
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement("a")
+                      a.href = url; a.download = "teacher-student-distribution.xlsx"; a.click()
+                      URL.revokeObjectURL(url)
+                      toast.success("Distribution downloaded")
+                    } catch {
+                      toast.error("Failed to download distribution")
+                    }
+                  }}>
+                    <Download className="mr-1 h-3 w-3" />
+                    Download Distribution
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    try {
                       const res = await fetch("/api/users/template")
                       if (!res.ok) throw new Error("Failed")
                       const blob = await res.blob()
