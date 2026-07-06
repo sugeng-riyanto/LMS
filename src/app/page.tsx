@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { createAdminClient } from "@/lib/supabase/admin"
+import SubjectCarousel from "@/components/landing/subject-carousel"
 
 export const dynamic = "force-dynamic"
 
@@ -178,25 +179,11 @@ export default async function LandingPage() {
       {/* ── Subjects ── */}
       <section className="border-y border-gray-100 bg-gray-50/50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto max-w-2xl text-center mb-10">
             <h2 className="text-2xl font-bold text-gray-900">Supported Subjects</h2>
             <p className="mt-2 text-gray-600">Each subject maintains its own syllabus, worksheets, and grading pipeline — teachers manage only the disciplines assigned to them.</p>
           </div>
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-            {[
-              { code: "PHY", name: "Physics", icon: "⚛️" },
-              { code: "MAT", name: "Mathematics", icon: "📐" },
-              { code: "CHE", name: "Chemistry", icon: "🧪" },
-              { code: "BIO", name: "Biology", icon: "🧬" },
-              { code: "ECO", name: "Economics", icon: "📊" },
-            ].map((s) => (
-              <div key={s.code} className="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm transition hover:border-blue-200 hover:shadow">
-                <div className="text-3xl">{s.icon}</div>
-                <p className="mt-2 font-semibold text-gray-900">{s.name}</p>
-                <p className="text-xs text-gray-400">{s.code}</p>
-              </div>
-            ))}
-          </div>
+          <SubjectCarousel />
         </div>
       </section>
 

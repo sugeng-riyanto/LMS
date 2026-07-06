@@ -24,7 +24,7 @@ export default async function AuthLayout({
   return (
     <div className={`${inter.className} flex min-h-screen items-center justify-center bg-muted p-4`}>
       <div className="w-full max-w-sm space-y-6">
-        <Link href="/login" className="flex flex-col items-center gap-2">
+        <Link href="/" className="flex flex-col items-center gap-2">
           {logoUrl ? (
             <img src={logoUrl} alt={brandName} className="h-16 w-16 rounded-lg object-contain" />
           ) : (
