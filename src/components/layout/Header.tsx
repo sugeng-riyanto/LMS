@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
-import { LogOut, User, Shield, FlaskConical, Sun, Moon } from "lucide-react"
+import { LogOut, User, Shield, FlaskConical, Menu, Sun, Moon } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTheme } from "next-themes"
 import { ROLE_LABELS } from "@/lib/utils/constants"
@@ -10,7 +10,11 @@ import { useSchoolSettings } from "@/hooks/use-school-settings"
 import { NotificationBell } from "@/components/notifications/NotificationBell"
 import FontSizeToggle from "@/components/layout/FontSizeToggle"
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void
+}
+
+export default function Header({ onMenuToggle }: HeaderProps) {
   const { profile, signOut } = useAuth()
   const { role, isStudent } = useRBAC()
   const { data: school } = useSchoolSettings()
@@ -24,6 +28,13 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-background px-3 sm:px-6">
+      <button
+        onClick={onMenuToggle}
+        className="rounded-lg p-1.5 sm:p-2 text-muted-foreground hover:bg-accent"
+        title="Toggle sidebar"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
       <div className="flex items-center gap-1.5 sm:gap-2 md:hidden min-w-0">
         {school?.logo_url ? (
           <img src={school.logo_url} alt={school.school_name} className="h-5 w-5 sm:h-6 sm:w-6 rounded object-contain shrink-0" />

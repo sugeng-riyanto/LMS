@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useRouter, usePathname } from "next/navigation"
@@ -37,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { role } = useRBAC()
   const router = useRouter()
   const pathname = usePathname()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,6 +53,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, role, pathname, router])
 
+  // Close sidebar on route change (mobile/tablet)
+  useEffect(() => { setSidebarOpen(false) }, [pathname])
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -64,9 +68,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
+      {/* Overlay for mobile/tablet */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40 md:bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
       <div className="flex flex-1 flex-col pb-16 md:pb-0 min-w-0">
-        <Header />
+        <Header onMenuToggle={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
       </div>
       <MobileNav />
