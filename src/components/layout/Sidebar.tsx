@@ -57,6 +57,7 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["principal"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["principal"] },
   { href: "/supervisions", label: "Supervisions", icon: ClipboardList, roles: ["principal"] },
+  { href: "/tpa", label: "TPA", icon: FileText, roles: ["principal"] },
   { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["principal"] },
 
   // ── Student flow (view → do → review) ──
@@ -71,6 +72,7 @@ const allNavItems: NavItem[] = [
   { href: "/profile", label: "Profile", icon: User, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["super_admin", "teacher"] },
   { href: "/supervisions", label: "Supervisions", icon: ClipboardList, roles: ["teacher"] },
+  { href: "/tpa", label: "TPA", icon: FileText, roles: ["teacher"] },
   { href: ROUTES.HELP, label: "Help", icon: HelpCircle, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
 ]
 

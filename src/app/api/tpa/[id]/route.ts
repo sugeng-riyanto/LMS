@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from "next/server"
+import { requireRole } from "@/lib/supabase/require-role"
+import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal", "teacher"])
+    if (authError) return authError
+    const { id } = await params
+    const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+      .select("*, teacher:teacher_id(id, full_name), principal:principal_id(id, full_name)")
+      .eq("id", id).single()
+    if (error || !data) return new NextResponse("Not found", { status: 404 })
+    if (profile.role !== "super_admin" && data.principal_id !== user.id && data.teacher_id !== user.id) {
+      return new NextResponse("Forbidden", { status: 403 })
+    }
+    return NextResponse.json(data)
+  } catch {
+    return new NextResponse("Not found", { status: 404 })
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal", "teacher"])
+    if (authError) return authError
+    const { id } = await params
+    const body = await request.json()
+
+    // Get current assessment
+    const { data: assmt } = await (supabase.from("teacher_performance_assessments") as any).select("*").eq("id", id).single()
+    if (!assmt) return new NextResponse("Not found", { status: 404 })
+
+    if (profile.role === "principal") {
+      if (assmt.principal_id !== user.id) return new NextResponse("Forbidden", { status: 403 })
+
+      // Principal saves scores
+      if (body.principal_scores) {
+        // Calculate total from scores
+        const categoryScores: Record<string, { raw: number; max: number }> = {}
+        for (const cat of TPA_CATEGORIES) {
+          const scores = body.principal_scores[cat.key] || {}
+          const raw = cat.items.reduce((sum: number, item) => sum + (scores[item.id] ?? 0), 0)
+          categoryScores[cat.key] = { raw, max: cat.items.length * 4 }
+        }
+        const total = calculateTotal(categoryScores)
+
+        const updates: Record<string, unknown> = {
+          principal_scores: body.principal_scores,
+          principal_total: total,
+          grade: body.grade ?? assmt.grade,
+          subject: body.subject ?? assmt.subject,
+          pre_appraisal_held: body.pre_appraisal_held ?? assmt.pre_appraisal_held,
+          visit_count: body.visit_count ?? assmt.visit_count,
+        }
+
+        // If submitting (not saving draft)
+        if (body.submit) {
+          updates.status = "principal_submitted"
+          updates.principal_submitted_at = new Date().toISOString()
+          updates.principal_signature = `Signed by ${profile.full_name}`
+          updates.principal_signed_at = new Date().toISOString()
+        }
+
+        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+          .update(updates).eq("id", id).select().single()
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json(data)
+      }
+
+      // Update basic fields
+      const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count"]
+      const updates: Record<string, unknown> = {}
+      for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f]
+      const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+        .update(updates).eq("id", id).select().single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json(data)
+    }
+
+    if (profile.role === "teacher") {
+      if (assmt.teacher_id !== user.id) return new NextResponse("Forbidden", { status: 403 })
+      if (assmt.status !== "principal_submitted") return new NextResponse("Teacher can only submit after principal", { status: 400 })
+
+      if (body.teacher_scores) {
+        const categoryScores: Record<string, { raw: number; max: number }> = {}
+        for (const cat of TPA_CATEGORIES) {
+          const scores = body.teacher_scores[cat.key] || {}
+          const raw = cat.items.reduce((sum: number, item) => sum + (scores[item.id] ?? 0), 0)
+          categoryScores[cat.key] = { raw, max: cat.items.length * 4 }
+        }
+        const teacherTotal = calculateTotal(categoryScores)
+        const combined = assmt.principal_total != null ? Math.round(((assmt.principal_total + teacherTotal) / 2) * 10) / 10 : teacherTotal
+
+        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+          .update({
+            teacher_scores: body.teacher_scores,
+            teacher_total: teacherTotal,
+            teacher_submitted_at: new Date().toISOString(),
+            combined_total: combined,
+            combined_grade: getGradeLabel(combined),
+            status: "completed",
+            teacher_signature: `Signed by ${profile.full_name}`,
+            teacher_signed_at: new Date().toISOString(),
+            post_conference_held: true,
+          }).eq("id", id).select().single()
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json(data)
+      }
+      return NextResponse.json({ error: "teacher_scores required" }, { status: 400 })
+    }
+
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal"])
+    if (authError) return authError
+    const { id } = await params
+    if (profile.role !== "super_admin") {
+      const { data: a } = await (supabase.from("teacher_performance_assessments") as any).select("principal_id, status").eq("id", id).single()
+      if (!a || a.principal_id !== user.id || a.status !== "draft") return new NextResponse("Forbidden", { status: 403 })
+    }
+    const { error } = await (supabase.from("teacher_performance_assessments") as any).delete().eq("id", id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ message: "Deleted" })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

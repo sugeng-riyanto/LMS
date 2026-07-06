@@ -26,6 +26,7 @@ const ROLE_ROUTES: Record<string, Role[]> = {
   "/pre-class": ["student"],
   "/principal": ["principal"],
   "/supervisions": ["super_admin", "principal", "teacher"],
+  "/tpa": ["super_admin", "principal", "teacher"],
 }
 
 const API_ROLE_ROUTES: Record<string, Role[]> = {
@@ -60,6 +61,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/teacher-assignments": ["super_admin", "teacher", "principal"],
   "/api/upload": ["super_admin", "teacher"],
   "/api/subjects": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
+  "/api/tpa": ["super_admin", "principal", "teacher"],
   "/api/worksheets": ["super_admin", "teacher", "student"],
 }
 
