@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
 import { Badge } from "@/components/ui/badge"
+import SubjectTabs from "@/components/ui/subject-tabs"
 import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS } from "@/lib/utils/constants"
 import type { WeeklyPackage } from "@/types/package"
 
@@ -80,10 +81,12 @@ export default function DashboardPage() {
   const { role, canManagePackages, isStudent } = useRBAC()
 
   const [published, setPublished] = useState<{ worksheets: any[]; syllabi: any[]; syllabus_plans: any[]; submissions: Record<string, any> }>({ worksheets: [], syllabi: [], syllabus_plans: [], submissions: {} })
+  const [subjectFilter, setSubjectFilter] = useState("all")
 
   useEffect(() => {
     if (isStudent && profile?.grade_assigned) {
-      fetch(`/api/published-items?grade=${profile.grade_assigned}`)
+      const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
+      fetch(`/api/published-items?grade=${profile.grade_assigned}${subjectParam}`)
         .then(r => r.json()).then(d => {
           setPublished(d)
           // Fetch submission status for each worksheet
@@ -117,7 +120,7 @@ export default function DashboardPage() {
           }).catch(() => {})
         }).catch(() => {})
     }
-  }, [isStudent, profile?.grade_assigned])
+  }, [isStudent, profile?.grade_assigned, subjectFilter])
 
   if (isStudent) {
     return (
@@ -128,6 +131,8 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">Your learning dashboard for this week.</p>
         </div>
+
+        <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Link

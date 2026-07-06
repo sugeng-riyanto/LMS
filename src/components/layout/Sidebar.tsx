@@ -5,14 +5,13 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils/cn"
 import {
   LayoutDashboard,
-  FlaskConical,
+  GraduationCap,
   Calendar,
   Beaker,
   BookOpen,
   Settings,
   BrainCircuit,
   FileText,
-  GraduationCap,
   ClipboardList,
   HelpCircle,
   CheckCircle,
@@ -20,7 +19,7 @@ import {
   BarChart3,
   User,
 } from "lucide-react"
-import { ROUTES } from "@/lib/utils/constants"
+import { ROUTES, APP_NAME } from "@/lib/utils/constants"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useSchoolSettings } from "@/hooks/use-school-settings"
 
@@ -69,9 +68,9 @@ export default function Sidebar() {
         {school?.logo_url ? (
           <img src={school.logo_url} alt={school.school_name} className="h-8 w-8 rounded object-contain" />
         ) : (
-          <FlaskConical className="h-6 w-6 text-primary" />
+          <GraduationCap className="h-6 w-6 text-primary" />
         )}
-        <span className="text-sm font-semibold truncate">{school?.school_name ?? "Physics CC"}</span>
+        <span className="text-sm font-semibold truncate">{school?.school_name ?? APP_NAME}</span>
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {

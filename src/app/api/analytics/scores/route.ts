@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
+    const subject = searchParams.get("subject")
 
     const admin = createAdminClient()
     let query = (admin.from("profiles") as any)
@@ -33,11 +34,12 @@ export async function GET(request: NextRequest) {
     const studentIds = students.map((s: any) => s.id)
 
     // Get all work for these students (only returned/graded with scores)
-    const { data: work } = await (admin.from("student_work") as any)
+    let workQuery = (admin.from("student_work") as any)
       .select("*")
       .in("student_id", studentIds)
       .not("score", "is", null)
-      .order("submitted_at", { ascending: false })
+    if (subject) workQuery = workQuery.eq("subject", subject)
+    const { data: work } = await workQuery.order("submitted_at", { ascending: false })
 
     const allWork = (work ?? []) as any[]
 

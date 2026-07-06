@@ -41,6 +41,16 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient()
     const results = []
 
+    // Determine subject from source
+    let subject: string | null = null
+    if (worksheet_id) {
+      const { data: ws } = await (admin.from("shared_worksheets") as any).select("subject").eq("id", worksheet_id).single()
+      subject = ws?.subject ?? "PHY"
+    } else if (syllabus_id) {
+      const { data: sp } = await (admin.from("syllabus_planning") as any).select("subject").eq("id", syllabus_id).single()
+      subject = sp?.subject ?? "PHY"
+    }
+
     for (const entry of entries) {
       const record: Record<string, unknown> = {
         student_id: studentId,
@@ -50,6 +60,7 @@ export async function POST(request: NextRequest) {
         answer_text: entry.answer_text ?? null,
         canvas_data: entry.canvas_data ?? null,
         max_score: entry.max_score ?? 10,
+        subject,
         status: "submitted",
         submitted_at: new Date().toISOString(),
       }

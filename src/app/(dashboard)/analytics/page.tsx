@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2, Download, Search, SortAsc, SortDesc } from "lucide-react"
-import { GRADES } from "@/lib/utils/constants"
+import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 interface StudentRow {
@@ -32,6 +32,7 @@ export default function AnalyticsPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const canView = isSuperAdmin || isTeacher
   const [filterGrade, setFilterGrade] = useState<number | "all">("all")
+  const [subjectFilter, setSubjectFilter] = useState("all")
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -66,10 +67,11 @@ export default function AnalyticsPage() {
     if (canView) {
       setScoreLoading(true)
       const gradeParam = filterGrade === "all" ? "" : `grade=${filterGrade}`
-      fetch(`/api/analytics/scores${gradeParam ? `?${gradeParam}` : ""}`)
+      const subjectParam = subjectFilter !== "all" ? `${gradeParam ? "&" : ""}subject=${subjectFilter}` : ""
+      fetch(`/api/analytics/scores?${gradeParam}${subjectParam}`)
         .then(r => r.json()).then(d => setScoreData(d)).catch(() => {}).finally(() => setScoreLoading(false))
     }
-  }, [filterGrade])
+  }, [filterGrade, subjectFilter, canView])
 
   const students = data?.students ?? []
   const lowPerformers = students.filter((s) => s.entry_ticket_accuracy < 0.4)
@@ -119,6 +121,12 @@ export default function AnalyticsPage() {
             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
             <option value="all">All Grades</option>
             {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+          </select>
+          <Label className="whitespace-nowrap">Subject</Label>
+          <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}
+            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+            <option value="all">All Subjects</option>
+            {SUBJECTS.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
           </select>
           <Button variant="outline" size="sm" onClick={fetchAnalytics}><ArrowUpDown className="mr-1 h-4 w-4" />Refresh</Button>
         </div>

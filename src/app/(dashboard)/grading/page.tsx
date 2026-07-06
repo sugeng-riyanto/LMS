@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter, Send, RotateCcw, Eye, Download, FileText } from "lucide-react"
-import { GRADES } from "@/lib/utils/constants"
+import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 const CATEGORIES = [
@@ -33,6 +33,7 @@ export default function GradingPage() {
   const [assignedGrades, setAssignedGrades] = useState<number[]>([...GRADES])
   const [grade, setGrade] = useState(0) // 0 = all
   const [filterCat, setFilterCat] = useState("all")
+  const [subjectFilter, setSubjectFilter] = useState("all")
   const [submissions, setSubmissions] = useState<any[]>([])
   const [sourceMap, setSourceMap] = useState<Record<string, string>>({})
   const [maxScoreMap, setMaxScoreMap] = useState<Record<string, number>>({})
@@ -53,13 +54,14 @@ export default function GradingPage() {
       }).catch(() => {})
   }, [canView, profile])
 
-  useEffect(() => { if (canView) fetchData() }, [grade, canView])
+  useEffect(() => { if (canView) fetchData() }, [grade, canView, subjectFilter])
 
   async function fetchData() {
     setLoading(true)
     try {
       const gradeParam = grade > 0 ? grade : "all"
-      const res = await fetch(`/api/teacher/grading?grade=${gradeParam}&status=all`)
+      const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
+      const res = await fetch(`/api/teacher/grading?grade=${gradeParam}&status=all${subjectParam}`)
       const data = res.ok ? await res.json() : []
       setSubmissions(Array.isArray(data) ? data : [])
       const sm: Record<string, string> = {}
@@ -258,6 +260,11 @@ export default function GradingPage() {
               className="h-9 rounded-md border border-input bg-background px-3 text-sm">
               <option value="all">All Types</option>
               {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="all">All Subjects</option>
+              {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>
         </div>

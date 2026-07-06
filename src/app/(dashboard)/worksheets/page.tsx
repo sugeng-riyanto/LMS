@@ -11,6 +11,7 @@ import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, 
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
+import { SUBJECTS } from "@/lib/utils/constants"
 
 const BROAD_TOPICS = [
   "Kinematics", "Forces", "Energy", "Density", "Pressure", "Thermal",
@@ -46,6 +47,7 @@ interface Worksheet {
   published: boolean
   score_category: string | null
   max_score: number | null
+  subject: string | null
   created_at: string
 }
 
@@ -73,7 +75,8 @@ export default function WorksheetsPage() {
     theory_video_title: "",
     additional_links: "",
     score_category: "classwork",
-    max_score: "100"
+    max_score: "100",
+    subject: "PHY"
   })
 
   const weeks = useMemo(() => {
@@ -160,6 +163,7 @@ export default function WorksheetsPage() {
         theory_video_title: form.theory_video_title || null,
         score_category: form.score_category || null,
         max_score: form.max_score ? Number(form.max_score) : 100,
+        subject: form.subject || "PHY",
       }
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
@@ -203,6 +207,7 @@ export default function WorksheetsPage() {
       additional_links: addLinks,
       score_category: ws.score_category || "classwork",
       max_score: String(ws.max_score ?? 100),
+      subject: ws.subject || "PHY",
     })
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
@@ -215,7 +220,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100", subject: "PHY" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
@@ -428,6 +433,15 @@ export default function WorksheetsPage() {
                     placeholder="e.g. Introduction to Forces" />
                 </div>
               </div>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <select value={form.subject} onChange={e => updateForm({ subject: e.target.value })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+              </select>
             </div>
 
             {/* Assessment Category */}

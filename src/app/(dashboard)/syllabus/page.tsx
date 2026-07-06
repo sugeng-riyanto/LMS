@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2 } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { createClient } from "@/lib/supabase/client"
-import { GRADES } from "@/lib/utils/constants"
+import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
 import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
@@ -55,6 +55,7 @@ interface SyllabusPlan {
   status: string
   score_category: string
   max_score: number
+  subject: string
   published: boolean
 }
 
@@ -78,6 +79,7 @@ const defaultPlan: SyllabusPlan = {
   status: "draft",
   score_category: "classwork",
   max_score: 100,
+  subject: "PHY",
   published: false,
 }
 
@@ -134,6 +136,7 @@ export default function SyllabusPlannerPage() {
           status: (p.status as string) ?? "draft",
           score_category: (p.score_category as string) ?? "",
           max_score: (p.max_score as number) ?? 100,
+          subject: (p.subject as string) ?? "PHY",
           published: (p.published as boolean) ?? false,
         })
         setSelectedTopicIds(new Set(p.subtopics as string[] ?? []))
@@ -311,6 +314,7 @@ export default function SyllabusPlannerPage() {
         status: "planned",
         score_category: plan.score_category || null,
         max_score: plan.max_score || 100,
+        subject: plan.subject || "PHY",
         published: plan.published ?? false,
       }
 
@@ -1351,6 +1355,22 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
 
         <div className="space-y-6">
+          {/* Subject Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4" />
+                Subject
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <select value={plan.subject} onChange={e => setPlan(prev => ({ ...prev, subject: e.target.value }))}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+              </select>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm">

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Send, CheckCircle, Clock, Eye, EyeOff, Trash2, ArrowLeft, FileText, ExternalLink, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
+import SubjectTabs from "@/components/ui/subject-tabs"
 import toast from "react-hot-toast"
 
 function getCanvasPos(canvas: HTMLCanvasElement, e: MouseEvent | TouchEvent) {
@@ -148,10 +149,12 @@ export default function MyWorkPage() {
   const [spSubmissions, setSpSubmissions] = useState<Record<string, SubmissionInfo>>({})
 
   const [activeTab, setActiveTab] = useState<"weekly" | "worksheets" | "syllabi">("weekly")
+  const [subjectFilter, setSubjectFilter] = useState("all")
 
   useEffect(() => {
     if (!grade) return
-    fetch(`/api/published-items?grade=${grade}`)
+    const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
+    fetch(`/api/published-items?grade=${grade}${subjectParam}`)
       .then(r => r.json())
       .then(d => {
         const wss = d.worksheets || []
@@ -190,8 +193,9 @@ export default function MyWorkPage() {
               }
             }).catch(() => {})
         })
-      }).catch(() => {})
-  }, [grade])
+      })
+      .catch(() => {})
+  }, [grade, subjectFilter])
 
   useEffect(() => {
     if (!profile?.id || !pkg?.id) return
@@ -256,6 +260,9 @@ export default function MyWorkPage() {
           {totalAssignments > 0 ? `${totalAssignments} assignment${totalAssignments > 1 ? "s" : ""} available` : "No assignments yet"}
         </p>
       </div>
+
+      {/* Subject Filter */}
+      <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg border bg-muted/30 p-1">

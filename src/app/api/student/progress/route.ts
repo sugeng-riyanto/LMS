@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const subject = searchParams.get("subject")
 
     // Get student's profile
     const { data: profile } = await (supabase.from("profiles") as any)
@@ -14,11 +17,12 @@ export async function GET() {
       .single()
 
     // Show scores only when teacher has published (status = 'returned')
-    const { data: work } = await (supabase.from("student_work") as any)
+    let workQuery = (supabase.from("student_work") as any)
       .select("*")
       .eq("student_id", user.id)
       .eq("status", "returned")
-      .order("submitted_at", { ascending: false })
+    if (subject) workQuery = workQuery.eq("subject", subject)
+    const { data: work } = await workQuery.order("submitted_at", { ascending: false })
 
     const items = (work ?? []) as Array<Record<string, unknown>>
 
@@ -44,6 +48,7 @@ export async function GET() {
           question_text: i.question_text,
           score: i.score,
           max_score: i.max_score,
+          subject: i.subject,
           submitted_at: i.submitted_at,
         })),
       }

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const grade = searchParams.get("grade")
     const status = searchParams.get("status")
     const week = searchParams.get("week")
+    const subject = searchParams.get("subject")
 
     let query = (supabase.from("student_work") as any)
       .select("*, student:student_id(id, full_name, email, grade_assigned)")
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
     if (pkgId) query = query.eq("package_id", pkgId)
     if (studentId) query = query.eq("student_id", studentId)
     if (status && status !== "all") query = query.eq("status", status)
+    if (subject) query = query.eq("subject", subject)
 
     // If grade filter, first get student IDs for that grade
     if (grade && grade !== "all") {

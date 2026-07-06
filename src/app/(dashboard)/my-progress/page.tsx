@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
+import SubjectTabs from "@/components/ui/subject-tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -100,17 +101,19 @@ export default function MyProgressPage() {
   const [loading, setLoading] = useState(true)
   const [catFilter, setCatFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [subjectFilter, setSubjectFilter] = useState("all")
 
   function fetchProgress() {
     setLoading(true)
-    fetch("/api/student/progress")
+    const subjectParam = subjectFilter !== "all" ? `?subject=${subjectFilter}` : ""
+    fetch(`/api/student/progress${subjectParam}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => toast.error("Failed to load progress"))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchProgress() }, [])
+  useEffect(() => { fetchProgress() }, [subjectFilter])
 
   const getGradeColor = (score: number) => {
     if (score >= 80) return "text-green-600"
@@ -188,6 +191,8 @@ export default function MyProgressPage() {
           <RefreshCw className="mr-1 h-3 w-3" /> Refresh
         </Button>
       </div>
+
+      <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
       {/* Overall Score Card */}
       <Card className="border-2 border-primary/20">

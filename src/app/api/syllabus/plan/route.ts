@@ -9,11 +9,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
     const week = searchParams.get("week")
+    const subject = searchParams.get("subject")
 
     let query = (supabase.from("syllabus_planning") as any).select("*").order("week_number")
 
     if (grade) query = query.eq("grade", parseInt(grade))
     if (week) query = query.eq("week_number", parseInt(week))
+    if (subject) query = query.eq("subject", subject)
 
     const { data, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
         effective_days: effective_days ?? 5,
         score_category: body.score_category ?? null,
         max_score: body.max_score ?? 100,
+        subject: body.subject ?? "PHY",
         published: body.published ?? false,
         created_by: user.id,
       })

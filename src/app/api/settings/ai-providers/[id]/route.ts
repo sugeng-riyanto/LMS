@@ -6,11 +6,22 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
+
+    // Teachers can only update their own providers
+    if (profile.role !== "super_admin") {
+      const { data: existing } = await (supabase.from("ai_providers") as any)
+        .select("owner_id")
+        .eq("id", id)
+        .single()
+      if (!existing || (existing.owner_id && existing.owner_id !== user.id)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
 
     const allowedFields = [
       "provider_name", "display_name", "provider_type",
@@ -34,13 +45,9 @@ export async function PUT(
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
     return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
@@ -49,22 +56,26 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
 
     const { id } = await params
 
-    const { error } = await (supabase.from("ai_providers") as any)
-      .delete()
-      .eq("id", id)
+    // Teachers can only delete their own providers
+    if (profile.role !== "super_admin") {
+      const { data: existing } = await (supabase.from("ai_providers") as any)
+        .select("owner_id")
+        .eq("id", id)
+        .single()
+      if (!existing || (existing.owner_id && existing.owner_id !== user.id)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
 
+    const { error } = await (supabase.from("ai_providers") as any).delete().eq("id", id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
     return NextResponse.json({ message: "AI provider deleted" })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

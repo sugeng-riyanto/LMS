@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { usePackages } from "@/hooks/use-packages"
+import SubjectTabs from "@/components/ui/subject-tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,25 +26,25 @@ export default function MyWeekPage() {
   const pkg = packages?.find((p: any) => p.week === thisWeek)
 
   const [progress, setProgress] = useState<any>(null)
+  const [subjectFilter, setSubjectFilter] = useState("all")
   const [workStatus, setWorkStatus] = useState<{ submitted: number; total: number; graded: number; score: number | null }>({ submitted: 0, total: 3, graded: 0, score: null })
 
   useEffect(() => {
     if (!profile?.id) return
-    // Fetch progress + work status
+    const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
     Promise.all([
-      fetch("/api/student/progress").then(r => r.json()).catch(() => null),
+      fetch(`/api/student/progress${subjectParam}`).then(r => r.json()).catch(() => null),
       fetch(`/api/student-work?${pkg?.id ? `package_id=${pkg.id}` : ""}`).then(r => r.json()).catch(() => []),
     ]).then(([p, works]) => {
       if (p) setProgress(p)
       if (Array.isArray(works)) {
         const submitted = works.length
         const graded = works.filter((w: any) => w.status === "graded").length
-        const scores = works.filter((w: any) => w.score !== null).map((w: any) => w.score)
-        const avgScore = scores.length ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length * 10 : null
-        setWorkStatus({ submitted, total: 3, graded, score: avgScore })
+        const score = works.filter((w: any) => w.score !== null).reduce((s: number, w: any) => s + (w.score || 0), 0)
+        setWorkStatus({ submitted, total: submitted || 3, graded, score: submitted > 0 ? score : null })
       }
-    }).catch(() => {})
-  }, [profile, pkg])
+    })
+  }, [profile, pkg, subjectFilter])
 
   const lp = pkg?.lesson_plan as Record<string, unknown> | undefined
   const phases = (lp?.phases as Array<Record<string, unknown>>) ?? []
@@ -81,6 +82,8 @@ export default function MyWeekPage() {
           {progress?.weighted_total !== undefined && <Badge variant="outline">Overall: {progress.weighted_total.toFixed(1)}%</Badge>}
         </div>
       </div>
+
+      <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
       {!pkg ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">No published package for this week.</CardContent></Card>

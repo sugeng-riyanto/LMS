@@ -9,12 +9,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category")
+    const subject = searchParams.get("subject")
 
     let query = (supabase.from("lab_inventory") as any).select("*")
 
-    if (category) {
-      query = query.eq("category", category)
-    }
+    if (category) query = query.eq("category", category)
+    if (subject) query = query.eq("subject", subject)
 
     query = query.order("item_name")
 

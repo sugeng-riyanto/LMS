@@ -11,18 +11,14 @@ export async function GET(request: NextRequest) {
     const grade = searchParams.get("grade")
     const week = searchParams.get("week")
     const academicYear = searchParams.get("academic_year")
+    const subject = searchParams.get("subject")
 
     let query = (supabase.from("class_memory") as any).select("*")
 
-    if (grade) {
-      query = query.eq("grade", parseInt(grade))
-    }
-    if (week) {
-      query = query.eq("week_number", parseInt(week))
-    }
-    if (academicYear) {
-      query = query.eq("academic_year", academicYear)
-    }
+    if (grade) query = query.eq("grade", parseInt(grade))
+    if (week) query = query.eq("week_number", parseInt(week))
+    if (academicYear) query = query.eq("academic_year", academicYear)
+    if (subject) query = query.eq("subject", subject)
 
     query = query.order("created_at", { ascending: false })
 
