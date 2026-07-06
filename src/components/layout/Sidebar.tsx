@@ -69,7 +69,7 @@ export default function Sidebar() {
     : allNavItems
 
   return (
-    <aside className="hidden w-64 flex-col border-r bg-sidebar lg:flex">
+    <aside className="hidden w-64 flex-col border-r bg-sidebar md:flex">
       <div className="flex items-center gap-2 border-b px-6 py-4">
         {school?.logo_url ? (
           <img src={school.logo_url} alt={school.school_name} className="h-8 w-8 rounded object-contain" />

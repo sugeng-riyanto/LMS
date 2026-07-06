@@ -24,7 +24,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-background px-3 sm:px-6">
-      <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 md:hidden min-w-0">
         {school?.logo_url ? (
           <img src={school.logo_url} alt={school.school_name} className="h-5 w-5 sm:h-6 sm:w-6 rounded object-contain shrink-0" />
         ) : (

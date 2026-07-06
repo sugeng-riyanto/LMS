@@ -49,7 +49,7 @@ export default function MobileNav() {
     : allMobileNavItems
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex overflow-x-auto border-t bg-background lg:hidden scrollbar-hide">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex overflow-x-auto border-t bg-background md:hidden scrollbar-hide">
       {mobileNavItems.map((item) => {
         const Icon = item.icon
         const active = pathname === item.href
