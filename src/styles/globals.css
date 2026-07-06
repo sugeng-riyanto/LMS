@@ -83,22 +83,22 @@
 .dark {
   --background: oklch(0.15 0.01 70);
   --foreground: oklch(0.93 0.005 80);
-  --card: oklch(0.19 0.012 70);
+  --card: oklch(0.22 0.012 70);
   --card-foreground: oklch(0.93 0.005 80);
-  --popover: oklch(0.19 0.012 70);
+  --popover: oklch(0.22 0.012 70);
   --popover-foreground: oklch(0.93 0.005 80);
   --primary: oklch(0.6 0.1 280);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.26 0.015 70);
   --secondary-foreground: oklch(0.93 0.005 80);
   --muted: oklch(0.26 0.015 70);
-  --muted-foreground: oklch(0.68 0.015 70);
+  --muted-foreground: oklch(0.72 0.015 70);
   --accent: oklch(0.28 0.02 280);
   --accent-foreground: oklch(0.93 0.005 80);
   --destructive: oklch(0.6 0.15 25);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.6 0.1 280);
   --sidebar: oklch(0.17 0.01 70);
   --sidebar-foreground: oklch(0.93 0.005 80);
