@@ -37,7 +37,7 @@ const PROVIDER_TYPES = ["openai", "groq", "gemini", "opencodeai"] as const
 
 export default function SettingsPage() {
   const { isSuperAdmin, role } = useRBAC()
-  const [tab, setTab] = useState(() => role === "teacher" ? "ai-providers" : "users")
+  const [tab, setTab] = useState(() => role === "teacher" || role === "principal" ? "ai-providers" : "users")
 
   // Users
   const [users, setUsers] = useState<UserProfile[]>([])
