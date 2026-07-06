@@ -39,6 +39,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/entry-ticket": ["super_admin", "teacher", "student"],
   "/api/export/": ["super_admin", "teacher"],
   "/api/export/distribution-xlsx": ["super_admin"],
+  "/api/export/master-template": ["super_admin"],
   "/api/classes": ["super_admin", "teacher", "lab_assistant", "student"],
   "/api/journals": ["super_admin", "teacher", "student"],
   "/api/lab": ["super_admin", "teacher", "lab_assistant", "student"],

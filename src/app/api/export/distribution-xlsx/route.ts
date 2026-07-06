@@ -38,21 +38,21 @@ export async function GET() {
     const wb = XLSX.utils.book_new()
 
     // Sheet 1: Teachers
-    const teacherRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class"]]
+    const teacherRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class", "Default Password"]]
     let idx = 1
     for (const t of teachers ?? []) {
       const ta = teacherAssignMap[t.id] ?? []
       if (ta.length === 0) {
-        teacherRows.push([idx++, t.full_name, t.email, "-", "-", "-"])
+        teacherRows.push([idx++, t.full_name, t.email, "-", "-", "-", "SHB-xxxxxx"])
       } else {
         for (const a of ta) {
           const clsLabel = a.classes ? `Grade ${a.classes.grade}${a.classes.class_name}` : "All classes"
-          teacherRows.push([idx++, t.full_name, t.email, `Grade ${a.grade}`, a.subject, clsLabel])
+          teacherRows.push([idx++, t.full_name, t.email, `Grade ${a.grade}`, a.subject, clsLabel, "SHB-xxxxxx"])
         }
       }
     }
     const wsTeachers = XLSX.utils.aoa_to_sheet(teacherRows)
-    wsTeachers["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 18 }]
+    wsTeachers["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 18 }]
     XLSX.utils.book_append_sheet(wb, wsTeachers, "Teachers")
 
     // Sheet 2: Students
@@ -63,16 +63,16 @@ export async function GET() {
       gradeGroups[g].push(s)
     }
 
-    const studentRows: any[][] = [["#", "Name", "Email", "Grade"]]
+    const studentRows: any[][] = [["#", "Name", "Email", "Grade", "Default Password"]]
     idx = 1
     const sortedGrades = Object.keys(gradeGroups).sort((a, b) => Number(a) - Number(b))
     for (const g of sortedGrades) {
       for (const s of gradeGroups[Number(g)]) {
-        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`])
+        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, "SHB-xxxxxx"])
       }
     }
     const wsStudents = XLSX.utils.aoa_to_sheet(studentRows)
-    wsStudents["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }]
+    wsStudents["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 18 }]
     XLSX.utils.book_append_sheet(wb, wsStudents, "Students")
 
     // Sheet 3: Summary
@@ -99,6 +99,22 @@ export async function GET() {
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows)
     wsSummary["!cols"] = [{ wch: 15 }, { wch: 12 }, { wch: 12 }]
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
+
+    // Sheet 4: Notes
+    const notes = [
+      ["NOTES"],
+      [],
+      ["Default Password: SHB-xxxxxx (auto-generated for all users)"],
+      ["Users must change password on first login via Profile → Security tab"],
+      ["Forgot password: use /forgot-password page"],
+      ["Super admin can reset any user's password from Settings → Users → Reset PW"],
+      [],
+      ["Teacher assignments managed in Settings → Teachers tab"],
+      ["Student grade assignments managed in Settings → Users → Edit"],
+    ]
+    const wsNotes = XLSX.utils.aoa_to_sheet(notes)
+    wsNotes["!cols"] = [{ wch: 60 }]
+    XLSX.utils.book_append_sheet(wb, wsNotes, "Notes")
 
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" })
     return new NextResponse(buf, {

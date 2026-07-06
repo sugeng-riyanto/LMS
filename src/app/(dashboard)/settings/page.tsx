@@ -599,20 +599,20 @@ export default function SettingsPage() {
                   </Button>
                   <Button variant="outline" size="sm" onClick={async () => {
                     try {
-                      const res = await fetch("/api/users/template")
+                      const res = await fetch("/api/export/master-template")
                       if (!res.ok) throw new Error("Failed")
                       const blob = await res.blob()
                       const url = URL.createObjectURL(blob)
                       const a = document.createElement("a")
-                      a.href = url; a.download = "user-template.xlsx"; a.click()
+                      a.href = url; a.download = "master-template.xlsx"; a.click()
                       URL.revokeObjectURL(url)
-                      toast.success("Template downloaded")
+                      toast.success("Master template downloaded")
                     } catch {
-                      toast.error("Failed to download template")
+                      toast.error("Failed to download master template")
                     }
                   }}>
                     <Download className="mr-1 h-3 w-3" />
-                    Download Template
+                    Download Master Template
                   </Button>
                   <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
                     <Upload className="h-3 w-3" />
@@ -1326,19 +1326,6 @@ function TeacherAssignmentsTab() {
     } catch { toast.error("Failed to delete.") }
   }
 
-  async function downloadTemplate() {
-    try {
-      const res = await fetch("/api/teacher-assignments/template")
-      if (!res.ok) { toast.error("Failed to download template."); return }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url; a.download = "teacher-assignments-template.xlsx"
-      document.body.appendChild(a); a.click()
-      document.body.removeChild(a); URL.revokeObjectURL(url)
-    } catch { toast.error("Failed to download template.") }
-  }
-
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -1365,7 +1352,6 @@ function TeacherAssignmentsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" onClick={downloadTemplate}><Download className="mr-1 h-4 w-4" />Template</Button>
         <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
           <Upload className="mr-1 h-4 w-4" />{uploading ? "Uploading..." : "Upload XLSX"}
         </Button>
