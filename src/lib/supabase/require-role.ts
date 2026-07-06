@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createServerSupabaseClient } from "./server"
 
-type Role = "super_admin" | "teacher" | "lab_assistant" | "student"
+type Role = "super_admin" | "teacher" | "lab_assistant" | "student" | "principal"
 
 export async function requireRole(allowedRoles: Role[]) {
   const supabase = await createServerSupabaseClient()
@@ -43,4 +43,12 @@ export async function getTeacherSubjects(supabase: any, userId: string): Promise
     .select("subject")
     .eq("teacher_id", userId)
   return [...new Set<string>((data ?? []).map((r: any) => r.subject))]
+}
+
+export async function getPrincipalLevel(supabase: any, userId: string): Promise<'JHS' | 'SHS' | null> {
+  const { data } = await (supabase.from("principal_assignments") as any)
+    .select("level")
+    .eq("principal_id", userId)
+    .maybeSingle()
+  return data?.level ?? null
 }

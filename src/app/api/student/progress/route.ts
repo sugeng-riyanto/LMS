@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { supabase, user, profile, error: authError } = await requireRole(["student", "principal"])
+    if (authError) return authError
 
     const { searchParams } = new URL(request.url)
     const subject = searchParams.get("subject")
-
-    // Get student's profile
-    const { data: profile } = await (supabase.from("profiles") as any)
-      .select("*")
-      .eq("id", user.id)
-      .single()
 
     // Show scores only when teacher has published (status = 'returned')
     let workQuery = (supabase.from("student_work") as any)

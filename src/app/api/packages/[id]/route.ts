@@ -25,6 +25,13 @@ export async function GET(
       query = query.eq("status", "published")
       if (profile.grade_assigned) query = query.eq("grade", profile.grade_assigned)
     }
+    // Principals see only their level (JHS = grades 7-9, SHS = grades 10-12)
+    if (profile?.role === "principal") {
+      const { getPrincipalLevel } = await import("@/lib/supabase/require-role")
+      const level = await getPrincipalLevel(supabase, user.id)
+      if (level === "JHS") query = query.in("grade", [7, 8, 9])
+      else if (level === "SHS") query = query.in("grade", [10, 11, 12])
+    }
 
     const { data, error } = await query.single()
 
@@ -58,7 +65,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { id } = await params
@@ -123,7 +130,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { id } = await params

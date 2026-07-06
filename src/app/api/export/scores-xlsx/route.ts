@@ -25,6 +25,14 @@ export async function GET(request: NextRequest) {
       .eq("role", "student")
       .order("full_name")
 
+    // Principals see only their level (JHS = grades 7-9, SHS = grades 10-12)
+    if (profile?.role === "principal") {
+      const { getPrincipalLevel } = await import("@/lib/supabase/require-role")
+      const level = await getPrincipalLevel(supabase, user.id)
+      if (level === "JHS") studentsQuery = studentsQuery.in("grade_assigned", [7, 8, 9])
+      else if (level === "SHS") studentsQuery = studentsQuery.in("grade_assigned", [10, 11, 12])
+    }
+
     if (grade && grade !== "all") {
       studentsQuery = studentsQuery.eq("grade_assigned", parseInt(grade))
     }

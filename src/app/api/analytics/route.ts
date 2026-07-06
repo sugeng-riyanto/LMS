@@ -4,13 +4,21 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
 
     let query = supabase.from("student_performance").select("*")
+
+    // Principals see only their level (JHS = grades 7-9, SHS = grades 10-12)
+    if (profile?.role === "principal") {
+      const { getPrincipalLevel } = await import("@/lib/supabase/require-role")
+      const level = await getPrincipalLevel(supabase, user.id)
+      if (level === "JHS") query = query.in("grade_assigned", [7, 8, 9])
+      else if (level === "SHS") query = query.in("grade_assigned", [10, 11, 12])
+    }
 
     if (grade && grade !== "all") {
       query = query.eq("grade_assigned", parseInt(grade))

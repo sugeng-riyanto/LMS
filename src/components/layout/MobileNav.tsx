@@ -22,17 +22,18 @@ interface NavItem {
   href: string
   label: string
   icon: typeof LayoutDashboard
-  roles: ("super_admin" | "teacher" | "lab_assistant" | "student")[]
+  roles: ("super_admin" | "teacher" | "lab_assistant" | "student" | "principal")[]
 }
 
 const allMobileNavItems: NavItem[] = [
-  { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
-  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student", "principal"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher", "principal"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LESSON_PLAN, label: "Lsn Plan", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: "/worksheets", label: "WS", icon: FileText, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant", "student", "principal"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
+  { href: "/principal", label: "Principal", icon: BarChart3, roles: ["principal"] },
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
   { href: "/my-progress", label: "Progress", icon: BarChart3, roles: ["student"] },

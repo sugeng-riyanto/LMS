@@ -17,8 +17,19 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
     "/analytics": "/dashboard",
     "/settings": "/dashboard",
     "/lab": "/dashboard",
+    "/principal": "/dashboard",
   },
   teacher: {
+  },
+  principal: {
+    "/generate": "/dashboard",
+    "/grading": "/dashboard",
+    "/lesson-plan": "/dashboard",
+    "/syllabus": "/dashboard",
+    "/worksheets": "/dashboard",
+    "/syllabus-manager": "/dashboard",
+    "/lab": "/dashboard",
+    "/memory": "/dashboard",
   },
   lab_assistant: {
     "/grades": "/dashboard",
@@ -29,6 +40,7 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
     "/analytics": "/dashboard",
     "/settings": "/dashboard",
     "/syllabus": "/dashboard",
+    "/principal": "/dashboard",
   },
 }
 

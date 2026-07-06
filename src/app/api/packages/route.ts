@@ -36,6 +36,13 @@ export async function GET(request: NextRequest) {
       const subjects = await getTeacherSubjects(supabase, user.id)
       if (subjects.length > 0) query = query.in("subject", subjects)
     }
+    // Principals see only their level (JHS = grades 7-9, SHS = grades 10-12)
+    if (profile?.role === "principal") {
+      const { getPrincipalLevel } = await import("@/lib/supabase/require-role")
+      const level = await getPrincipalLevel(supabase, user.id)
+      if (level === "JHS") query = query.in("grade", [7, 8, 9])
+      else if (level === "SHS") query = query.in("grade", [10, 11, 12])
+    }
     if (grade && profile?.role !== "student") {
       query = query.eq("grade", parseInt(grade))
     }

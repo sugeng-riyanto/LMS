@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data ?? [])
     }
 
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student", "principal"])
     if (authError) return authError
 
     let query = (supabase.from("student_work") as any).select("*")

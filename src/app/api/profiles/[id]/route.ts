@@ -16,7 +16,7 @@ export async function GET(
     const isOwn = user.id === id
 
     if (!isOwn) {
-      const result = await requireRole(["super_admin", "teacher"])
+      const result = await requireRole(["super_admin", "teacher", "principal"])
       if (result.error) return result.error
     }
 

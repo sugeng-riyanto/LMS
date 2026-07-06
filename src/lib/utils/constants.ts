@@ -14,7 +14,7 @@ export const GRADE_LABELS: Record<Grade, string> = {
   12: "Grade 12 - A Level + TKA",
 }
 
-export const ROLES = ["super_admin", "teacher", "lab_assistant", "student"] as const
+export const ROLES = ["super_admin", "teacher", "lab_assistant", "student", "principal"] as const
 export type Role = (typeof ROLES)[number]
 
 export const SUBJECTS = [
@@ -31,6 +31,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   teacher: "Teacher",
   lab_assistant: "Lab Assistant",
   student: "Student",
+  principal: "Principal",
 }
 
 export const PACKAGE_STATUSES = [

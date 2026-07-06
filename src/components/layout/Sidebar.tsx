@@ -28,7 +28,7 @@ interface NavItem {
   href: string
   label: string
   icon: typeof LayoutDashboard
-  roles: ("super_admin" | "teacher" | "lab_assistant" | "student")[]
+  roles: ("super_admin" | "teacher" | "lab_assistant" | "student" | "principal")[]
 }
 
 interface SidebarProps {
@@ -50,6 +50,13 @@ const allNavItems: NavItem[] = [
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
   { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
+
+  // ── Principal flow (oversight → analytics) ──
+  { href: "/principal", label: "Dashboard", icon: LayoutDashboard, roles: ["principal"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["principal"] },
+  { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["principal"] },
+  { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["principal"] },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["principal"] },
 
   // ── Student flow (view → do → review) ──
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },

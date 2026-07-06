@@ -2,7 +2,7 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
-  role: 'super_admin' | 'teacher' | 'lab_assistant' | 'student';
+  role: 'super_admin' | 'teacher' | 'lab_assistant' | 'student' | 'principal';
   avatar_url?: string;
   grade_assigned?: number | null;
   phone_number?: string | null;

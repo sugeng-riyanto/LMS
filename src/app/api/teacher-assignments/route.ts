@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)

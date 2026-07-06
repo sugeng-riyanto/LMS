@@ -13,9 +13,10 @@ export function useRBAC() {
       isTeacher: role === 'teacher',
       isLabAssistant: role === 'lab_assistant',
       isStudent: role === 'student',
+      isPrincipal: role === 'principal',
       role,
       canManagePackages: role === 'super_admin' || role === 'teacher' || role === 'lab_assistant',
-      canViewAllData: role === 'super_admin' || role === 'teacher',
+      canViewAllData: role === 'super_admin' || role === 'teacher' || role === 'principal',
       canManageInventory: role === 'super_admin' || role === 'lab_assistant',
       canAccessPortal: role !== null,
     }
