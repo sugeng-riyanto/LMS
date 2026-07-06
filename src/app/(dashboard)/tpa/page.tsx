@@ -102,37 +102,24 @@ export default function TPAPage() {
     period_type: "monthly", period_label: "",
   })
 
-  useEffect(() => { if (isPrincipal || isSuperAdmin) { fetchTeachers(); fetchAssignments() } }, [])
+  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
   useEffect(() => { fetchItems() }, [periodFilter])
-
-  const [gradeFilter, setGradeFilter] = useState<number[]>([])
-
-  async function fetchAssignments() {
-    try {
-      const r = await fetch("/api/teacher-assignments")
-      if (!r.ok) return
-      const data = await r.json()
-      // Get grades for the current principal from their profile level
-      // For principals, we determine level from the assignments data
-      const grades = [...new Set(data.map((a: any) => a.grade))].sort() as number[]
-      setGradeFilter(grades)
-    } catch {}
-  }
 
   async function fetchTeachers() {
     try {
       const r = await fetch("/api/profiles?role=teacher")
       if (r.ok) {
         const all = await r.json()
-        // Filter by grade assignments for this principal level
-        const assignRes = await fetch("/api/teacher-assignments")
-        if (assignRes.ok) {
-          const assigns = await assignRes.json()
-          // Get unique grade levels from assignments
-          const grades = [...new Set(assigns.map((a: any) => a.grade))] as number[]
-          // Get teacher IDs that teach these grades
-          const teacherIds = new Set(assigns.map((a: any) => a.teacher_id))
-          setTeachers(all.filter((t: any) => teacherIds.has(t.id)))
+        // For principals, filter teachers by their level's grade range
+        if (isPrincipal) {
+          const levelRes = await fetch("/api/teacher-assignments")
+          if (levelRes.ok) {
+            const assigns = await levelRes.json()
+            const teacherIds = new Set(assigns.map((a: any) => a.teacher_id))
+            setTeachers(all.filter((t: any) => teacherIds.has(t.id)))
+          } else {
+            setTeachers(all)
+          }
         } else {
           setTeachers(all)
         }
@@ -265,7 +252,7 @@ export default function TPAPage() {
               📄 PDF
             </Button>
           </div>
-          {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => setCreateOpen(true)}><Plus className="mr-1 h-4 w-4" /> New</Button>}
+          {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => { fetchTeachers(); setCreateOpen(true) }}><Plus className="mr-1 h-4 w-4" /> New</Button>}
         </div>
       </div>
 

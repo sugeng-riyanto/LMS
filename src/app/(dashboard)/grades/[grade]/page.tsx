@@ -26,10 +26,10 @@ export default function GradePackagesPage() {
   const grade = Number(params.grade)
   const { data: packages, isLoading } = usePackages({ grade })
   const { mutateAsync: createPackage } = useCreatePackage()
-  const { isSuperAdmin, isTeacher } = useRBAC()
-  const canEdit = isSuperAdmin || isTeacher
+  const { isSuperAdmin, isTeacher, isPrincipal } = useRBAC()
+  const canEdit = isSuperAdmin || isTeacher || isPrincipal
 
-  if (!isSuperAdmin && !isTeacher) {
+  if (!canEdit) {
     return <div className="flex h-64 items-center justify-center text-muted-foreground">Access denied.</div>
   }
 

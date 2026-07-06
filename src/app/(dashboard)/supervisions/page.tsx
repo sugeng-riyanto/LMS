@@ -77,9 +77,9 @@ export default function SupervisionsPage() {
     return s
   }
 
-  function openNew() { setEditing(null); setScores(initScores()); setCreateOpen(true) }
+  function openNew() { fetchTeachers(); setEditing(null); setScores(initScores()); setCreateOpen(true) }
   function openEdit(sup: Supervision) {
-    setEditing(sup as any); setScores(initScores())
+    fetchTeachers(); setEditing(sup as any); setScores(initScores())
     setForm({ teacher_id: sup.teacher_id, grade: String(sup.grade), subject: sup.subject, class_name: sup.class_name || "", observation_date: sup.observation_date?.split("T")[0] || "" })
     setCreateOpen(true)
   }

@@ -22,10 +22,10 @@ export default function PackageDetailPage() {
   const slug = (params as any)?.slug as string | undefined
   const { data: packages, isLoading } = usePackages({ grade, week })
   const pkg = packages?.[0]
-  const { isSuperAdmin, isTeacher } = useRBAC()
+  const { isSuperAdmin, isTeacher, isPrincipal } = useRBAC()
   const { mutateAsync: approvePackage } = useApprovePackage()
 
-  if (!isSuperAdmin && !isTeacher) {
+  if (!isSuperAdmin && !isTeacher && !isPrincipal) {
     return <div className="flex h-64 items-center justify-center text-muted-foreground">Access denied.</div>
   }
   const { mutateAsync: publishPackage } = usePublishPackage()
