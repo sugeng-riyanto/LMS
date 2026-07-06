@@ -86,10 +86,10 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {[
-              { label: "Subjects Covered", value: "5" },
+              { label: "Subjects", value: "5" },
               { label: "Grade Levels", value: "7–12" },
-              { label: "Active Users", value: "500+" },
-              { label: "Digital Resources", value: "1,000+" },
+              { label: "Assessment Categories", value: "6" },
+              { label: "Export Formats", value: "4" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <p className="text-3xl font-bold text-blue-600">{s.value}</p>
@@ -130,37 +130,23 @@ export default async function LandingPage() {
       {/* ── For Teachers ── */}
       <section id="teachers" className="scroll-mt-20 bg-gray-50/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">For Educators</p>
-              <h2 className="mt-3 text-3xl font-bold text-gray-900">Teach, Don&apos;t Administrative</h2>
-              <ul className="mt-8 space-y-4">
-                {[
-                  "Create syllabi and lesson plans using Cambridge-aligned templates — deploy across all your classes simultaneously.",
-                  "Upload PDF worksheets that students complete and submit digitally, eliminating paper workflows.",
-                  "Leverage AI for preliminary grading, deliver personalised feedback, and publish results instantly.",
-                  "Track each student's performance by category: Classwork, Unit Tests, Projects, Homework, and Semester Examinations.",
-                  "Export comprehensive grade reports to Excel for report cards and administrative distribution.",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">{i + 1}</span>
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="relative">
-              <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg">👩‍🏫</div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Mr. Sugeng</p>
-                    <p className="text-sm text-gray-500">Physics & Chemistry Instructor</p>
-                  </div>
-                </div>
-                <p className="text-gray-700 italic">&ldquo;I manage six classes across two subjects from a single dashboard. I upload syllabi, generate lesson plans, and publish everything to my students in minutes.&rdquo;</p>
-              </div>
-            </div>
+          <div className="mx-auto max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600 text-center">For Educators</p>
+            <h2 className="mt-3 text-3xl font-bold text-gray-900 text-center">Teach, Don&apos;t Administrative</h2>
+            <ul className="mt-10 space-y-4 max-w-2xl mx-auto">
+              {[
+                "Create syllabi and lesson plans using Cambridge-aligned templates — deploy across all your classes simultaneously.",
+                "Upload PDF worksheets that students complete and submit digitally, eliminating paper workflows.",
+                "Leverage AI for preliminary grading, deliver personalised feedback, and publish results instantly.",
+                "Track each student's performance by category: Classwork, Unit Tests, Projects, Homework, and Semester Examinations.",
+                "Export comprehensive grade reports to Excel for report cards and administrative distribution.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">{i + 1}</span>
+                  <span className="text-gray-700">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -168,37 +154,23 @@ export default async function LandingPage() {
       {/* ── For Students ── */}
       <section id="students" className="scroll-mt-20 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="order-last lg:order-first">
-              <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-lg">🧑‍🎓</div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Aisha</p>
-                    <p className="text-sm text-gray-500">Grade 10 Student</p>
-                  </div>
-                </div>
-                <p className="text-gray-700 italic">&ldquo;I can see all my assignments from every teacher in one place. I complete worksheets online, submit them, and check my scores immediately.&rdquo;</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">For Learners</p>
-              <h2 className="mt-3 text-3xl font-bold text-gray-900">Learning, Simplified</h2>
-              <ul className="mt-8 space-y-4">
-                {[
-                  "Access assignments and materials from all subject teachers through a consolidated dashboard.",
-                  "Complete interactive worksheets directly in your browser with annotation, drawing, and text tools.",
-                  "Submit work with a single click; submission status updates automatically.",
-                  "Review your scores and academic progress across categories through interactive charts.",
-                  "Maintain a mistake journal for each subject — teachers can review and provide feedback.",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-600">{i + 1}</span>
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="mx-auto max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-blue-600 text-center">For Learners</p>
+            <h2 className="mt-3 text-3xl font-bold text-gray-900 text-center">Learning, Simplified</h2>
+            <ul className="mt-10 space-y-4 max-w-2xl mx-auto">
+              {[
+                "Access assignments and materials from all subject teachers through a consolidated dashboard.",
+                "Complete interactive worksheets directly in your browser with annotation, drawing, and text tools.",
+                "Submit work with a single click; submission status updates automatically.",
+                "Review your scores and academic progress across categories through interactive charts.",
+                "Maintain a mistake journal for each subject — teachers can review and provide feedback.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-600">{i + 1}</span>
+                  <span className="text-gray-700">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
