@@ -18,7 +18,7 @@ import toast from "react-hot-toast"
 interface TPARecord {
   id: string; teacher_id: string; principal_id: string
   academic_year: string; semester: number; period_type: string; period_label: string | null
-  subject: string | null; grade: number | null
+  subject: string | null; grade: number | null; class_name: string | null
   principal_scores: any; principal_total: number | null; principal_submitted_at: string | null
   teacher_scores: any; teacher_total: number | null; teacher_submitted_at: string | null
   combined_total: number | null; combined_grade: string | null; status: string
@@ -43,6 +43,31 @@ export default function TPAPage() {
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({})
   const [saving, setSaving] = useState(false)
   const [aiFeedback, setAiFeedback] = useState("")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [accumulations, setAccumulations] = useState<any[]>([])
+
+  // Toggle select for bulk publish
+  function toggleSelect(id: string) {
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function selectAll() { setSelected(new Set(items.filter(i => i.status === "draft").map(i => i.id))) }
+  function deselectAll() { setSelected(new Set()) }
+
+  // Bulk publish: submit selected drafts with average score
+  async function handleBulkPublish() {
+    if (selected.size === 0) { toast.error("Select items to publish"); return }
+    if (!confirm(`Publish ${selected.size} assessment(s) to teachers?`)) return
+    setSaving(true)
+    let success = 0, fail = 0
+    for (const id of selected) {
+      try {
+        const r = await fetch(`/api/tpa/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish" }) })
+        if (r.ok) success++; else fail++
+      } catch { fail++ }
+    }
+    toast.success(`${success} published, ${fail} failed`)
+    setSelected(new Set()); setSaving(false); fetchItems()
+  }
 
   // AI-generated feedback based on scores
   function generateFeedback() {
@@ -73,7 +98,7 @@ export default function TPAPage() {
   const [periodFilter, setPeriodFilter] = useState("all")
 
   const [form, setForm] = useState({
-    teacher_id: "", semester: "1", subject: "PHY", grade: "10",
+    teacher_id: "", semester: "1", subject: "PHY", grade: "10", class_name: "",
     period_type: "monthly", period_label: "",
   })
 
@@ -141,7 +166,7 @@ export default function TPAPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teacher_id: form.teacher_id, semester: parseInt(form.semester),
-          subject: form.subject, grade: parseInt(form.grade),
+          subject: form.subject, grade: parseInt(form.grade), class_name: form.class_name || null,
           period_type: form.period_type,
           period_label: form.period_label || getDefaultPeriodLabel(form.period_type),
         }),
@@ -241,14 +266,31 @@ export default function TPAPage() {
       ) : items.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">No assessments yet.</CardContent></Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
+          {/* Bulk actions bar */}
+          {(isPrincipal || isSuperAdmin) && items.some(i => i.status === "draft") && (
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30 text-xs">
+              <button onClick={selectAll} className="text-primary hover:underline">Select All</button>
+              <span className="text-muted-foreground">·</span>
+              <button onClick={deselectAll} className="text-muted-foreground hover:underline">Clear</button>
+              <span className="text-muted-foreground ml-2">{selected.size} selected</span>
+              {selected.size > 0 && (
+                <Button size="sm" className="h-7 text-xs ml-auto" onClick={handleBulkPublish} disabled={saving}>
+                  <Send className="mr-1 h-3 w-3" /> Publish ({selected.size})
+                </Button>
+              )}
+            </div>
+          )}
           {items.map((tpa) => (
-            <Card key={tpa.id} className="hover:bg-accent/50 transition-colors">
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold">{tpa.teacher?.full_name}</p>
+            <div key={tpa.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 hover:bg-accent/50 transition-colors">
+              {/* Checkbox for bulk */}
+              {(isPrincipal || isSuperAdmin) && tpa.status === "draft" && (
+                <input type="checkbox" checked={selected.has(tpa.id)} onChange={() => toggleSelect(tpa.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-semibold">{tpa.teacher?.full_name}</span>
                       {tpa.grade && <Badge variant="outline" className="text-xs">G{tpa.grade}</Badge>}
                       {tpa.subject && <Badge variant="secondary" className="text-xs">{tpa.subject}</Badge>}
                       {statusBadge(tpa.status)}
@@ -289,8 +331,6 @@ export default function TPAPage() {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
           ))}
         </div>
       )}
@@ -309,11 +349,13 @@ export default function TPAPage() {
               <div className="space-y-1"><Label>Label</Label>
                 <Input value={form.period_label || getDefaultPeriodLabel(form.period_type)} onChange={e => setForm(p => ({ ...p, period_label: e.target.value }))} placeholder="Auto" /></div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1"><Label>Grade</Label>
                 <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{Array.from({ length: 6 }, (_, i) => i + 7).map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
               <div className="space-y-1"><Label>Subject</Label>
                 <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
+              <div className="space-y-1"><Label>Class</Label>
+                <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" /></div>
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button onClick={handleCreate} disabled={saving}>Create</Button></DialogFooter>

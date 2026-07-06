@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         period_label: periodLabel,
         subject: body.subject ?? null,
         grade: body.grade ?? null,
+        class_name: body.class_name ?? null,
         status: "draft",
       })
       .select()
