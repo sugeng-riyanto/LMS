@@ -42,6 +42,7 @@ export default async function LandingPage() {
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#teachers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Teachers</a>
             <a href="#students" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Students</a>
+            <a href="#demo" className="text-sm font-medium text-primary font-semibold hover:text-primary/80 transition-colors">Demo Access</a>
             <LandingThemeToggle />
             <Link href="/login" className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-300 hover:opacity-90 hover:shadow-md hover:scale-105 active:scale-95">
               Sign In
@@ -193,7 +194,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── Demo Access ── */}
-      <section className="py-16 bg-gradient-to-b from-background to-secondary/30">
+      <section id="demo" className="py-16 bg-gradient-to-b from-background to-secondary/30">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-12">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">Demo Access</p>
