@@ -409,7 +409,7 @@ export default function TPAPage() {
 
               {/* Compact results */}
               {computedTotals && (
-                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="py-2">
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
                     {computedTotals.details.map(d => (
                       <div key={d.key} className="text-center">
@@ -430,17 +430,17 @@ export default function TPAPage() {
                 </div>
               )}
 
-              {/* AI-Generated Feedback */}
+              {/* AI Feedback */}
               {computedTotals && (
-                <div className="rounded-lg border border-border bg-muted/30 p-3">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="py-1">
+                  <div className="flex items-center justify-between mb-1">
                     <h3 className="text-xs font-semibold">AI Feedback</h3>
                     <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={handleGenerateFeedback}>
-                      Generate Feedback
+                      Generate
                     </Button>
                   </div>
                   {aiFeedback && (
-                    <textarea readOnly value={aiFeedback} rows={4}
+                    <textarea readOnly value={aiFeedback} rows={3}
                       className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
                   )}
                 </div>
