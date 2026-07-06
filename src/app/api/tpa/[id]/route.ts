@@ -33,49 +33,89 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    // Get current assessment
     const { data: assmt } = await (supabase.from("teacher_performance_assessments") as any).select("*").eq("id", id).single()
     if (!assmt) return new NextResponse("Not found", { status: 404 })
 
+    // === PRINCIPAL ACTIONS ===
     if (profile.role === "principal") {
       if (assmt.principal_id !== user.id) return new NextResponse("Forbidden", { status: 403 })
 
-      // Principal saves scores
-      if (body.principal_scores) {
-        // Calculate total from scores
+      // UNPUBLISH — revert from principal_submitted back to draft
+      if (body.action === "unpublish") {
+        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+          .update({
+            status: "draft",
+            unpublished_at: new Date().toISOString(),
+            principal_submitted_at: null,
+            principal_signature: null,
+            principal_signed_at: null,
+          }).eq("id", id).select().single()
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json(data)
+      }
+
+      // PUBLISH — submit to teacher (only if has scores)
+      if (body.action === "publish" && assmt.status === "draft") {
+        if (!assmt.principal_scores && !body.principal_scores) {
+          return NextResponse.json({ error: "Fill scores before publishing" }, { status: 400 })
+        }
+        const scores = body.principal_scores || assmt.principal_scores
+        if (!scores) return NextResponse.json({ error: "No scores to publish" }, { status: 400 })
+
         const categoryScores: Record<string, { raw: number; max: number }> = {}
         for (const cat of TPA_CATEGORIES) {
-          const scores = body.principal_scores[cat.key] || {}
-          const raw = cat.items.reduce((sum: number, item) => sum + (scores[item.id] ?? 0), 0)
+          const s = scores[cat.key] || {}
+          const raw = cat.items.reduce((sum: number, item) => sum + (s[item.id] ?? 0), 0)
           categoryScores[cat.key] = { raw, max: cat.items.length * 4 }
         }
         const total = calculateTotal(categoryScores)
 
-        const updates: Record<string, unknown> = {
-          principal_scores: body.principal_scores,
-          principal_total: total,
-          grade: body.grade ?? assmt.grade,
-          subject: body.subject ?? assmt.subject,
-          pre_appraisal_held: body.pre_appraisal_held ?? assmt.pre_appraisal_held,
-          visit_count: body.visit_count ?? assmt.visit_count,
-        }
+        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+          .update({
+            principal_scores: scores,
+            principal_total: total,
+            status: "principal_submitted",
+            principal_submitted_at: new Date().toISOString(),
+            principal_signature: `Signed by ${profile.full_name}`,
+            principal_signed_at: new Date().toISOString(),
+            grade: body.grade ?? assmt.grade,
+            subject: body.subject ?? assmt.subject,
+            pre_appraisal_held: body.pre_appraisal_held ?? assmt.pre_appraisal_held,
+            visit_count: body.visit_count ?? assmt.visit_count,
+            period_type: body.period_type ?? assmt.period_type,
+            period_label: body.period_label ?? assmt.period_label,
+          }).eq("id", id).select().single()
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json(data)
+      }
 
-        // If submitting (not saving draft)
-        if (body.submit) {
-          updates.status = "principal_submitted"
-          updates.principal_submitted_at = new Date().toISOString()
-          updates.principal_signature = `Signed by ${profile.full_name}`
-          updates.principal_signed_at = new Date().toISOString()
+      // SAVE DRAFT scores
+      if (body.principal_scores) {
+        const categoryScores: Record<string, { raw: number; max: number }> = {}
+        for (const cat of TPA_CATEGORIES) {
+          const s = body.principal_scores[cat.key] || {}
+          const raw = cat.items.reduce((sum: number, item) => sum + (s[item.id] ?? 0), 0)
+          categoryScores[cat.key] = { raw, max: cat.items.length * 4 }
         }
+        const total = calculateTotal(categoryScores)
 
         const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
-          .update(updates).eq("id", id).select().single()
+          .update({
+            principal_scores: body.principal_scores,
+            principal_total: total,
+            grade: body.grade ?? assmt.grade,
+            subject: body.subject ?? assmt.subject,
+            pre_appraisal_held: body.pre_appraisal_held ?? assmt.pre_appraisal_held,
+            visit_count: body.visit_count ?? assmt.visit_count,
+            period_type: body.period_type ?? assmt.period_type,
+            period_label: body.period_label ?? assmt.period_label,
+          }).eq("id", id).select().single()
         if (error) return NextResponse.json({ error: error.message }, { status: 500 })
         return NextResponse.json(data)
       }
 
       // Update basic fields
-      const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count"]
+      const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count", "period_type", "period_label"]
       const updates: Record<string, unknown> = {}
       for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f]
       const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
@@ -84,6 +124,7 @@ export async function PUT(
       return NextResponse.json(data)
     }
 
+    // === TEACHER ACTIONS ===
     if (profile.role === "teacher") {
       if (assmt.teacher_id !== user.id) return new NextResponse("Forbidden", { status: 403 })
       if (assmt.status !== "principal_submitted") return new NextResponse("Teacher can only submit after principal", { status: 400 })
@@ -96,6 +137,7 @@ export async function PUT(
           categoryScores[cat.key] = { raw, max: cat.items.length * 4 }
         }
         const teacherTotal = calculateTotal(categoryScores)
+        // Auto-combine: average of principal and teacher scores
         const combined = assmt.principal_total != null ? Math.round(((assmt.principal_total + teacherTotal) / 2) * 10) / 10 : teacherTotal
 
         const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
