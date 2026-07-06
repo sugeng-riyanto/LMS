@@ -19,7 +19,6 @@ const ROLE_REDIRECTS: Record<string, Record<string, string>> = {
     "/lab": "/dashboard",
   },
   teacher: {
-    "/settings": "/dashboard",
   },
   lab_assistant: {
     "/grades": "/dashboard",
