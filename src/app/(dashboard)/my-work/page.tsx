@@ -153,6 +153,14 @@ export default function MyWorkPage() {
   const [activeTab, setActiveTab] = useState<"weekly" | "worksheets" | "syllabi">("weekly")
   const [subjectFilter, setSubjectFilter] = useState("all")
 
+  // Re-fetch when page gains focus (student returns from public worksheet/syllabus page)
+  const [refreshKey, setRefreshKey] = useState(0)
+  useEffect(() => {
+    const onFocus = () => setRefreshKey(k => k + 1)
+    window.addEventListener("focus", onFocus)
+    return () => window.removeEventListener("focus", onFocus)
+  }, [])
+
   useEffect(() => {
     if (!grade) return
     const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
@@ -197,7 +205,7 @@ export default function MyWorkPage() {
         })
       })
       .catch(() => {})
-  }, [grade, subjectFilter])
+  }, [grade, subjectFilter, refreshKey])
 
   useEffect(() => {
     if (!profile?.id || !pkg?.id) return
