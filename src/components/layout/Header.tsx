@@ -7,6 +7,7 @@ import { useRBAC } from "@/hooks/use-rbac"
 import { ROLE_LABELS } from "@/lib/utils/constants"
 import { useSchoolSettings } from "@/hooks/use-school-settings"
 import { NotificationBell } from "@/components/notifications/NotificationBell"
+import FontSizeToggle from "@/components/layout/FontSizeToggle"
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -37,10 +38,11 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         ) : (
           <FlaskConical className="h-5 w-5 text-primary" />
         )}
-        <span className="text-sm font-semibold truncate max-w-[120px]">{school?.school_name ?? "Physics CC"}</span>
+        <span className="text-sm font-semibold truncate max-w-[120px]">{school?.school_name ?? "SHB Learning Hub"}</span>
       </div>
       <div className="flex-1" />
       <div className="flex items-center gap-4">
+        <FontSizeToggle />
         {isStudent && <NotificationBell />}
         <div className="flex items-center gap-2 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />

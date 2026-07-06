@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/providers/theme-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { ToastProvider } from "@/providers/toast-provider"
 import { AuthProvider } from "@/providers/auth-provider"
+import { FontSizeProvider } from "@/providers/font-size-provider"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { CriticalPagePrefetcher } from "@/components/critical-page-prefetcher"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -50,10 +51,12 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <CriticalPagePrefetcher />
-            <QueryProvider>
-              {children}
-              <ToastProvider />
-            </QueryProvider>
+            <FontSizeProvider>
+              <QueryProvider>
+                {children}
+                <ToastProvider />
+              </QueryProvider>
+            </FontSizeProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

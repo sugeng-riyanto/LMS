@@ -43,11 +43,11 @@ export default function SubjectCarousel() {
         {items.map((s, i) => (
           <div
             key={`${s.code}-${i}`}
-            className="flex w-36 shrink-0 flex-col items-center rounded-xl border border-indigo-100/60 bg-white/70 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md hover:bg-white"
+            className="flex w-36 shrink-0 flex-col items-center rounded-xl border border-border bg-card/70 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md hover:bg-card"
           >
             <div className="text-3xl transition-transform duration-300 hover:scale-125">{s.icon}</div>
-            <p className="mt-2 font-semibold text-gray-900 text-sm transition-colors duration-300 hover:text-indigo-700">{s.name}</p>
-            <p className="text-xs text-gray-400">{s.code}</p>
+            <p className="mt-2 font-semibold text-card-foreground text-sm transition-colors duration-300 hover:text-primary">{s.name}</p>
+            <p className="text-xs text-muted-foreground">{s.code}</p>
           </div>
         ))}
       </div>
