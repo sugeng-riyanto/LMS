@@ -1,21 +1,38 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
-const ADMIN = () => createAdminClient()
+// Use raw pg connection for reliable DDL + DML
+async function query(sql: string, params?: any[]) {
+  const connectionString = process.env.SUPABASE_DB_CONNECTION
+  if (!connectionString) throw new Error("SUPABASE_DB_CONNECTION not set")
+  const { Pool } = await import("pg")
+  const pool = new Pool({ connectionString, max: 1 })
+  try {
+    const result = await pool.query(sql, params)
+    return result
+  } finally {
+    await pool.end()
+  }
+}
 
 export async function GET() {
   try {
     const { error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
-    const { data } = await (ADMIN().from("school_settings") as any).select("tpa_principal_weight, tpa_teacher_weight").eq("id", 1).single()
+    // Ensure columns exist
+    await query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
+    await query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
+    // Ensure row exists
+    await query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
+
+    const { rows } = await query(`SELECT tpa_principal_weight, tpa_teacher_weight FROM public.school_settings WHERE id = 1`)
     return NextResponse.json({
-      principal: data?.tpa_principal_weight ?? 70,
-      teacher: data?.tpa_teacher_weight ?? 30,
+      principal: rows[0]?.tpa_principal_weight ?? 70,
+      teacher: rows[0]?.tpa_teacher_weight ?? 30,
     })
-  } catch {
-    return NextResponse.json({ principal: 70, teacher: 30 })
+  } catch (error: any) {
+    return NextResponse.json({ principal: 70, teacher: 30, _debug: error?.message })
   }
 }
 
@@ -25,18 +42,20 @@ export async function PUT(request: NextRequest) {
     if (authError) return authError
 
     const body = await request.json()
-    let { principal, teacher } = body as { principal: number; teacher: number }
-    if (principal == null || teacher == null) {
-      return NextResponse.json({ error: "principal and teacher weights required" }, { status: 400 })
-    }
+    let { principal } = body as { principal: number }
+    if (principal == null) return NextResponse.json({ error: "principal weight required" }, { status: 400 })
     principal = Math.max(0, Math.min(100, principal))
-    teacher = 100 - principal
+    const teacher = 100 - principal
 
-    await (ADMIN().from("school_settings") as any)
-      .upsert({ id: 1, tpa_principal_weight: principal, tpa_teacher_weight: teacher })
+    // Ensure table + columns + row
+    await query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
+    await query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
+    await query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
+    // Update weights
+    await query(`UPDATE public.school_settings SET tpa_principal_weight = $1, tpa_teacher_weight = $2 WHERE id = 1`, [principal, teacher])
 
     return NextResponse.json({ principal, teacher })
-  } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Internal error" }, { status: 500 })
   }
 }

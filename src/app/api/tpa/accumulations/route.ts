@@ -13,9 +13,19 @@ export async function GET(request: NextRequest) {
     let principalWeight = 70
     let teacherWeight = 30
     try {
-      const { data: settings } = await (ADMIN().from("school_settings") as any).select("tpa_principal_weight, tpa_teacher_weight").eq("id", 1).single()
-      if (settings?.tpa_principal_weight != null) principalWeight = settings.tpa_principal_weight
-      if (settings?.tpa_teacher_weight != null) teacherWeight = settings.tpa_teacher_weight
+      const connectionString = process.env.SUPABASE_DB_CONNECTION
+      if (connectionString) {
+        const { Pool } = await import("pg")
+        const pool = new Pool({ connectionString, max: 1 })
+        try {
+          await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
+          await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
+          await pool.query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
+          const { rows } = await pool.query(`SELECT tpa_principal_weight, tpa_teacher_weight FROM public.school_settings WHERE id = 1`)
+          if (rows[0]?.tpa_principal_weight != null) principalWeight = rows[0].tpa_principal_weight
+          if (rows[0]?.tpa_teacher_weight != null) teacherWeight = rows[0].tpa_teacher_weight
+        } finally { await pool.end() }
+      }
     } catch {}
 
     // Fetch TPA records
