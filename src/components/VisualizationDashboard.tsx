@@ -86,7 +86,7 @@ export default function VisualizationDashboard({ apiType }: Props) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [teachers, setTeachers] = useState<any[]>([])
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(true)
 
   useEffect(() => {
     if (!isTeacher) {
