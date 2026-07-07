@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole, getPrincipalLevel } from "@/lib/supabase/require-role"
 import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +15,7 @@ export async function GET(request: NextRequest) {
     const semester = searchParams.get("semester")
     const periodType = searchParams.get("period_type")
 
-    let query = (supabase.from("teacher_performance_assessments") as any)
+    let query = (ADMIN().from("teacher_performance_assessments") as any)
       .select("*, teacher:teacher_id(id, full_name), principal:principal_id(id, full_name)")
       .order("created_at", { ascending: false })
 
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal"])
+    const { user, profile, error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
     const body = await request.json()
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
     const periodType = body.period_type ?? "semester"
     const periodLabel = body.period_label || getDefaultPeriodLabel(periodType, body.academic_year ?? "2026-2027", body.semester ?? 1)
 
-    const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+    const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
       .insert({
         teacher_id: body.teacher_id,
         principal_id: user.id,

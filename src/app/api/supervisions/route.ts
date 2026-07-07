@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole, getPrincipalLevel } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const teacherId = searchParams.get("teacher_id")
 
-    let query = (supabase.from("supervisions") as any).select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)").order("observation_date", { ascending: false })
+    let query = (ADMIN().from("supervisions") as any).select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)").order("observation_date", { ascending: false })
 
     if (profile.role === "principal") {
       const level = await getPrincipalLevel(supabase, user.id)
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal"])
+    const { user, profile, error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
     const body = await request.json()
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "teacher_id, grade, and subject are required" }, { status: 400 })
     }
 
-    const { data, error } = await (supabase.from("supervisions") as any)
+    const { data, error } = await (ADMIN().from("supervisions") as any)
       .insert({
         principal_id: user.id,
         teacher_id: body.teacher_id,

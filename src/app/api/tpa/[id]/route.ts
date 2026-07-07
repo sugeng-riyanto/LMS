@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(
   _request: NextRequest,
@@ -10,7 +13,7 @@ export async function GET(
     const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal", "teacher"])
     if (authError) return authError
     const { id } = await params
-    const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+    const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
       .select("*, teacher:teacher_id(id, full_name), principal:principal_id(id, full_name)")
       .eq("id", id).single()
     if (error || !data) return new NextResponse("Not found", { status: 404 })
@@ -33,7 +36,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    const { data: assmt } = await (supabase.from("teacher_performance_assessments") as any).select("*").eq("id", id).single()
+    const { data: assmt } = await (ADMIN().from("teacher_performance_assessments") as any).select("*").eq("id", id).single()
     if (!assmt) return new NextResponse("Not found", { status: 404 })
 
     // === PRINCIPAL ACTIONS ===
@@ -42,7 +45,7 @@ export async function PUT(
 
       // UNPUBLISH — revert from principal_submitted back to draft
       if (body.action === "unpublish") {
-        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+        const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
           .update({
             status: "draft",
             unpublished_at: new Date().toISOString(),
@@ -81,7 +84,7 @@ export async function PUT(
         const principalSig = body.signature_data_url
           ? `${body.signature_data_url}`
           : `Signed by ${profile.full_name} — ${dateStr}`
-        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+        const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
           .update({
             principal_scores: scores,
             principal_total: total,
@@ -110,7 +113,7 @@ export async function PUT(
         }
         const total = calculateTotal(categoryScores)
 
-        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+        const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
           .update({
             principal_scores: body.principal_scores,
             principal_total: total,
@@ -129,7 +132,7 @@ export async function PUT(
       const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count", "period_type", "period_label"]
       const updates: Record<string, unknown> = {}
       for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f]
-      const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+      const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
         .update(updates).eq("id", id).select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json(data)
@@ -162,7 +165,7 @@ export async function PUT(
         const teacherSig = body.signature_data_url
           ? `${body.signature_data_url}`
           : `Signed by ${profile.full_name} — ${dateStr}`
-        const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
+        const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)
           .update({
             teacher_scores: body.teacher_scores,
             teacher_total: teacherTotal,
@@ -195,10 +198,10 @@ export async function DELETE(
     if (authError) return authError
     const { id } = await params
     if (profile.role !== "super_admin") {
-      const { data: a } = await (supabase.from("teacher_performance_assessments") as any).select("principal_id, status").eq("id", id).single()
+      const { data: a } = await (ADMIN().from("teacher_performance_assessments") as any).select("principal_id, status").eq("id", id).single()
       if (!a || a.principal_id !== user.id || a.status !== "draft") return new NextResponse("Forbidden", { status: 403 })
     }
-    const { error } = await (supabase.from("teacher_performance_assessments") as any).delete().eq("id", id)
+    const { error } = await (ADMIN().from("teacher_performance_assessments") as any).delete().eq("id", id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ message: "Deleted" })
   } catch (error) {

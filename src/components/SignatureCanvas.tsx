@@ -10,10 +10,16 @@ interface SignatureCanvasProps {
   label?: string
 }
 
+type CanvasSize = "S" | "M" | "L"
+const CANVAS_DIMS: Record<CanvasSize, { w: number; h: number }> = {
+  S: { w: 250, h: 70 },
+  M: { w: 380, h: 110 },
+  L: { w: 500, h: 150 },
+}
 const PEN_SIZES = [
-  { label: "S", value: 2, className: "h-3 w-3 rounded-full bg-foreground" },
-  { label: "M", value: 5, className: "h-4 w-4 rounded-full bg-foreground" },
-  { label: "L", value: 8, className: "h-5 w-5 rounded-full bg-foreground" },
+  { label: "S", value: 2 },
+  { label: "M", value: 5 },
+  { label: "L", value: 8 },
 ]
 
 export default function SignatureCanvas({ onSave, savedSig, label = "Signature" }: SignatureCanvasProps) {
@@ -21,6 +27,7 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasContent, setHasContent] = useState(!!savedSig)
   const [penSize, setPenSize] = useState(3)
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>("L")
 
   useEffect(() => {
     if (savedSig && canvasRef.current) {
@@ -72,9 +79,17 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
   function clear() {
     const ctx = canvasRef.current?.getContext("2d")
     if (!ctx) return
-    ctx.clearRect(0, 0, 500, 150)
+    const dim = CANVAS_DIMS[canvasSize]
+    ctx.clearRect(0, 0, dim.w, dim.h)
     setHasContent(false)
   }
+  useEffect(() => {
+    if (canvasRef.current) {
+      const dim = CANVAS_DIMS[canvasSize]
+      canvasRef.current.width = dim.w
+      canvasRef.current.height = dim.h
+    }
+  }, [canvasSize])
 
   function save() {
     if (canvasRef.current) {
@@ -82,34 +97,37 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
     }
   }
 
+  const dim = CANVAS_DIMS[canvasSize]
+
   return (
-    <div className="space-y-3 flex flex-col items-center w-full max-w-lg mx-auto">
+    <div className="space-y-3 flex flex-col items-center w-full mx-auto">
       <label className="text-size-sm font-semibold text-center">{label}</label>
 
-      {/* Pen size selector */}
+      {/* Canvas size selector */}
       <div className="flex items-center gap-2">
-        <Pen className="h-4 w-4 text-muted-foreground" />
-        {PEN_SIZES.map(ps => (
-          <button
-            key={ps.label}
-            type="button"
-            onClick={() => setPenSize(ps.value)}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md border text-xs transition-all ${
-              penSize === ps.value
-                ? "border-primary bg-primary/10 text-primary font-semibold"
-                : "border-input hover:bg-accent"
+        <span className="text-[10px] text-muted-foreground">Area:</span>
+        {(["S", "M", "L"] as CanvasSize[]).map(s => (
+          <button key={s} type="button" onClick={() => setCanvasSize(s)}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+              canvasSize === s ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
             }`}
-          >
-            <span className={ps.className} />
-            {ps.label}
-          </button>
+          >{s}</button>
+        ))}
+        <span className="w-px h-4 bg-border mx-1" />
+        <span className="text-[10px] text-muted-foreground">Pen:</span>
+        {PEN_SIZES.map(ps => (
+          <button key={ps.label} type="button" onClick={() => setPenSize(ps.value)}
+            className={`px-2 py-1 rounded-md text-xs transition-all ${
+              penSize === ps.value ? "bg-primary/10 text-primary font-semibold" : "hover:bg-accent"
+            }`}
+          >{ps.label}</button>
         ))}
       </div>
 
       <canvas
         ref={canvasRef}
-        width={500}
-        height={150}
+        width={dim.w}
+        height={dim.h}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
@@ -117,8 +135,8 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
         onTouchStart={startDrawing}
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
-        className="w-full max-w-[500px] h-[150px] rounded-xl border-2 border-dashed border-input bg-white touch-none cursor-crosshair mx-auto shadow-sm"
-        style={{ touchAction: "none" }}
+        className="rounded-xl border-2 border-dashed border-input bg-white touch-none cursor-crosshair mx-auto shadow-sm"
+        style={{ touchAction: "none", width: dim.w, height: dim.h, maxWidth: "100%" }}
       />
 
       <div className="flex gap-3 justify-center flex-wrap">

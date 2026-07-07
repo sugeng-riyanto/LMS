@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "principal"])
+    const { user, profile, error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
     const { id } = await params
 
     if (profile.role !== "super_admin") {
-      const { data: s } = await (supabase.from("supervisions") as any).select("principal_id, status").eq("id", id).single()
+      const { data: s } = await (ADMIN().from("supervisions") as any).select("principal_id, status").eq("id", id).single()
       if (!s || s.principal_id !== user.id) return new NextResponse("Forbidden", { status: 403 })
     }
 
@@ -26,12 +29,11 @@ export async function POST(
     const seconds = String(now.getSeconds()).padStart(2, "0")
     const dateStr = `Day: ${day}-${month}-${year} Time: ${hours}--${minutes}--${seconds}`
 
-    // Store canvas signature data URL if provided, otherwise use text
     const sigValue = body.signature_data_url
       ? `${body.signature_data_url}`
       : `Signed by ${profile.full_name} — ${dateStr}`
 
-    const { data, error } = await (supabase.from("supervisions") as any)
+    const { data, error } = await (ADMIN().from("supervisions") as any)
       .update({ status: "published", principal_signature: sigValue, principal_signed_at: new Date().toISOString() })
       .eq("id", id).select().single()
 

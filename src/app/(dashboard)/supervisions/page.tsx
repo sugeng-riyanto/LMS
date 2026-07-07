@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Eye, Send, CheckCircle, FileText, X, Pen } from "lucide-react"
+import { Plus, Eye, Send, CheckCircle, FileText, X, Pen, BarChart3 } from "lucide-react"
 import SignatureCanvas from "@/components/SignatureCanvas"
+import VisualizationDashboard from "@/components/VisualizationDashboard"
 import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
 import toast from "react-hot-toast"
 
@@ -127,7 +128,7 @@ export default function SupervisionsPage() {
 
   function initScores() {
     const s: Record<string, Record<string, number>> = {}
-    for (const cat of TPA_CATEGORIES) { s[cat.key] = {}; cat.items.forEach(item => { s[cat.key][item.id] = 4 }) }
+    for (const cat of TPA_CATEGORIES) { s[cat.key] = {}; cat.items.forEach(item => { s[cat.key][item.id] = 0 }) }
     return s
   }
 
@@ -149,7 +150,7 @@ export default function SupervisionsPage() {
   const computedTotals = useMemo(() => {
     const catScores: Record<string, { raw: number; max: number }> = {}
     for (const cat of TPA_CATEGORIES) {
-      const s = scores[cat.key] || {}; const raw = cat.items.reduce((sum, item) => sum + (s[item.id] ?? 4), 0)
+      const s = scores[cat.key] || {}; const raw = cat.items.reduce((sum, item) => sum + (s[item.id] ?? 0), 0)
       catScores[cat.key] = { raw, max: cat.items.length * 4 }
     }
     return { total: calculateTotal(catScores), details: TPA_CATEGORIES.map(c => ({ ...c, raw: catScores[c.key]?.raw ?? 0, max: catScores[c.key]?.max ?? 1 })) }
@@ -280,7 +281,7 @@ export default function SupervisionsPage() {
 
           {TPA_CATEGORIES.map(cat => {
             const catScores = scores[cat.key] || {}
-            const raw = cat.items.reduce((sum, item) => sum + (catScores[item.id] ?? 4), 0)
+            const raw = cat.items.reduce((sum, item) => sum + (catScores[item.id] ?? 0), 0)
             const max = cat.items.length * 4
             return (
               <div key={cat.key} className="border-b border-border pb-2 last:border-0">
@@ -293,16 +294,16 @@ export default function SupervisionsPage() {
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1">
                       <span className="text-size-xs sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 4}
+                        <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 0}
                           onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
                           className="w-14 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
-                        <span className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${(catScores[item.id] ?? 4) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 4) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                          {catScores[item.id] ?? 4}
+                        <span className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                          {catScores[item.id] ?? 0}
                         </span>
                         <div className="flex gap-px">
                           {[0,1,2,3,4].map(v => (
                             <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm text-[7px] sm:text-[9px] font-medium transition-all ${(catScores[item.id] ?? 4) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm text-[7px] sm:text-[9px] font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
                           ))}
                         </div>
                       </div>
@@ -359,6 +360,9 @@ export default function SupervisionsPage() {
           </div>
         </div>
       )}
+
+      {/* Analytics */}
+      <VisualizationDashboard apiType="supervision" />
 
       {/* View Dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null) }}>

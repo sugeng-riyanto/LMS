@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Eye, Send, CheckCircle, Trash2, FileSpreadsheet, RotateCcw, Pen } from "lucide-react"
+import { Plus, Eye, Send, CheckCircle, Trash2, FileSpreadsheet, RotateCcw, Pen, BarChart3 } from "lucide-react"
 import SignatureCanvas from "@/components/SignatureCanvas"
+import VisualizationDashboard from "@/components/VisualizationDashboard"
 import { TPA_CATEGORIES, SCORE_COLORS, calculateTotal, getGradeLabel, GRADE_INTERPRETATION } from "@/tpa/rubric"
 import toast from "react-hot-toast"
 
@@ -518,6 +519,9 @@ export default function TPAPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Analytics */}
+      <VisualizationDashboard apiType="tpa" />
 
       {/* View Dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null) }}>

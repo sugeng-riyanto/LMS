@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole, getPrincipalLevel } from "@/lib/supabase/require-role"
 import { TPA_CATEGORIES } from "@/tpa/rubric"
 import * as XLSX from "xlsx"
 
+const ADMIN = () => createAdminClient()
+
 async function getSchoolInfo() {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data } = await (supabase.from("school_settings") as any).select("*").eq("id", 1).single()
+    const { data } = await (ADMIN().from("school_settings") as any).select("*").eq("id", 1).single()
     return {
       name: data?.school_name ?? "Sekolah Harapan Bangsa",
       brand: data?.brand_name ?? "SHB Learning Hub",
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get("format") || "xlsx"
     const school = await getSchoolInfo()
 
-    let query = (supabase.from("supervisions") as any)
+    let query = (ADMIN().from("supervisions") as any)
       .select("*, teacher:teacher_id(id, full_name)")
       .order("observation_date", { ascending: false })
 
