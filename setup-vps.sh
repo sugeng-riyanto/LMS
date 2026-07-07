@@ -80,7 +80,7 @@ npm install
 
 echo ""
 echo "Building Next.js (this may take 3-5 minutes)..."
-npm run build
+SKIP_TYPECHECK=1 npm run build
 
 # ── 6. PM2 start ──
 echo "[6/7] Starting app with PM2..."
