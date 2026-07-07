@@ -41,6 +41,7 @@ export default async function LandingPage() {
           <nav className="hidden items-center gap-3 sm:flex">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#teachers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Teachers</a>
+            <a href="#principals" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Principals</a>
             <a href="#students" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Students</a>
             <a href="#demo" className="text-sm font-medium text-primary font-semibold hover:text-primary/80 transition-colors">Demo Access</a>
             <LandingThemeToggle />
@@ -123,6 +124,7 @@ export default async function LandingPage() {
               { icon: "📊", title: "Academic Analytics", desc: "Monitor student progress across assessment categories with graphical visualisations and weighted calculations." },
               { icon: "✅", title: "Grading & Publishing", desc: "Evaluate submissions, provide targeted feedback, and publish scores to students with a single action." },
               { icon: "📱", title: "Mobile Accessibility", desc: "Students can access assignments, submit work, and review scores from any device." },
+              { icon: "👔", title: "Principal Oversight", desc: "Supervise teachers, run performance assessments, view analytics, and generate export reports — all level-scoped per principal." },
             ].map((f) => (
               <div key={f.title} className="group rounded-2xl border border-border bg-card/80 p-6 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:bg-card">
                 <div className="mb-4 text-3xl transition-transform duration-300 group-hover:scale-110">{f.icon}</div>
@@ -182,6 +184,31 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── For Principals ── */}
+      <section id="principals" className="scroll-mt-20 py-20 bg-gradient-to-b from-background to-secondary/30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary text-center">For School Leaders</p>
+            <h2 className="mt-3 text-3xl font-bold text-foreground text-center">Oversight, Informed by Data</h2>
+            <ul className="mt-10 space-y-4 max-w-2xl mx-auto">
+              {[
+                "Monitor teacher performance through structured supervision observations with a built-in 85-criterion rubric across 6 categories.",
+                "Run Teacher Performance Assessments (TPA) — weighted scoring with configurable teacher/principal split, AI feedback, and digital signatures.",
+                "View academic analytics across all subjects and grade levels, filtered by period, grade, and teacher — with SVG bar and pie charts.",
+                "Manage JHS (Grades 7–9) or SHS (Grades 10–12) independently — principals are level-scoped at login.",
+                "Export complete TPA and supervision reports to XLSX and A4 PDF with school logo, signature images, and embedded charts.",
+                "Maintain personal calendar events and access platform settings — profile, AI provider keys, and role permission management.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3 group cursor-default rounded-xl p-3 transition-all duration-300 hover:bg-secondary hover:pl-5">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110">{i + 1}</span>
+                  <span className="text-muted-foreground transition-colors duration-300 group-hover:text-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ── Subjects ── */}
       <section className="border-y border-border bg-gradient-to-b from-secondary/30 to-background py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -214,6 +241,21 @@ export default async function LandingPage() {
                   <p className="text-xs text-muted-foreground mb-1">SHS (Grades 10–12) — Chemistry & Biology</p>
                   <p className="font-mono text-sm font-medium text-foreground">dewi@shb.sch.id</p>
                   <p className="font-mono text-sm text-muted-foreground">demo123</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <h3 className="font-bold text-foreground mb-3">👔 Principals</h3>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">JHS (Grades 7–9) — Oversight</p>
+                  <p className="font-mono text-sm font-medium text-foreground">sisilia.juni@shb.sch.id</p>
+                  <p className="font-mono text-sm text-muted-foreground">principal123</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">SHS (Grades 10–12) — Oversight</p>
+                  <p className="font-mono text-sm font-medium text-foreground">joko.purwanto@shb.sch.id</p>
+                  <p className="font-mono text-sm text-muted-foreground">principal123</p>
                 </div>
               </div>
             </div>
