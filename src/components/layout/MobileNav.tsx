@@ -35,6 +35,8 @@ const allMobileNavItems: NavItem[] = [
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
   { href: "/principal", label: "Principal", icon: BarChart3, roles: ["principal"] },
   { href: "/supervisions", label: "Superv", icon: FileText, roles: ["principal", "teacher"] },
+  { href: "/tpa", label: "TPA", icon: FileText, roles: ["principal", "teacher"] },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: BarChart3, roles: ["super_admin", "teacher", "principal"] },
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
   { href: "/my-progress", label: "Progress", icon: BarChart3, roles: ["student"] },

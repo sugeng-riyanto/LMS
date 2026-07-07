@@ -47,8 +47,19 @@ export async function PUT(
     if (profile.role === "teacher") {
       const { data: s } = await (supabase.from("supervisions") as any).select("teacher_id, status").eq("id", id).single()
       if (!s || s.teacher_id !== user.id || s.status !== "published") return new NextResponse("Forbidden", { status: 403 })
+      const now = new Date()
+      const day = String(now.getDate()).padStart(2, "0")
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const year = now.getFullYear()
+      const hours = String(now.getHours()).padStart(2, "0")
+      const minutes = String(now.getMinutes()).padStart(2, "0")
+      const seconds = String(now.getSeconds()).padStart(2, "0")
+      const dateStr = `Day: ${day}-${month}-${year} Time: ${hours}--${minutes}--${seconds}`
+      const sigValue = body.signature_data_url
+        ? `${body.signature_data_url}`
+        : `Signed by ${profile.full_name} — ${dateStr}`
       const { data, error } = await (supabase.from("supervisions") as any)
-        .update({ teacher_signature: body.teacher_signature, teacher_signed_at: new Date().toISOString(), status: "acknowledged" })
+        .update({ teacher_signature: sigValue, teacher_signed_at: new Date().toISOString(), status: "acknowledged" })
         .eq("id", id).select().single()
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json(data)

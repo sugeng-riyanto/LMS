@@ -401,6 +401,12 @@ export default function SettingsPage() {
               School
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="rbac">
+              <Shield className="mr-1 h-4 w-4" />
+              RBAC
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isSuperAdmin && (
@@ -969,7 +975,200 @@ export default function SettingsPage() {
             <SchoolSettings />
           </TabsContent>
         )}
+        {isSuperAdmin && (
+          <TabsContent value="rbac" className="space-y-6">
+            <RbacTab />
+          </TabsContent>
+        )}
       </Tabs>
+    </div>
+  )
+}
+
+function RbacTab() {
+  const [dbRoutes, setDbRoutes] = useState<Record<string, string[]>>({})
+  const [defaults, setDefaults] = useState<Record<string, string[]>>({})
+  const [allRoles] = useState(["super_admin", "teacher", "lab_assistant", "student", "principal"])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [principals, setPrincipals] = useState<any[]>([])
+  const [assignments, setAssignments] = useState<any[]>([])
+  const [editAssign, setEditAssign] = useState<{ principal_id: string; level: string; id?: string } | null>(null)
+
+  // All routes from defaults merged with dbRoutes for display
+  const allRouteKeys = [...new Set([...Object.keys(defaults), ...Object.keys(dbRoutes)])].sort()
+
+  useEffect(() => { fetchData() }, [])
+
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const [r, p, a] = await Promise.all([
+        fetch("/api/settings/rbac").then(r => r.ok ? r.json() : { dbRoutes: {}, defaults: {} }),
+        fetch("/api/profiles?role=principal").then(r => r.ok ? r.json() : []),
+        fetch("/api/principal/assignments").then(r => r.ok ? r.json() : []),
+      ])
+      setDbRoutes(r.dbRoutes ?? {})
+      setDefaults(r.defaults ?? {})
+      setPrincipals(p)
+      setAssignments(a)
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  function hasRole(route: string, role: string): boolean {
+    // If route has DB entries, use those; otherwise use defaults
+    if (route in dbRoutes) return dbRoutes[route].includes(role)
+    return defaults[route]?.includes(role) ?? false
+  }
+
+  async function toggleRoute(route: string, role: string, add: boolean) {
+    const current = dbRoutes[route] ?? defaults[route] ?? []
+    const updated = add ? [...current, role] : current.filter(r => r !== role)
+    setSaving(route)
+    try {
+      const res = await fetch("/api/settings/rbac", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ route, roles: updated }),
+      })
+      if (res.ok) {
+        if (updated.length > 0) setDbRoutes(p => ({ ...p, [route]: updated }))
+        else {
+          const { [route]: _, ...rest } = dbRoutes
+          setDbRoutes(rest)
+        }
+      } else toast.error("Failed to update")
+    } catch { toast.error("Failed to update") }
+    finally { setSaving(null) }
+  }
+
+  async function saveAssignment() {
+    if (!editAssign?.principal_id || !editAssign?.level) return
+    try {
+      const res = await fetch("/api/principal/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editAssign),
+      })
+      if (res.ok) { toast.success("Saved!"); setEditAssign(null); fetchData() }
+      else { const e = await res.json(); toast.error(e.error ?? "Failed") }
+    } catch { toast.error("Failed") }
+  }
+
+  async function deleteAssignment(id: string) {
+    if (!confirm("Delete this assignment?")) return
+    try {
+      const res = await fetch(`/api/principal/assignments/${id}`, { method: "DELETE" })
+      if (res.ok) { toast.success("Deleted!"); fetchData() }
+      else toast.error("Failed")
+    } catch { toast.error("Failed") }
+  }
+
+  if (loading) return <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Loading...</CardContent></Card>
+
+  return (
+    <div className="space-y-8">
+      {/* === ROLE PERMISSIONS CHECKLIST === */}
+      <Card>
+        <CardHeader><CardTitle>Role Permissions <span className="text-xs font-normal text-muted-foreground">— toggle which roles can access each page</span></CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 bg-background">Route</TableHead>
+                {allRoles.map(r => <TableHead key={r} className="text-center text-[10px] uppercase">{r.replace(/_/g, "\n")}</TableHead>)}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allRouteKeys.map(route => {
+                const hasOverrides = route in dbRoutes
+                return (
+                  <TableRow key={route} className={hasOverrides ? "" : "opacity-60"}>
+                    <TableCell className="sticky left-0 bg-background font-mono text-xs">
+                      {route}
+                      {!hasOverrides && <span className="ml-2 text-[10px] text-muted-foreground">(default)</span>}
+                    </TableCell>
+                    {allRoles.map(role => {
+                      const checked = hasRole(route, role)
+                      return (
+                        <TableCell key={role} className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={saving === route}
+                            onChange={() => toggleRoute(route, role, !checked)}
+                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          />
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* === PRINCIPAL ASSIGNMENTS === */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Principal Level Assignments <span className="text-xs font-normal text-muted-foreground">— map each principal to JHS (Gr 7-9) or SHS (Gr 10-12)</span></CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="space-y-1">
+              <Label>Principal</Label>
+              <select value={editAssign?.principal_id ?? ""} onChange={e => setEditAssign(p => p ? { ...p, principal_id: e.target.value } : { principal_id: e.target.value, level: "" })} className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm min-w-[200px]">
+                <option value="">Select...</option>
+                {principals.map((p: any) => <option key={p.id} value={p.id} disabled={assignments.some((a: any) => a.principal_id === p.id && a.id !== editAssign?.id)}>{p.full_name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Level</Label>
+              <select value={editAssign?.level ?? ""} onChange={e => setEditAssign(p => p ? { ...p, level: e.target.value } : { principal_id: "", level: e.target.value })} className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                <option value="">Select...</option>
+                <option value="JHS">JHS (Grades 7-9)</option>
+                <option value="SHS">SHS (Grades 10-12)</option>
+              </select>
+            </div>
+            <Button size="sm" onClick={saveAssignment} disabled={!editAssign?.principal_id || !editAssign?.level}>
+              <Shield className="mr-1 h-4 w-4" />{editAssign?.id ? "Update" : "Add"}
+            </Button>
+            {editAssign?.id && <Button variant="ghost" size="sm" onClick={() => setEditAssign(null)}>Cancel</Button>}
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Principal</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Level</TableHead>
+                <TableHead>Grades</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {assignments.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">No principal assignments configured.</TableCell></TableRow>
+              )}
+              {assignments.map((a: any) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.principal?.full_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{a.principal?.email ?? "—"}</TableCell>
+                  <TableCell><Badge variant={a.level === "JHS" ? "default" : "secondary"}>{a.level}</Badge></TableCell>
+                  <TableCell>{a.level === "JHS" ? "7, 8, 9" : "10, 11, 12"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => setEditAssign({ principal_id: a.principal_id, level: a.level, id: a.id })}><Settings className="mr-1 h-3 w-3" />Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteAssignment(a.id)}><Trash2 className="mr-1 h-3 w-3 text-destructive" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

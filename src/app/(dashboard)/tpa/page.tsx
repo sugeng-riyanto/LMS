@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Eye, Send, CheckCircle, Trash2, FileSpreadsheet, RotateCcw } from "lucide-react"
+import { Plus, Eye, Send, CheckCircle, Trash2, FileSpreadsheet, RotateCcw, Pen } from "lucide-react"
+import SignatureCanvas from "@/components/SignatureCanvas"
 import { TPA_CATEGORIES, SCORE_COLORS, calculateTotal, getGradeLabel, GRADE_INTERPRETATION } from "@/tpa/rubric"
 import toast from "react-hot-toast"
 
@@ -45,6 +46,19 @@ export default function TPAPage() {
   const [aiFeedback, setAiFeedback] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [accumulations, setAccumulations] = useState<any[]>([])
+  const [availableGrades, setAvailableGrades] = useState<number[]>([7, 8, 9, 10, 11, 12])
+  const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
+  const [principalTpaSig, setPrincipalTpaSig] = useState<string | null>(null)
+  const [teacherTpaSig, setTeacherTpaSig] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isPrincipal) {
+      fetch("/api/principal/level").then(r => r.json()).then(d => {
+        if (d.level === "JHS") setAvailableGrades([7, 8, 9])
+        else if (d.level === "SHS") setAvailableGrades([10, 11, 12])
+      }).catch(() => {})
+    }
+  }, [isPrincipal])
 
   // Toggle select for bulk publish
   function toggleSelect(id: string) {
@@ -98,31 +112,31 @@ export default function TPAPage() {
   const [periodFilter, setPeriodFilter] = useState("all")
 
   const [form, setForm] = useState({
-    teacher_id: "", semester: "1", subject: "PHY", grade: "10", class_name: "",
+    teacher_id: "", semester: "1", subject: "PHY", grade: "7", class_name: "",
     period_type: "monthly", period_label: "",
   })
 
   useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
   useEffect(() => { fetchItems() }, [periodFilter])
 
+  function teacherDisplayName(a: any): string {
+    return `${a.profiles?.full_name ?? "Unknown"} — G${a.grade} ${a.subject}${a.classes?.class_name ? " (" + a.classes.class_name + ")" : ""}`
+  }
+
   async function fetchTeachers() {
     try {
-      const r = await fetch("/api/profiles?role=teacher")
+      const gradeParam = availableGrades.length < 6 ? `&grade=${availableGrades[0]}` : ""
+      const r = await fetch(`/api/teacher-assignments${gradeParam}`)
       if (r.ok) {
-        const all = await r.json()
-        // For principals, filter teachers by their level's grade range
-        if (isPrincipal) {
-          const levelRes = await fetch("/api/teacher-assignments")
-          if (levelRes.ok) {
-            const assigns = await levelRes.json()
-            const teacherIds = new Set(assigns.map((a: any) => a.teacher_id))
-            setTeachers(all.filter((t: any) => teacherIds.has(t.id)))
-          } else {
-            setTeachers(all)
-          }
-        } else {
-          setTeachers(all)
-        }
+        const data = await r.json()
+        setTeacherAssignments(data)
+        const seen = new Set<string>()
+        const unique = data.filter((a: any) => {
+          if (seen.has(a.teacher_id)) return false
+          seen.add(a.teacher_id)
+          return true
+        }).map((a: any) => a.profiles).filter(Boolean)
+        setTeachers(unique)
       }
     } catch {}
   }
@@ -209,6 +223,8 @@ export default function TPAPage() {
         if (isP) body.principal_scores = scores
         else body.teacher_scores = scores
       }
+      if (isP && principalTpaSig) body.signature_data_url = principalTpaSig
+      if (!isP && teacherTpaSig) body.signature_data_url = teacherTpaSig
       const r = await fetch(`/api/tpa/${editingScores.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       if (r.ok) { toast.success(submit ? "Submitted!" : "Saved!"); setEditingScores(null); fetchItems() }
       else { const e = await r.json(); toast.error(e.error || "Failed") }
@@ -252,7 +268,7 @@ export default function TPAPage() {
               📄 PDF
             </Button>
           </div>
-          {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => { fetchTeachers(); setCreateOpen(true) }}><Plus className="mr-1 h-4 w-4" /> New</Button>}
+          {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => { fetchTeachers(); setForm(p => ({ ...p, grade: String(availableGrades[0] ?? 7) })); setCreateOpen(true) }}><Plus className="mr-1 h-4 w-4" /> New</Button>}
         </div>
       </div>
 
@@ -297,8 +313,8 @@ export default function TPAPage() {
                       {tpa.principal_total != null && <span>Principal: <strong className={tpa.principal_total >= 60 ? "text-green-600" : "text-red-600"}>{tpa.principal_total.toFixed(1)}%</strong></span>}
                       {tpa.teacher_total != null && <span>Teacher: <strong className={tpa.teacher_total >= 60 ? "text-green-600" : "text-red-600"}>{tpa.teacher_total.toFixed(1)}%</strong></span>}
                       {tpa.combined_total != null && <span>Combined: <strong className="text-primary">{tpa.combined_total.toFixed(1)}%</strong> <Badge variant="outline" className="text-[10px]">{tpa.combined_grade}</Badge></span>}
-                      {tpa.principal_signature && <span className="text-green-600">✓ Principal signed</span>}
-                      {tpa.teacher_signature && <span className="text-blue-600">✓ Teacher signed</span>}
+                      {tpa.principal_signature && <span className="text-green-600 text-[10px]">✓ P-signed</span>}
+                      {tpa.teacher_signature && <span className="text-blue-600 text-[10px]">✓ T-signed</span>}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0 flex-wrap">
@@ -348,7 +364,7 @@ export default function TPAPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1"><Label>Grade</Label>
-                <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{Array.from({ length: 6 }, (_, i) => i + 7).map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
+                <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{availableGrades.map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
               <div className="space-y-1"><Label>Subject</Label>
                 <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
               <div className="space-y-1"><Label>Class</Label>
@@ -448,6 +464,14 @@ export default function TPAPage() {
                 </div>
               )}
 
+              {/* Signature */}
+              {(isPrincipal || isSuperAdmin) && editingScores.status === "draft" && (
+                <SignatureCanvas onSave={setPrincipalTpaSig} savedSig={principalTpaSig} label="Principal Signature (draw below)" />
+              )}
+              {isTeacher && editingScores.status === "principal_submitted" && (
+                <SignatureCanvas onSave={setTeacherTpaSig} savedSig={teacherTpaSig} label="Teacher Signature (draw below)" />
+              )}
+
               {/* Action buttons */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
                 <div className="flex gap-2">
@@ -500,8 +524,26 @@ export default function TPAPage() {
                 <div><strong>Post Conference:</strong> {viewing.post_conference_held ? "✅" : "❌"}</div>
                 <div><strong>Visits:</strong> {viewing.visit_count}</div>
               </div>
-              {viewing.principal_signature && <p className="text-green-600 text-xs">✓ Principal: {viewing.principal_signature}</p>}
-              {viewing.teacher_signature && <p className="text-blue-600 text-xs">✓ Teacher: {viewing.teacher_signature}</p>}
+              {viewing.principal_signature && (
+                <div>
+                  <p className="text-green-600 text-xs font-medium">✓ Principal Signed</p>
+                  {viewing.principal_signature.startsWith("data:image") ? (
+                    <img src={viewing.principal_signature} alt="Principal signature" className="max-w-[180px] h-10 border rounded bg-white" />
+                  ) : (
+                    <p className="text-green-600 text-xs">{viewing.principal_signature}</p>
+                  )}
+                </div>
+              )}
+              {viewing.teacher_signature && (
+                <div>
+                  <p className="text-blue-600 text-xs font-medium">✓ Teacher Signed</p>
+                  {viewing.teacher_signature.startsWith("data:image") ? (
+                    <img src={viewing.teacher_signature} alt="Teacher signature" className="max-w-[180px] h-10 border rounded bg-white" />
+                  ) : (
+                    <p className="text-blue-600 text-xs">{viewing.teacher_signature}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

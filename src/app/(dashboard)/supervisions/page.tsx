@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Eye, Send, CheckCircle, FileText, X } from "lucide-react"
+import { Plus, Eye, Send, CheckCircle, FileText, X, Pen } from "lucide-react"
+import SignatureCanvas from "@/components/SignatureCanvas"
 import { TPA_CATEGORIES, calculateTotal, getGradeLabel } from "@/tpa/rubric"
 import toast from "react-hot-toast"
 
@@ -33,6 +34,19 @@ export default function SupervisionsPage() {
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({})
   const [saving, setSaving] = useState(false)
   const [aiFeedback, setAiFeedback] = useState("")
+  const [availableGrades, setAvailableGrades] = useState<number[]>([7, 8, 9, 10, 11, 12])
+  const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
+  const [principalSigData, setPrincipalSigData] = useState<string | null>(null)
+  const [teacherSigData, setTeacherSigData] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isPrincipal) {
+      fetch("/api/principal/level").then(r => r.json()).then(d => {
+        if (d.level === "JHS") setAvailableGrades([7, 8, 9])
+        else if (d.level === "SHS") setAvailableGrades([10, 11, 12])
+      }).catch(() => {})
+    }
+  }, [isPrincipal])
 
   // AI feedback generator
   function generateFeedback() {
@@ -61,8 +75,27 @@ export default function SupervisionsPage() {
   useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
   useEffect(() => { fetchItems() }, [])
 
+  function teacherDisplayName(a: any): string {
+    return `${a.profiles?.full_name ?? "Unknown"} — G${a.grade} ${a.subject}${a.classes?.class_name ? " (" + a.classes.class_name + ")" : ""}`
+  }
+
   async function fetchTeachers() {
-    try { const r = await fetch("/api/profiles?role=teacher"); if (r.ok) setTeachers(await r.json()) } catch {}
+    try {
+      const gradeParam = availableGrades.length < 6 ? `&grade=${availableGrades[0]}` : ""
+      const r = await fetch(`/api/teacher-assignments${gradeParam}`)
+      if (r.ok) {
+        const data = await r.json()
+        setTeacherAssignments(data)
+        // Deduplicate teacher profiles for dropdown
+        const seen = new Set<string>()
+        const unique = data.filter((a: any) => {
+          if (seen.has(a.teacher_id)) return false
+          seen.add(a.teacher_id)
+          return true
+        }).map((a: any) => a.profiles).filter(Boolean)
+        setTeachers(unique)
+      }
+    } catch {}
   }
   async function fetchItems() {
     setLoading(true)
@@ -76,7 +109,11 @@ export default function SupervisionsPage() {
     return s
   }
 
-  function openNew() { fetchTeachers(); setEditing(null); setScores(initScores()); setCreateOpen(true) }
+  function openNew() {
+    fetchTeachers(); setEditing(null); setScores(initScores())
+    setForm(p => ({ ...p, grade: String(availableGrades[0] ?? 7) }))
+    setCreateOpen(true)
+  }
   function openEdit(sup: Supervision) {
     fetchTeachers(); setEditing(sup as any); setScores(initScores())
     setForm({ teacher_id: sup.teacher_id, grade: String(sup.grade), subject: sup.subject, class_name: sup.class_name || "", observation_date: sup.observation_date?.split("T")[0] || "" })
@@ -121,13 +158,20 @@ export default function SupervisionsPage() {
   }
 
   async function handlePublish(s: Supervision) {
-    try { const r = await fetch(`/api/supervisions/${s.id}/publish`, { method: "POST" }); if (r.ok) { toast.success("Published!"); fetchItems() } } catch {}
+    try {
+      const body: Record<string, unknown> = {}
+      if (principalSigData) body.signature_data_url = principalSigData
+      const r = await fetch(`/api/supervisions/${s.id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      if (r.ok) { toast.success("Published!"); setPrincipalSigData(null); fetchItems() } else toast.error("Failed")
+    } catch { toast.error("Failed") }
   }
   async function handleSign() {
     if (!viewing || viewing.status !== "published") return
     try {
-      const r = await fetch(`/api/supervisions/${viewing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teacher_signature: `Signed by ${profile?.full_name}` }) })
-      if (r.ok) { toast.success("Signed!"); setViewing(null); fetchItems() } else toast.error("Failed")
+      const body: Record<string, unknown> = {}
+      if (teacherSigData) body.signature_data_url = teacherSigData
+      const r = await fetch(`/api/supervisions/${viewing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      if (r.ok) { toast.success("Signed!"); setTeacherSigData(null); setViewing(null); fetchItems() } else toast.error("Failed")
     } catch { toast.error("Failed") }
   }
 
@@ -197,7 +241,7 @@ export default function SupervisionsPage() {
               </select></div>
             <div className="space-y-1"><Label className="text-[11px]">Grade</Label>
               <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
-                {[7,8,9,10,11,12].map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
+                {availableGrades.map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
             <div className="space-y-1"><Label className="text-[11px]">Subject</Label>
               <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
                 {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
@@ -281,6 +325,9 @@ export default function SupervisionsPage() {
             </div>
           )}
 
+          {(isPrincipal || isSuperAdmin) && (
+            <SignatureCanvas onSave={setPrincipalSigData} savedSig={principalSigData} label="Principal Signature (draw below)" />
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button size="sm" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button size="sm" variant="outline" onClick={() => handleSave(false)} disabled={saving}>Save Draft</Button>
@@ -302,10 +349,31 @@ export default function SupervisionsPage() {
               <p><strong>Date:</strong> {new Date(viewing.observation_date).toLocaleDateString()}</p>
               <p><strong>Status:</strong> {statusBadge(viewing.status)}</p>
               <Separator />
-              {viewing.principal_signature && <p className="text-xs text-green-600">✓ Principal: {viewing.principal_signature}</p>}
-              {viewing.teacher_signature && <p className="text-xs text-blue-600">✓ Teacher: {viewing.teacher_signature}</p>}
+              {viewing.principal_signature && (
+                <div>
+                  <p className="text-xs font-medium text-green-600 mb-1">✓ Principal Signed</p>
+                  {viewing.principal_signature.startsWith("data:image") ? (
+                    <img src={viewing.principal_signature} alt="Principal signature" className="max-w-[200px] h-12 border rounded bg-white" />
+                  ) : (
+                    <p className="text-xs text-green-600">{viewing.principal_signature}</p>
+                  )}
+                </div>
+              )}
+              {viewing.teacher_signature && (
+                <div>
+                  <p className="text-xs font-medium text-blue-600 mb-1">✓ Teacher Signed</p>
+                  {viewing.teacher_signature.startsWith("data:image") ? (
+                    <img src={viewing.teacher_signature} alt="Teacher signature" className="max-w-[200px] h-12 border rounded bg-white" />
+                  ) : (
+                    <p className="text-xs text-blue-600">{viewing.teacher_signature}</p>
+                  )}
+                </div>
+              )}
               {isTeacher && viewing.status === "published" && (
-                <Button className="w-full mt-2" size="sm" onClick={handleSign}><CheckCircle className="mr-1 h-3 w-3" /> Sign & Acknowledge</Button>
+                <div className="mt-2 space-y-2">
+                  <SignatureCanvas onSave={setTeacherSigData} savedSig={teacherSigData} label="Draw your signature" />
+                  <Button className="w-full" size="sm" onClick={handleSign} disabled={!teacherSigData}><Pen className="mr-1 h-3 w-3" /> Sign & Acknowledge</Button>
+                </div>
               )}
             </div>
           )}

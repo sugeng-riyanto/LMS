@@ -8,12 +8,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const teacherId = searchParams.get("teacher_id")
+    const gradeFilter = searchParams.get("grade")
 
     let query = (supabase as any)
       .from("teacher_assignments")
       .select("*, classes:class_id(id, grade, class_name), profiles:teacher_id(id, full_name, email)")
 
     if (teacherId) query = query.eq("teacher_id", teacherId)
+    if (gradeFilter) query = query.eq("grade", parseInt(gradeFilter))
 
     query = query.order("grade").order("subject")
 

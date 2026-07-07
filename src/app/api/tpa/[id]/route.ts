@@ -70,13 +70,24 @@ export async function PUT(
         }
         const total = calculateTotal(categoryScores)
 
+        const now = new Date()
+        const day = String(now.getDate()).padStart(2, "0")
+        const month = String(now.getMonth() + 1).padStart(2, "0")
+        const year = now.getFullYear()
+        const hours = String(now.getHours()).padStart(2, "0")
+        const minutes = String(now.getMinutes()).padStart(2, "0")
+        const seconds = String(now.getSeconds()).padStart(2, "0")
+        const dateStr = `Day: ${day}-${month}-${year} Time: ${hours}--${minutes}--${seconds}`
+        const principalSig = body.signature_data_url
+          ? `${body.signature_data_url}`
+          : `Signed by ${profile.full_name} — ${dateStr}`
         const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
           .update({
             principal_scores: scores,
             principal_total: total,
             status: "principal_submitted",
             principal_submitted_at: new Date().toISOString(),
-            principal_signature: `Signed by ${profile.full_name}`,
+            principal_signature: principalSig,
             principal_signed_at: new Date().toISOString(),
             grade: body.grade ?? assmt.grade,
             subject: body.subject ?? assmt.subject,
@@ -140,6 +151,17 @@ export async function PUT(
         // Auto-combine: average of principal and teacher scores
         const combined = assmt.principal_total != null ? Math.round(((assmt.principal_total + teacherTotal) / 2) * 10) / 10 : teacherTotal
 
+        const now = new Date()
+        const day = String(now.getDate()).padStart(2, "0")
+        const month = String(now.getMonth() + 1).padStart(2, "0")
+        const year = now.getFullYear()
+        const hours = String(now.getHours()).padStart(2, "0")
+        const minutes = String(now.getMinutes()).padStart(2, "0")
+        const seconds = String(now.getSeconds()).padStart(2, "0")
+        const dateStr = `Day: ${day}-${month}-${year} Time: ${hours}--${minutes}--${seconds}`
+        const teacherSig = body.signature_data_url
+          ? `${body.signature_data_url}`
+          : `Signed by ${profile.full_name} — ${dateStr}`
         const { data, error } = await (supabase.from("teacher_performance_assessments") as any)
           .update({
             teacher_scores: body.teacher_scores,
@@ -148,7 +170,7 @@ export async function PUT(
             combined_total: combined,
             combined_grade: getGradeLabel(combined),
             status: "completed",
-            teacher_signature: `Signed by ${profile.full_name}`,
+            teacher_signature: teacherSig,
             teacher_signed_at: new Date().toISOString(),
             post_conference_held: true,
           }).eq("id", id).select().single()

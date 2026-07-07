@@ -3,6 +3,30 @@ import { NextResponse, type NextRequest } from "next/server"
 
 type Role = "super_admin" | "teacher" | "lab_assistant" | "student" | "principal"
 
+// Cache role_permissions fetch per-request
+let _rolePermsPromise: Promise<Record<string, Role[]>> | null = null
+
+async function loadDbRolePerms(supabase: any): Promise<Record<string, Role[]>> {
+  try {
+    const { data } = await (supabase.from("role_permissions") as any).select("route, role")
+    if (!data) return {}
+    const map: Record<string, Role[]> = {}
+    for (const r of data) {
+      if (!map[r.route]) map[r.route] = []
+      map[r.route].push(r.role as Role)
+    }
+    return map
+  } catch {
+    return {}
+  }
+}
+
+function mergeRolePerms(hardcoded: Role[], dbOverrides: Role[] | undefined): Role[] {
+  if (!dbOverrides || dbOverrides.length === 0) return hardcoded
+  // DB overrides completely replace hardcoded defaults
+  return dbOverrides
+}
+
 const ROLE_ROUTES: Record<string, Role[]> = {
   "/grades": ["super_admin", "teacher"],
   "/generate": ["super_admin", "teacher"],
@@ -35,6 +59,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/settings/school": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
   "/api/users/": ["super_admin"],
   "/api/seed/": ["super_admin"],
+  "/api/principal/": ["super_admin", "principal"],
   "/api/webhooks/": [],
   "/api/agents/": ["super_admin", "teacher"],
   "/api/analytics": ["super_admin", "teacher", "principal"],
@@ -138,6 +163,9 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  // Load DB role overrides once per request
+  const dbPerms = await loadDbRolePerms(supabase)
+
   const authRoutes = ["/login", "/register", "/forgot-password", "/update-password"]
   const isAuthPage = authRoutes.some((route) => pathname.startsWith(route))
   const isProtectedRoute = pathname.startsWith("/dashboard") || matchProtectedRoute(pathname)
@@ -159,16 +187,19 @@ export async function proxy(request: NextRequest) {
     if (!role) return supabaseResponse
 
     const matched = matchProtectedRoute(pathname)
-    if (matched && !ROLE_ROUTES[matched].includes(role)) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/dashboard"
-      return NextResponse.redirect(url)
+    if (matched) {
+      const merged = mergeRolePerms(ROLE_ROUTES[matched], dbPerms[matched])
+      if (!merged.includes(role)) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/dashboard"
+        return NextResponse.redirect(url)
+      }
     }
 
     const apiRouteMatched = matchApiRoute(pathname)
     if (apiRouteMatched && pathname.startsWith("/api/")) {
-      const allowedRoles = API_ROLE_ROUTES[apiRouteMatched]
-      if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+      const merged = mergeRolePerms(API_ROLE_ROUTES[apiRouteMatched], dbPerms[apiRouteMatched])
+      if (merged.length > 0 && !merged.includes(role)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }
