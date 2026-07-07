@@ -1,6 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  staticPageGenerationTimeout: 300,
   typescript: {
     ignoreBuildErrors: process.env.SKIP_TYPECHECK === "1",
   },
