@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +14,7 @@ export async function GET(request: NextRequest) {
     const week = searchParams.get("week")
     const subject = searchParams.get("subject")
 
-    let query = (supabase.from("syllabus_planning") as any).select("*").order("week_number")
+    let query = (ADMIN().from("syllabus_planning") as any).select("*").order("week_number")
 
     if (grade) query = query.eq("grade", parseInt(grade))
     if (week) query = query.eq("week_number", parseInt(week))
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid score_category" }, { status: 400 })
     }
 
-    const { data, error } = await (supabase.from("syllabus_planning") as any)
+    const { data, error } = await (ADMIN().from("syllabus_planning") as any)
       .upsert({
         academic_year: body.academic_year ?? "2026-2027",
         grade,

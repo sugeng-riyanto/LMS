@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    const { error: authError } = await requireRole(["super_admin", "teacher", "student"])
     if (authError) return authError
     const { id } = await params
-    const { data, error } = await (supabase.from("syllabus_planning") as any)
+    const { data, error } = await (ADMIN().from("syllabus_planning") as any)
       .select("*")
       .eq("id", id)
       .single()
@@ -48,7 +51,7 @@ export async function PUT(
       if (body[field] !== undefined) updates[field] = body[field]
     }
 
-    const { data, error } = await (supabase.from("syllabus_planning") as any)
+    const { data, error } = await (ADMIN().from("syllabus_planning") as any)
       .update(updates)
       .eq("id", id)
       .select()
@@ -75,7 +78,7 @@ export async function DELETE(
 
     const { id } = await params
 
-    const { error } = await (supabase.from("syllabus_planning") as any)
+    const { error } = await (ADMIN().from("syllabus_planning") as any)
       .delete()
       .eq("id", id)
 
