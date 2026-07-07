@@ -27,7 +27,7 @@ interface NavItem {
 
 const allMobileNavItems: NavItem[] = [
   { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student", "principal"] },
-  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher", "principal"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
   { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
   { href: ROUTES.LESSON_PLAN, label: "Lsn Plan", icon: FileText, roles: ["super_admin", "teacher"] },
   { href: "/worksheets", label: "WS", icon: FileText, roles: ["super_admin", "teacher"] },

@@ -7,7 +7,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student", "principal"])
     if (authError) return authError
 
     const { id } = await params
@@ -55,7 +55,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student", "principal"])
     if (authError) return authError
 
     const { id } = await params

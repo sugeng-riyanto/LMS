@@ -34,7 +34,7 @@ const emptyForm = {
 }
 
 export default function CalendarPage() {
-  const { isSuperAdmin } = useRBAC()
+  const { isSuperAdmin, role } = useRBAC()
   const { data: events, isLoading, refetch } = useCalendarEvents()
   const [view, setView] = useState<"calendar" | "list">("list")
   const [filterGrade, setFilterGrade] = useState<number | "all">("all")
@@ -161,7 +161,6 @@ export default function CalendarPage() {
           </Button>
           {isSuperAdmin && (
             <>
-              <Button size="sm" onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Event</Button>
               <Button variant="outline" size="sm" onClick={async () => {
                 try {
                   const res = await fetch("/api/calendar/template")
@@ -177,6 +176,9 @@ export default function CalendarPage() {
                 <Input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleXLSXUpload} />
               </Label>
             </>
+          )}
+          {role !== "student" && (
+            <Button size="sm" onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Event</Button>
           )}
         </div>
       </div>
@@ -221,7 +223,7 @@ export default function CalendarPage() {
                     </div>
                     <Badge className={eventTypeColors[event.type] ?? ""}>{event.type.replace(/_/g, " ")}</Badge>
                     {event.grade && <Badge variant="outline">G{event.grade}</Badge>}
-                    {isSuperAdmin && (
+                    {(isSuperAdmin || event.created_by) && (
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(event)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id ?? "")}><Trash2 className="h-4 w-4 text-destructive" /></Button>

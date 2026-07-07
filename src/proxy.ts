@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 type Role = "super_admin" | "teacher" | "lab_assistant" | "student" | "principal"
 
 const ROLE_ROUTES: Record<string, Role[]> = {
-  "/grades": ["super_admin", "teacher", "principal"],
+  "/grades": ["super_admin", "teacher"],
   "/generate": ["super_admin", "teacher"],
   "/grading": ["super_admin", "teacher"],
   "/profile": ["super_admin", "teacher", "lab_assistant", "student", "principal"],

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student", "principal"])
     if (authError) return authError
 
     const body = await request.json()

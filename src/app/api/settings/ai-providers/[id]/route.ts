@@ -6,13 +6,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { id } = await params
     const body = await request.json()
 
-    // Teachers can only update their own providers
+    // Non-super-admin can only update their own providers
     if (profile.role !== "super_admin") {
       const { data: existing } = await (supabase.from("ai_providers") as any)
         .select("owner_id")
@@ -56,12 +56,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const { id } = await params
 
-    // Teachers can only delete their own providers
+    // Non-super-admin can only delete their own providers
     if (profile.role !== "super_admin") {
       const { data: existing } = await (supabase.from("ai_providers") as any)
         .select("owner_id")

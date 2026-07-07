@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -19,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap } from "lucide-react"
+import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User } from "lucide-react"
 import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
@@ -31,13 +33,21 @@ const roleColors: Record<string, string> = {
   teacher: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-primary",
   lab_assistant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   student: "bg-primary/10 text-primary font-medium dark:bg-primary/20",
+  principal: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
 }
 
 const PROVIDER_TYPES = ["openai", "groq", "gemini", "opencodeai"] as const
 
 export default function SettingsPage() {
+  const { profile: authProfile } = useAuth()
   const { isSuperAdmin, role } = useRBAC()
-  const [tab, setTab] = useState(() => role === "teacher" || role === "principal" ? "ai-providers" : "users")
+  const [tab, setTab] = useState(() => isSuperAdmin ? "users" : "profile")
+  const [nameForm, setNameForm] = useState("")
+  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" })
+  const [savingName, setSavingName] = useState(false)
+  const [savingPw, setSavingPw] = useState(false)
+
+  useEffect(() => { if (authProfile?.full_name) setNameForm(authProfile.full_name) }, [authProfile])
 
   // Users
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -73,7 +83,7 @@ export default function SettingsPage() {
     if (isSuperAdmin) {
       if (tab === "users") fetchUsers()
     }
-    if (isSuperAdmin || role === "teacher") {
+    if (isSuperAdmin || role === "teacher" || role === "principal") {
       if (tab === "ai-providers") fetchProviders()
     }
   }, [isSuperAdmin, role, tab])
@@ -326,7 +336,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (role !== "super_admin" && role !== "teacher") {
+  if (role !== "super_admin" && role !== "teacher" && role !== "principal") {
     return (
       <div className="space-y-6">
         <div>
@@ -355,6 +365,12 @@ export default function SettingsPage() {
             <TabsTrigger value="users">
               <UserPlus className="mr-1 h-4 w-4" />
               Users
+            </TabsTrigger>
+          )}
+          {(role === "teacher" || role === "principal") && (
+            <TabsTrigger value="profile">
+              <User className="mr-1 h-4 w-4" />
+              Profile
             </TabsTrigger>
           )}
           <TabsTrigger value="ai-providers">
@@ -647,6 +663,61 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
         )}
+
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle>My Profile</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input value={authProfile?.email ?? ""} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-1">
+                <Label>Full Name</Label>
+                <div className="flex gap-2">
+                  <Input value={nameForm} onChange={(e) => setNameForm(e.target.value)} placeholder="Your full name" />
+                  <Button onClick={async () => {
+                    if (!nameForm.trim()) { toast.error("Name cannot be empty"); return }
+                    setSavingName(true)
+                    try {
+                      const r = await fetch("/api/profiles/me", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ full_name: nameForm.trim() }),
+                      })
+                      if (r.ok) { toast.success("Name updated!"); window.location.reload() }
+                      else toast.error("Failed to update name")
+                    } catch { toast.error("Failed to update name") }
+                    finally { setSavingName(false) }
+                  }} disabled={savingName}><Save className="mr-1 h-4 w-4" />{savingName ? "..." : "Save"}</Button>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-1">
+                <Label>Change Password</Label>
+                <Input type="password" placeholder="Current password" value={pwForm.current} onChange={(e) => setPwForm(p => ({ ...p, current: e.target.value }))} />
+                <Input type="password" placeholder="New password" value={pwForm.newPw} onChange={(e) => setPwForm(p => ({ ...p, newPw: e.target.value }))} className="mt-2" />
+                <Input type="password" placeholder="Confirm new password" value={pwForm.confirm} onChange={(e) => setPwForm(p => ({ ...p, confirm: e.target.value }))} className="mt-2" />
+                <Button className="mt-2" onClick={async () => {
+                  if (!pwForm.current || !pwForm.newPw) { toast.error("Fill all fields"); return }
+                  if (pwForm.newPw !== pwForm.confirm) { toast.error("Passwords don't match"); return }
+                  if (pwForm.newPw.length < 6) { toast.error("Min 6 characters"); return }
+                  setSavingPw(true)
+                  try {
+                    const r = await fetch("/api/auth/password", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.newPw }),
+                    })
+                    if (r.ok) { toast.success("Password updated!"); setPwForm({ current: "", newPw: "", confirm: "" }) }
+                    else { const e = await r.json(); toast.error(e.error ?? "Failed") }
+                  } catch { toast.error("Failed to update password") }
+                  finally { setSavingPw(false) }
+                }} disabled={savingPw}><Key className="mr-1 h-4 w-4" />{savingPw ? "..." : "Change Password"}</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="ai-providers" className="space-y-6">
           <div className="flex items-center justify-end">

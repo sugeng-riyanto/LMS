@@ -53,7 +53,7 @@ const allNavItems: NavItem[] = [
 
   // ── Principal flow (oversight → analytics) ──
   { href: "/principal", label: "Dashboard", icon: LayoutDashboard, roles: ["principal"] },
-  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["principal"] },
+  // { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["principal"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["principal"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["principal"] },
   { href: "/supervisions", label: "Supervisions", icon: ClipboardList, roles: ["principal"] },

@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     let query = (supabase.from("ai_providers") as any).select("*")
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "principal"])
     if (authError) return authError
 
     const body = await request.json()

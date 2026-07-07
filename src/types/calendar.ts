@@ -18,6 +18,8 @@ export interface CalendarEvent {
   academic_year?: string;
   notes?: string;
   created_at?: string;
+  personal?: boolean;
+  created_by?: string | null;
 }
 
 export interface AcademicCalendarRow {
