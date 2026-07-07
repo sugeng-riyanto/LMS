@@ -245,21 +245,6 @@ export default async function LandingPage() {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="font-bold text-foreground mb-3">👔 Principals</h3>
-              <div className="space-y-3">
-                <div className="rounded-lg bg-secondary/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">JHS (Grades 7–9) — Oversight</p>
-                  <p className="font-mono text-sm font-medium text-foreground">sisilia.juni@shb.sch.id</p>
-                  <p className="font-mono text-sm text-muted-foreground">principal123</p>
-                </div>
-                <div className="rounded-lg bg-secondary/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">SHS (Grades 10–12) — Oversight</p>
-                  <p className="font-mono text-sm font-medium text-foreground">joko.purwanto@shb.sch.id</p>
-                  <p className="font-mono text-sm text-muted-foreground">principal123</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               <h3 className="font-bold text-foreground mb-3">🧑‍🎓 Students</h3>
               <div className="space-y-3">
                 <div className="rounded-lg bg-secondary/50 p-3">
