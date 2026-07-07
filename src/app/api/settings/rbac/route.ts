@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
 const ROLES = ["super_admin", "teacher", "lab_assistant", "student", "principal"] as const
@@ -29,6 +30,9 @@ const DEFAULT_PAGE_ROUTES: Record<string, string[]> = {
   "/principal": ["principal"],
   "/supervisions": ["super_admin", "principal", "teacher"],
   "/tpa": ["super_admin", "principal", "teacher"],
+  "calendar:create": ["super_admin", "teacher", "lab_assistant", "principal"],
+  "calendar:edit": ["super_admin"],
+  "calendar:delete": ["super_admin"],
 }
 
 export async function GET() {
@@ -73,8 +77,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "route and roles array required" }, { status: 400 })
     }
 
-    // Delete all existing for this route
-    await (supabase.from("role_permissions") as any).delete().eq("route", route)
+    // Delete all existing for this route (table may not exist)
+    const { error: delErr } = await (supabase.from("role_permissions") as any).delete().eq("route", route)
+    if (delErr && !delErr.message?.includes("does not exist")) {
+      return NextResponse.json({ error: delErr.message }, { status: 500 })
+    }
 
     // Insert new
     if (roles.length > 0) {

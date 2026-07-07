@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User } from "lucide-react"
+import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User, CheckCircle } from "lucide-react"
 import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
@@ -991,9 +991,14 @@ function RbacTab() {
   const [allRoles] = useState(["super_admin", "teacher", "lab_assistant", "student", "principal"])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [initializing, setInitializing] = useState(false)
+  const [initSql, setInitSql] = useState<string | null>(null)
   const [principals, setPrincipals] = useState<any[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
   const [editAssign, setEditAssign] = useState<{ principal_id: string; level: string; id?: string } | null>(null)
+  const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
+  const [principalMappings, setPrincipalMappings] = useState<any[]>([])
+  const [allTeachers, setAllTeachers] = useState<any[]>([])
 
   // All routes from defaults merged with dbRoutes for display
   const allRouteKeys = [...new Set([...Object.keys(defaults), ...Object.keys(dbRoutes)])].sort()
@@ -1003,15 +1008,43 @@ function RbacTab() {
   async function fetchData() {
     setLoading(true)
     try {
-      const [r, p, a] = await Promise.all([
+      const [r, p, a, ta, pm] = await Promise.all([
         fetch("/api/settings/rbac").then(r => r.ok ? r.json() : { dbRoutes: {}, defaults: {} }),
         fetch("/api/profiles?role=principal").then(r => r.ok ? r.json() : []),
         fetch("/api/principal/assignments").then(r => r.ok ? r.json() : []),
+        fetch("/api/teacher-assignments").then(r => r.ok ? r.json() : []),
+        fetch("/api/principal/mappings").then(r => r.ok ? r.json() : []),
       ])
       setDbRoutes(r.dbRoutes ?? {})
       setDefaults(r.defaults ?? {})
       setPrincipals(p)
       setAssignments(a)
+      setTeacherAssignments(ta ?? [])
+      setPrincipalMappings(pm ?? [])
+      // Build teacher list from teacher_assignments + profiles API fallback
+      const seen = new Set<string>()
+      const teachersFromTA: any[] = []
+      for (const item of ta ?? []) {
+        if (item.profiles && !seen.has(item.profiles.id)) {
+          seen.add(item.profiles.id)
+          teachersFromTA.push({ ...item.profiles, _grade: item.grade, _subject: item.subject })
+        }
+      }
+      // Also try profiles API directly
+      try {
+        const tRes = await fetch("/api/profiles?role=teacher")
+        if (tRes.ok) {
+          const tData = await tRes.json()
+          // Merge - prefer TA data, fill gaps with profiles API
+          for (const prof of tData) {
+            if (!seen.has(prof.id)) {
+              seen.add(prof.id)
+              teachersFromTA.push(prof)
+            }
+          }
+        }
+      } catch {}
+      setAllTeachers(teachersFromTA)
     } catch {}
     finally { setLoading(false) }
   }
@@ -1038,8 +1071,11 @@ function RbacTab() {
           const { [route]: _, ...rest } = dbRoutes
           setDbRoutes(rest)
         }
-      } else toast.error("Failed to update")
-    } catch { toast.error("Failed to update") }
+      } else {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }))
+        toast.error(err.error || "Failed to update")
+      }
+    } catch (e) { toast.error("Failed to update: " + String(e)) }
     finally { setSaving(null) }
   }
 
@@ -1071,7 +1107,37 @@ function RbacTab() {
     <div className="space-y-8">
       {/* === ROLE PERMISSIONS CHECKLIST === */}
       <Card>
-        <CardHeader><CardTitle>Role Permissions <span className="text-xs font-normal text-muted-foreground">— toggle which roles can access each page</span></CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Role Permissions <span className="text-xs font-normal text-muted-foreground">— toggle which roles can access each page</span></CardTitle>
+            <Dialog open={!!initSql} onOpenChange={(o) => { if (!o) setInitSql(null) }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={async () => {
+                  setInitializing(true)
+                  try {
+                    const r = await fetch("/api/settings/rbac/init", { method: "POST" })
+                    if (r.ok) {
+                      const d = await r.json()
+                      if (d.sql) { setInitSql(d.sql); toast.success("SQL generated — paste it into Supabase SQL editor") }
+                      else { toast.success("RBAC table initialized!"); fetchData() }
+                    } else { const e = await r.json(); toast.error(e.error || "Failed") }
+                  } catch { toast.error("Failed to initialize") }
+                  finally { setInitializing(false) }
+                }} disabled={initializing}>
+                  <Settings className="mr-1 h-3 w-3" />{initializing ? "..." : "Init Table"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Run this SQL in Supabase SQL Editor</DialogTitle></DialogHeader>
+                <textarea readOnly value={initSql ?? ""} rows={20} className="w-full text-xs font-mono border rounded p-2 bg-muted" onClick={(e) => (e.target as HTMLTextAreaElement).select()} />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { navigator.clipboard.writeText(initSql ?? ""); toast.success("Copied!") }}>Copy SQL</Button>
+                  <Button onClick={() => setInitSql(null)}>Done</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -1108,6 +1174,46 @@ function RbacTab() {
               })}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* === CALENDAR CRUD PERMISSIONS === */}
+      <Card>
+        <CardHeader><CardTitle>Calendar CRUD <span className="text-xs font-normal text-muted-foreground">— who can create, edit, delete calendar events</span></CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Action</TableHead>
+                {allRoles.map(r => <TableHead key={r} className="text-center text-[10px] uppercase">{r.replace(/_/g, "\n")}</TableHead>)}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {["calendar:create", "calendar:edit", "calendar:delete"].map(perm => {
+                const label = perm.split(":")[1]
+                return (
+                  <TableRow key={perm}>
+                    <TableCell className="font-medium text-xs capitalize">{label}</TableCell>
+                    {allRoles.map(role => {
+                      const checked = hasRole(perm, role)
+                      return (
+                        <TableCell key={role} className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={saving === perm}
+                            onChange={() => toggleRoute(perm, role, !checked)}
+                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          />
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+          <p className="text-xs text-muted-foreground mt-2">Changes affect the Calendar page. Reload the page after saving for new permissions to take effect.</p>
         </CardContent>
       </Card>
 
@@ -1169,7 +1275,150 @@ function RbacTab() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* === SUPERVISION MAPPING === */}
+      <SupervisionMappingCard assignments={assignments} teacherAssignments={teacherAssignments} principalMappings={principalMappings} allTeachers={allTeachers} onRefresh={fetchData} />
     </div>
+  )
+}
+
+function SupervisionMappingCard({ assignments, teacherAssignments, principalMappings, allTeachers, onRefresh }: {
+  assignments: any[]; teacherAssignments: any[]; principalMappings: any[]; allTeachers: any[]; onRefresh: () => void
+}) {
+  const [addPrincipalId, setAddPrincipalId] = useState("")
+  const [addTeacherId, setAddTeacherId] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  // Group teachers by grade level for display
+  const jhsTeachers = new Map<string, any[]>()
+  const shsTeachers = new Map<string, any[]>()
+  for (const ta of teacherAssignments) {
+    const tMap = ta.grade >= 7 && ta.grade <= 9 ? jhsTeachers : shsTeachers
+    if (!tMap.has(ta.teacher_id)) tMap.set(ta.teacher_id, [])
+    tMap.get(ta.teacher_id)!.push(ta)
+  }
+
+  // Build mapping lookup: principal_id → Set of teacher_ids
+  const mappingByPrincipal: Record<string, Set<string>> = {}
+  for (const m of principalMappings) {
+    if (!mappingByPrincipal[m.principal_id]) mappingByPrincipal[m.principal_id] = new Set()
+    mappingByPrincipal[m.principal_id].add(m.teacher_id)
+  }
+
+  async function addMapping() {
+    if (!addPrincipalId || !addTeacherId) return
+    setSaving(true)
+    try {
+      const r = await fetch("/api/principal/mappings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ principal_id: addPrincipalId, teacher_id: addTeacherId }),
+      })
+      if (r.ok) { toast.success("Mapping added!"); setAddTeacherId(""); onRefresh() }
+      else { const e = await r.json(); toast.error(e.error || "Failed") }
+    } catch { toast.error("Failed") }
+    finally { setSaving(false) }
+  }
+
+  async function removeMapping(id: string) {
+    if (!confirm("Remove this mapping?")) return
+    try {
+      const r = await fetch(`/api/principal/mappings/${id}`, { method: "DELETE" })
+      if (r.ok) { toast.success("Removed!"); onRefresh() }
+      else toast.error("Failed")
+    } catch { toast.error("Failed") }
+  }
+
+  // Available teachers = all teachers not already mapped to this principal
+  function availableTeachers(principalId: string): any[] {
+    const mapped = mappingByPrincipal[principalId]
+    return allTeachers.filter(t => !mapped?.has(t.id))
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Supervision & TPA Mapping <span className="text-xs font-normal text-muted-foreground">— directly assign teachers to principals</span></CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {assignments.length === 0 && principalMappings.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Assign principals to JHS/SHS first to see and manage mappings.</p>
+          ) : (
+            assignments.map((a: any) => {
+              const mapped = principalMappings.filter((m: any) => m.principal_id === a.principal_id)
+              const levelTeacherEntries = a.level === "JHS"
+                ? Array.from(jhsTeachers.entries())
+                : Array.from(shsTeachers.entries())
+              return (
+                <div key={a.id} className="rounded-lg border p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="font-semibold text-sm">{a.principal?.full_name}</span>
+                    <Badge variant={a.level === "JHS" ? "default" : "secondary"}>{a.level}</Badge>
+                  </div>
+
+                  {/* Manual mapping add */}
+                  <div className="flex items-end gap-2 mb-3 flex-wrap">
+                    <div className="space-y-0.5">
+                      <label className="text-[10px] text-muted-foreground">Teacher</label>
+                      <select value={addPrincipalId === a.principal_id ? addTeacherId : ""}
+                        onChange={e => { setAddPrincipalId(a.principal_id); setAddTeacherId(e.target.value) }}
+                        className="h-7 text-xs rounded-md border border-input bg-background px-2 min-w-[180px]">
+                        <option value="">Select teacher...</option>
+                        {availableTeachers(a.principal_id).map(t => (
+                          <option key={t.id} value={t.id}>{t.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button size="sm" className="h-7 text-xs" onClick={addMapping}
+                      disabled={saving || addPrincipalId !== a.principal_id || !addTeacherId}>
+                      <Plus className="mr-1 h-3 w-3" />Assign
+                    </Button>
+                  </div>
+
+                  {/* Current mappings */}
+                  {mapped.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No teachers directly assigned. Select a teacher above and click Assign.</p>
+                  ) : (
+                    <div className="grid gap-1.5">
+                      {mapped.map((m: any) => (
+                        <div key={m.id} className="flex items-center justify-between rounded bg-muted/50 px-3 py-1.5 text-xs">
+                          <span className="font-medium">{m.teacher?.full_name || "Unknown"}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeMapping(m.id)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Grade-level suggestion */}
+                  {levelTeacherEntries.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">
+                        Show suggested teachers by grade level
+                      </summary>
+                      <div className="mt-1 grid gap-1">
+                        {levelTeacherEntries.map(([teacherId, tas]) => {
+                          const t = tas[0]?.profiles
+                          return (
+                            <div key={teacherId} className="text-[10px] text-muted-foreground flex gap-2">
+                              <span>{t?.full_name || "Unknown"}</span>
+                              <span>{[...new Set(tas.map((x: any) => `G${x.grade}`))].join(", ")}</span>
+                              <span>{[...new Set(tas.map((x: any) => x.subject))].join(", ")}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -1429,6 +1678,8 @@ function ClassesTab() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
   const [form, setForm] = useState({ grade: 7, class_name: "" })
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { fetchClasses() }, [])
 
@@ -1460,6 +1711,12 @@ function ClassesTab() {
     } catch { toast.error("Failed to save.") }
   }
 
+  function toggleSelect(id: string) {
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function selectAll() { setSelected(new Set(classes.map(c => c.id))) }
+  function deselectAll() { setSelected(new Set()) }
+
   async function handleDelete(id: string) {
     if (!confirm("Delete this class?")) return
     try {
@@ -1467,6 +1724,31 @@ function ClassesTab() {
       if (res.ok) { toast.success("Class deleted."); fetchClasses() }
       else toast.error("Failed to delete.")
     } catch { toast.error("Failed to delete.") }
+  }
+
+  async function deleteByIds(ids: string[]) {
+    setDeleting(true)
+    try {
+      const r = await fetch("/api/classes/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      })
+      if (r.ok) { toast.success(`${ids.length} class(es) deleted!`); setSelected(new Set()); fetchClasses() }
+      else { const e = await r.json(); toast.error(e.error || "Failed") }
+    } catch { toast.error("Failed") }
+    finally { setDeleting(false) }
+  }
+
+  async function handleBatchDelete() {
+    if (selected.size === 0) { toast.error("Select classes to delete"); return }
+    if (!confirm(`Delete ${selected.size} class(es)?`)) return
+    deleteByIds(Array.from(selected))
+  }
+
+  async function handleDeleteAll() {
+    if (!confirm("Delete ALL classes? This cannot be undone.")) return
+    deleteByIds(classes.map(c => c.id))
   }
 
   const grouped = classes.reduce((acc: Record<number, any[]>, c: any) => {
@@ -1477,8 +1759,27 @@ function ClassesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <Button onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Class</Button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && <span className="text-xs text-muted-foreground">{selected.size} selected</span>}
+          {selected.size > 0 && (
+            <>
+              <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={handleBatchDelete} disabled={deleting}><Trash2 className="mr-1 h-3 w-3" />Delete Selected</Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={deselectAll}>Deselect</Button>
+            </>
+          )}
+          {classes.length > 0 && (
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={selectAll}>
+              <CheckCircle className="mr-1 h-3 w-3" />Select All
+            </Button>
+          )}
+          {classes.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive" onClick={handleDeleteAll} disabled={deleting}>
+              <Trash2 className="mr-1 h-3 w-3" />Delete All
+            </Button>
+          )}
+        </div>
+        <Button onClick={openAdd} size="sm" className="h-8"><Plus className="mr-1 h-4 w-4" />Add Class</Button>
       </div>
       <Card>
         <CardHeader><CardTitle>Parallel Classes</CardTitle></CardHeader>
@@ -1496,7 +1797,10 @@ function ClassesTab() {
                     <div className="space-y-1">
                       {cls.sort((a: any, b: any) => a.class_name.localeCompare(b.class_name)).map((c: any) => (
                         <div key={c.id} className="flex items-center justify-between rounded border px-3 py-1.5 text-sm">
-                          <span className="font-medium">Class {c.class_name}</span>
+                          <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                            <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="h-4 w-4 rounded border-gray-300" />
+                            <span className="font-medium">Class {c.class_name}</span>
+                          </label>
                           <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(c)}><Settings className="h-3 w-3" /></Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>

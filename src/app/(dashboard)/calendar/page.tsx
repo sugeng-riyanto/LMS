@@ -46,6 +46,17 @@ export default function CalendarPage() {
     7: true, 8: true, 9: true, 10: true, 11: true, 12: true,
   })
   const [saving, setSaving] = useState(false)
+  const [canCreate, setCanCreate] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
+  const [canDelete, setCanDelete] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/permissions/check").then(r => r.ok ? r.json() : { create: false, edit: false, delete: false }).then((p: any) => {
+      setCanCreate(p.create ?? false)
+      setCanEdit(p.edit ?? false)
+      setCanDelete(p.delete ?? false)
+    }).catch(() => {})
+  }, [])
 
   const filteredEvents = (events ?? []).filter((e) => {
     if (filterGrade !== "all" && e.grade !== filterGrade) return false
@@ -177,7 +188,7 @@ export default function CalendarPage() {
               </Label>
             </>
           )}
-          {role !== "student" && (
+          {canCreate && (
             <Button size="sm" onClick={openAdd}><Plus className="mr-1 h-4 w-4" />Add Event</Button>
           )}
         </div>
@@ -223,7 +234,7 @@ export default function CalendarPage() {
                     </div>
                     <Badge className={eventTypeColors[event.type] ?? ""}>{event.type.replace(/_/g, " ")}</Badge>
                     {event.grade && <Badge variant="outline">G{event.grade}</Badge>}
-                    {(isSuperAdmin || event.created_by) && (
+                    {canEdit && (
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(event)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(event.id ?? "")}><Trash2 className="h-4 w-4 text-destructive" /></Button>

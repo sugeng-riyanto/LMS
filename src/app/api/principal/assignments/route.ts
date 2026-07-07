@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await (supabase.from("principal_assignments") as any)
-      .upsert({ principal_id: body.principal_id, level: body.level })
+      .upsert({ principal_id: body.principal_id, level: body.level }, { onConflict: "principal_id" })
       .select()
       .single()
 

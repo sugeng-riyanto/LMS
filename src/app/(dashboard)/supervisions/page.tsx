@@ -72,7 +72,7 @@ export default function SupervisionsPage() {
 
   const [form, setForm] = useState({ teacher_id: "", grade: "10", subject: "PHY", class_name: "", observation_date: new Date().toISOString().split("T")[0] })
 
-  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
+  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [isPrincipal, isSuperAdmin, availableGrades])
   useEffect(() => { fetchItems() }, [])
 
   function teacherDisplayName(a: any): string {
@@ -81,20 +81,43 @@ export default function SupervisionsPage() {
 
   async function fetchTeachers() {
     try {
-      const gradeParam = availableGrades.length < 6 ? `&grade=${availableGrades[0]}` : ""
-      const r = await fetch(`/api/teacher-assignments${gradeParam}`)
-      if (r.ok) {
-        const data = await r.json()
-        setTeacherAssignments(data)
-        // Deduplicate teacher profiles for dropdown
-        const seen = new Set<string>()
-        const unique = data.filter((a: any) => {
-          if (seen.has(a.teacher_id)) return false
-          seen.add(a.teacher_id)
-          return true
-        }).map((a: any) => a.profiles).filter(Boolean)
-        setTeachers(unique)
-      }
+      // Load all teacher profiles
+      const r = await fetch("/api/profiles?role=teacher")
+      if (!r.ok) return
+      let teachers: any[] = await r.json()
+
+      // Try grade-level filtering from teacher_assignments
+      try {
+        const taR = await fetch("/api/teacher-assignments")
+        if (taR.ok) {
+          const ta: any[] = await taR.json()
+          const gradeFiltered = ta.filter((a: any) => availableGrades.includes(a.grade))
+          setTeacherAssignments(gradeFiltered)
+          const assignedIds = new Set(gradeFiltered.map((a: any) => a.teacher_id))
+          if (assignedIds.size > 0) {
+            teachers = teachers.filter((p: any) => assignedIds.has(p.id))
+          }
+        }
+      } catch {}
+
+      // Also try principal mappings for more precise filtering
+      try {
+        const mR = await fetch("/api/principal/mappings")
+        if (mR.ok) {
+          const allMappings: any[] = await mR.json()
+          const meR = await fetch("/api/profiles/me")
+          if (meR.ok) {
+            const me = await meR.json()
+            const myMappings = allMappings.filter((m: any) => m.principal_id === me.id)
+            if (myMappings.length > 0) {
+              const mappedIds = new Set(myMappings.map((m: any) => m.teacher_id))
+              teachers = teachers.filter((p: any) => mappedIds.has(p.id))
+            }
+          }
+        }
+      } catch {}
+
+      setTeachers(teachers)
     } catch {}
   }
   async function fetchItems() {

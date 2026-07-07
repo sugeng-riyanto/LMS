@@ -8,15 +8,16 @@ let _rolePermsPromise: Promise<Record<string, Role[]>> | null = null
 
 async function loadDbRolePerms(supabase: any): Promise<Record<string, Role[]>> {
   try {
-    const { data } = await (supabase.from("role_permissions") as any).select("route, role")
-    if (!data) return {}
+    const { data, error } = await (supabase.from("role_permissions") as any).select("route, role")
+    if (error || !data) return {}
     const map: Record<string, Role[]> = {}
     for (const r of data) {
       if (!map[r.route]) map[r.route] = []
       map[r.route].push(r.role as Role)
     }
     return map
-  } catch {
+  } catch (e: any) {
+    // Table may not exist (migration not applied) — silently fall back to defaults
     return {}
   }
 }
@@ -57,6 +58,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/admin/": ["super_admin"],
   "/api/settings/ai-providers": ["super_admin", "teacher", "principal"],
   "/api/settings/school": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
+  "/api/settings/rbac": ["super_admin"],
   "/api/users/": ["super_admin"],
   "/api/seed/": ["super_admin"],
   "/api/principal/": ["super_admin", "principal"],

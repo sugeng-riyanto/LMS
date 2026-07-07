@@ -116,7 +116,7 @@ export default function TPAPage() {
     period_type: "monthly", period_label: "",
   })
 
-  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [])
+  useEffect(() => { if (isPrincipal || isSuperAdmin) fetchTeachers() }, [isPrincipal, isSuperAdmin, availableGrades])
   useEffect(() => { fetchItems() }, [periodFilter])
 
   function teacherDisplayName(a: any): string {
@@ -125,19 +125,40 @@ export default function TPAPage() {
 
   async function fetchTeachers() {
     try {
-      const gradeParam = availableGrades.length < 6 ? `&grade=${availableGrades[0]}` : ""
-      const r = await fetch(`/api/teacher-assignments${gradeParam}`)
-      if (r.ok) {
-        const data = await r.json()
-        setTeacherAssignments(data)
-        const seen = new Set<string>()
-        const unique = data.filter((a: any) => {
-          if (seen.has(a.teacher_id)) return false
-          seen.add(a.teacher_id)
-          return true
-        }).map((a: any) => a.profiles).filter(Boolean)
-        setTeachers(unique)
-      }
+      const r = await fetch("/api/profiles?role=teacher")
+      if (!r.ok) return
+      let teachers: any[] = await r.json()
+
+      try {
+        const taR = await fetch("/api/teacher-assignments")
+        if (taR.ok) {
+          const ta: any[] = await taR.json()
+          const gradeFiltered = ta.filter((a: any) => availableGrades.includes(a.grade))
+          setTeacherAssignments(gradeFiltered)
+          const assignedIds = new Set(gradeFiltered.map((a: any) => a.teacher_id))
+          if (assignedIds.size > 0) {
+            teachers = teachers.filter((p: any) => assignedIds.has(p.id))
+          }
+        }
+      } catch {}
+
+      try {
+        const mR = await fetch("/api/principal/mappings")
+        if (mR.ok) {
+          const allMappings: any[] = await mR.json()
+          const meR = await fetch("/api/profiles/me")
+          if (meR.ok) {
+            const me = await meR.json()
+            const myMappings = allMappings.filter((m: any) => m.principal_id === me.id)
+            if (myMappings.length > 0) {
+              const mappedIds = new Set(myMappings.map((m: any) => m.teacher_id))
+              teachers = teachers.filter((p: any) => mappedIds.has(p.id))
+            }
+          }
+        }
+      } catch {}
+
+      setTeachers(teachers)
     } catch {}
   }
   async function fetchItems() {

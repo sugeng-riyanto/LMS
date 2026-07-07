@@ -49,7 +49,7 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
     const ctx = canvasRef.current?.getContext("2d")
     if (!ctx) return
     const pos = getPos(e)
-    ctx.lineWidth = 2
+    ctx.lineWidth = 3
     ctx.lineCap = "round"
     ctx.strokeStyle = "#1a1a2e"
     ctx.lineTo(pos.x, pos.y)
@@ -64,7 +64,7 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
   function clear() {
     const ctx = canvasRef.current?.getContext("2d")
     if (!ctx) return
-    ctx.clearRect(0, 0, 300, 80)
+    ctx.clearRect(0, 0, 400, 120)
     setHasContent(false)
   }
 
@@ -75,12 +75,12 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
   }
 
   return (
-    <div className="space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+    <div className="space-y-2 flex flex-col items-center">
+      <label className="text-sm font-medium text-center">{label}</label>
       <canvas
         ref={canvasRef}
-        width={300}
-        height={80}
+        width={400}
+        height={120}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
@@ -88,18 +88,18 @@ export default function SignatureCanvas({ onSave, savedSig, label = "Signature" 
         onTouchStart={startDrawing}
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
-        className="w-full max-w-[300px] h-20 rounded-md border border-input bg-white touch-none cursor-crosshair"
+        className="w-full max-w-[400px] h-[120px] rounded-lg border-2 border-dashed border-input bg-white touch-none cursor-crosshair mx-auto"
         style={{ touchAction: "none" }}
       />
-      <div className="flex gap-1">
-        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={clear}>
-          <Eraser className="mr-1 h-3 w-3" />Clear
+      <div className="flex gap-3 justify-center">
+        <Button type="button" variant="outline" size="sm" onClick={clear}>
+          <Eraser className="mr-1 h-4 w-4" />Clear
         </Button>
-        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={save}>
-          <CheckCircle className="mr-1 h-3 w-3" />Save Sig
+        <Button type="button" variant="default" size="sm" onClick={save}>
+          <CheckCircle className="mr-1 h-4 w-4" />Save Signature
         </Button>
         {savedSig && (
-          <span className="text-[10px] text-green-600 flex items-center">✓ Saved</span>
+          <span className="text-sm text-green-600 flex items-center">✓ Saved</span>
         )}
       </div>
     </div>

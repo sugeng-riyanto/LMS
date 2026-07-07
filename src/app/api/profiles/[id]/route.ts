@@ -45,18 +45,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "student"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher", "student"])
     if (authError) return authError
 
+    const role = profile?.role ?? user?.app_metadata?.role as string | undefined
     const { id } = await params
     const body = await request.json()
     const isOwn = user.id === id
 
-    if (user.role !== "super_admin" && !isOwn) {
+    if (role !== "super_admin" && !isOwn) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const allowedFields = user.role === "super_admin"
+    const allowedFields = role === "super_admin"
       ? ["full_name", "email", "role", "grade_assigned", "avatar_url", "phone_number", "is_active"]
       : ["full_name", "avatar_url", "phone_number"]
 
@@ -67,7 +68,7 @@ export async function PUT(
     updates.updated_at = new Date().toISOString()
 
     // Sync email with Supabase Auth if super_admin changed it
-    if (user.role === "super_admin" && body.email !== undefined) {
+    if (role === "super_admin" && body.email !== undefined) {
       const admin = createAdminClient()
       const { error: authError } = await admin.auth.admin.updateUserById(id, { email: body.email })
       if (authError) return NextResponse.json({ error: `Auth update failed: ${authError.message}` }, { status: 500 })
