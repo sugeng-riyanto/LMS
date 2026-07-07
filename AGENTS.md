@@ -133,6 +133,37 @@ Build **Physics Command Center** — full-stack Next.js 16 + Supabase app for AI
 5. Run `POST /api/seed/knowledge` to chunk + embed MD files
 6. Configure custom domain for Vercel
 
+## VPS Deployment (`lmsshb.scangrade.web.id`)
+
+### Infrastructure
+- **Host**: VPS `103.93.133.193` (ScanGrade XS 1.1 — Ubuntu 22.04, 1GB RAM)
+- **Domain**: `lmsshb.scangrade.web.id` — A record → `103.93.133.193` (via Biznetgio)
+- **Reverse proxy**: Nginx → Next.js on port 3001
+- **SSL**: Let's Encrypt via Certbot (`aqeelainstruments@gmail.com`)
+- **Process**: PM2 (`lmsshb`)
+
+### First-time setup
+```bash
+sudo git clone https://github.com/sugeng-riyanto/LMS.git /var/www/lmsshb
+cd /var/www/lmsshb/physics-command-center
+sudo bash setup-vps.sh
+```
+Script akan pause minta paste `anon key` + `service_role key` ke `.env.local` via `nano`.
+
+### Redeploy (after git push)
+```bash
+cd /var/www/lmsshb/physics-command-center
+sudo git pull
+sudo npm run build
+sudo pm2 restart lmsshb
+```
+
+### Key differences from Vercel
+- **No deploy limit** — bebas deploy kapan saja
+- **Build RAM** — 1GB cukup dengan swap 2GB (setup otomatis)
+- **Env variables** — manual di `.env.local`, bukan dashboard
+- **Supabase** — DB sama (`yvnomvcmqsfbkqqjwzhi`), CORS perlu tambah `https://lmsshb.scangrade.web.id`
+
 ## Critical Context
 - Supabase project: `yvnomvcmqsfbkqqjwzhi` · URL: `https://yvnomvcmqsfbkqqjwzhi.supabase.co`
 - Production URL: `https://lms-chi-orpin.vercel.app`
