@@ -212,7 +212,7 @@ export default function TPAPage() {
     } else {
       for (const cat of TPA_CATEGORIES) {
         s[cat.key] = {}
-        cat.items.forEach(item => { s[cat.key][item.id] = 0 })
+        cat.items.forEach(item => { s[cat.key][item.id] = 3 })
       }
     }
     setScores(s)
@@ -228,7 +228,7 @@ export default function TPAPage() {
     const catScores: Record<string, { raw: number; max: number }> = {}
     for (const cat of TPA_CATEGORIES) {
       const s = scores[cat.key] || {}
-      const raw = cat.items.reduce((sum, item) => sum + (s[item.id] ?? 0), 0)
+      const raw = cat.items.reduce((sum, item) => sum + (s[item.id] ?? 3), 0)
       catScores[cat.key] = { raw, max: cat.items.length * 4 }
     }
     return { catScores, total: calculateTotal(catScores), details: TPA_CATEGORIES.map(c => ({ ...c, raw: catScores[c.key]?.raw ?? 0, max: catScores[c.key]?.max ?? 1 })) }
@@ -432,20 +432,20 @@ export default function TPAPage() {
                     </div>
                     <div className="divide-y divide-border/50">
                       {cat.items.map(item => (
-                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 py-1.5 border-b border-border/50 last:border-0">
-                          <span className="text-xs sm:text-sm text-muted-foreground leading-snug flex-1 min-w-0">{item.id}. {item.text}</span>
-                          <div className="flex items-center gap-2 shrink-0">
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-border/50 last:border-0">
+                          <span className="text-sm sm:text-base text-foreground leading-snug flex-1 min-w-0 font-medium">{item.id}. {item.text}</span>
+                          <div className="flex items-center gap-3 shrink-0">
                             <input type="range" min={0} max={4} step={1}
-                              value={catScores[item.id] ?? 0}
+                              value={catScores[item.id] ?? 3}
                               onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
-                              className="w-20 sm:w-24 h-2 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
-                            <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                              {catScores[item.id] ?? 0}
+                              className="w-28 sm:w-36 h-3 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
+                            <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg text-base sm:text-lg font-bold shadow-sm ${(catScores[item.id] ?? 3) >= 3 ? 'bg-green-100 text-green-700 border border-green-300' : (catScores[item.id] ?? 3) >= 2 ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
+                              {catScores[item.id] ?? 3}
                             </span>
-                            <div className="flex gap-0.5">
+                            <div className="flex gap-1">
                               {[0,1,2,3,4].map(v => (
                                 <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-accent border border-border/50'}`}>{v}</button>
+                                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg text-sm sm:text-base font-bold transition-all active:scale-90 touch-manipulation shadow-sm ${(catScores[item.id] ?? 3) === v ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' : 'bg-card text-foreground hover:bg-accent border border-border'}`}>{v}</button>
                               ))}
                             </div>
                           </div>
@@ -535,10 +535,15 @@ export default function TPAPage() {
           <CardHeader className="py-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Teacher Score Accumulation</CardTitle>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>Weights: <strong>Principal {accumulations.weights.principal}%</strong> / <strong>Teacher {accumulations.weights.teacher}%</strong></span>
-                <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => { setWeightVal(accumulations.weights.principal); setWeightDialog(true) }}>Edit</Button>
-                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setAccumulations(null)}>Close</Button>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  P:<strong className="text-blue-600">{accumulations.weights.principal}%</strong>
+                  T:<strong className="text-green-600">{accumulations.weights.teacher}%</strong>
+                </span>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setWeightVal(accumulations.weights.principal); setWeightDialog(true) }}>
+                  ⚙️ Weights
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAccumulations(null)}>✕ Close</Button>
               </div>
             </div>
           </CardHeader>
