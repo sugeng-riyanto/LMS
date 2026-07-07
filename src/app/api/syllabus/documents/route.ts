@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,11 +14,10 @@ export async function GET(request: NextRequest) {
     const fileType = searchParams.get("type")
     const subject = searchParams.get("subject")
 
-    let query = (supabase.from("syllabus_documents") as any).select("*")
+    let query = (ADMIN().from("syllabus_documents") as any).select("*")
     if (grade) query = query.eq("grade", parseInt(grade))
     if (fileType) query = query.eq("file_type", fileType)
     if (subject) query = query.eq("subject", subject)
-    // Teachers can only see their own subject's documents
     if (profile?.role === "teacher") {
       const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
       const subjects = await getTeacherSubjects(supabase, user.id)

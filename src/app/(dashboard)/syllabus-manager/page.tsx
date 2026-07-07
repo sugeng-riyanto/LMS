@@ -36,14 +36,15 @@ export default function SyllabusManagerPage() {
   }, [availableSubjects, selectedSubject])
 
   useEffect(() => {
-    if (canManage) {
+    if (canManage && selectedSubject) {
+      setLoading(true)
       fetch(`/api/syllabus/documents?grade=${selectedGrade}&subject=${selectedSubject}`)
         .then((r) => r.json())
         .then((d) => setDocs(Array.isArray(d) ? d : []))
         .catch(() => {})
         .finally(() => setLoading(false))
     }
-  }, [canManage, selectedGrade])
+  }, [canManage, selectedGrade, selectedSubject])
 
   async function handleUpload(format: string) {
     const input = document.createElement("input")

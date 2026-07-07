@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+
+const ADMIN = () => createAdminClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,15 +27,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const buf = Buffer.from(await file.arrayBuffer())
-    const content = buf.toString("utf-8")
+    const content = await file.text()
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "md"
     const validTypes = ["md", "qmd", "pdf", "xlsx"]
     if (!validTypes.includes(ext)) {
       return NextResponse.json({ error: `Unsupported file type: .${ext}` }, { status: 400 })
     }
 
-    const { error } = await (supabase.from("syllabus_documents") as any).insert({
+    const { error } = await (ADMIN().from("syllabus_documents") as any).insert({
       grade: parseInt(grade),
       subject,
       file_name: file.name,
