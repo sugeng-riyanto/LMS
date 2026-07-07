@@ -634,8 +634,13 @@ export default function TPAPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ principal: 70, teacher: 30 }),
                   })
-                  if (r.ok) { setWeightVal(70); toast.success("Reset to defaults"); setWeightDialog(false) }
-                  else toast.error("Failed")
+                  if (r.ok) {
+                    setWeightVal(70); toast.success("Reset to defaults"); setWeightDialog(false)
+                    try {
+                      const accR = await fetch("/api/tpa/accumulations")
+                      if (accR.ok) setAccumulations(await accR.json())
+                    } catch {}
+                  } else toast.error("Failed")
                 } catch { toast.error("Failed") }
               }}>Reset</Button>
             </div>
@@ -649,8 +654,15 @@ export default function TPAPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal }),
                   })
-                  if (r.ok) { toast.success("Weights saved!"); setWeightDialog(false) }
-                  else toast.error("Failed")
+                  if (r.ok) {
+                    toast.success("Weights saved!")
+                    setWeightDialog(false)
+                    // Refresh accumulations with new weights
+                    try {
+                      const accR = await fetch("/api/tpa/accumulations")
+                      if (accR.ok) setAccumulations(await accR.json())
+                    } catch {}
+                  } else toast.error("Failed")
                 } catch { toast.error("Failed") }
               }}>Save</Button>
             </div>
