@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -46,7 +47,7 @@ export default function TPAPage() {
   const [saving, setSaving] = useState(false)
   const [aiFeedback, setAiFeedback] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [accumulations, setAccumulations] = useState<any[]>([])
+  const [accumulations, setAccumulations] = useState<any>(null)
   const [availableGrades, setAvailableGrades] = useState<number[]>([7, 8, 9, 10, 11, 12])
   const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
   const [principalTpaSig, setPrincipalTpaSig] = useState<string | null>(null)
@@ -291,6 +292,15 @@ export default function TPAPage() {
             </Button>
           </div>
           {(isPrincipal || isSuperAdmin) && <Button size="sm" className="h-8 text-xs" onClick={() => { fetchTeachers(); setForm(p => ({ ...p, grade: String(availableGrades[0] ?? 7) })); setCreateOpen(true) }}><Plus className="mr-1 h-4 w-4" /> New</Button>}
+          {(isPrincipal || isSuperAdmin) && <Button size="sm" variant="outline" className="h-8 text-xs" onClick={async () => {
+            setLoading(true)
+            try {
+              const r = await fetch("/api/tpa/accumulations")
+              if (r.ok) setAccumulations(await r.json())
+              else toast.error("Failed to load")
+            } catch { toast.error("Failed") }
+            finally { setLoading(false) }
+          }}><BarChart3 className="mr-1 h-4 w-4" />Accumulations</Button>}
         </div>
       </div>
 
@@ -519,6 +529,64 @@ export default function TPAPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Accumulations */}
+      {accumulations && accumulations.teachers?.length > 0 && (
+        <Card>
+          <CardHeader className="py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Teacher Score Accumulation</CardTitle>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>Weights: <strong>Principal {accumulations.weights.principal}%</strong> / <strong>Teacher {accumulations.weights.teacher}%</strong></span>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setAccumulations(null)}>Close</Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            {accumulations.teachers.map((t: any) => (
+              <div key={t.teacher_id} className="mb-4 last:mb-0">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">{t.teacher_name}</span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span>Assessments: {t.completed}/{t.total_assessments}</span>
+                    <span>P-avg: <strong>{t.avg_principal}%</strong></span>
+                    <span>T-avg: <strong>{t.avg_teacher}%</strong></span>
+                    <span className={`font-bold text-sm ${t.weighted_total >= 80 ? 'text-green-600' : t.weighted_total >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                      Weighted: {t.weighted_total}%
+                    </span>
+                  </div>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-[10px]">Period</TableHead>
+                      <TableHead className="text-[10px]">Grade</TableHead>
+                      <TableHead className="text-[10px]">Subject</TableHead>
+                      <TableHead className="text-[10px]">Principal</TableHead>
+                      <TableHead className="text-[10px]">Teacher</TableHead>
+                      <TableHead className="text-[10px]">Combined</TableHead>
+                      <TableHead className="text-[10px]">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {t.assessments.map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="text-xs">{a.period}</TableCell>
+                        <TableCell className="text-xs">{a.grade ? `G${a.grade}` : "—"}</TableCell>
+                        <TableCell className="text-xs">{a.subject || "—"}</TableCell>
+                        <TableCell className="text-xs">{a.principal_score != null ? `${a.principal_score}%` : "—"}</TableCell>
+                        <TableCell className="text-xs">{a.teacher_score != null ? `${a.teacher_score}%` : "—"}</TableCell>
+                        <TableCell className="text-xs font-bold">{a.combined != null ? `${a.combined}%` : "—"}</TableCell>
+                        <TableCell className="text-xs">{a.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analytics */}
       <VisualizationDashboard apiType="tpa" />

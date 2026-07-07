@@ -184,4 +184,13 @@
   /* Hide scrollbar for mobile nav */
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  /* Chart animations */
+  .chart-bar { animation: chartGrow 0.6s ease-out both; transform-origin: bottom; }
+  .chart-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: chartDraw 1.5s ease-out forwards; }
+  .chart-dot { animation: chartPop 0.4s ease-out both; }
+  .chart-slice { transition: transform 0.3s ease, filter 0.3s ease; }
+  .chart-slice:hover { filter: brightness(1.15); transform: scale(1.03); }
+  @keyframes chartGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes chartDraw { to { stroke-dashoffset: 0; } }
+  @keyframes chartPop { from { r: 0; } to { r: 4; } }
 }
