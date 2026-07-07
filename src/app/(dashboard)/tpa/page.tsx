@@ -52,6 +52,8 @@ export default function TPAPage() {
   const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
   const [principalTpaSig, setPrincipalTpaSig] = useState<string | null>(null)
   const [teacherTpaSig, setTeacherTpaSig] = useState<string | null>(null)
+  const [weightDialog, setWeightDialog] = useState(false)
+  const [weightVal, setWeightVal] = useState(70)
 
   useEffect(() => {
     if (isPrincipal) {
@@ -538,6 +540,7 @@ export default function TPAPage() {
               <CardTitle className="text-sm">Teacher Score Accumulation</CardTitle>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>Weights: <strong>Principal {accumulations.weights.principal}%</strong> / <strong>Teacher {accumulations.weights.teacher}%</strong></span>
+                <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => { setWeightVal(accumulations.weights.principal); setWeightDialog(true) }}>Edit</Button>
                 <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setAccumulations(null)}>Close</Button>
               </div>
             </div>
@@ -587,6 +590,39 @@ export default function TPAPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Weight Settings Dialog */}
+      <Dialog open={weightDialog} onOpenChange={setWeightDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>TPA Weight Settings</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">Set the weight split between principal assessment and teacher self-assessment. Total must equal 100%.</p>
+            <div className="space-y-2">
+              <Label>Principal Weight: <strong>{weightVal}%</strong></Label>
+              <input type="range" min={0} max={100} value={weightVal} onChange={e => setWeightVal(Number(e.target.value))} className="w-full" />
+              <div className="flex justify-between text-xs text-muted-foreground"><span>0%</span><span>100%</span></div>
+            </div>
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              <span>Teacher Weight: <strong>{100 - weightVal}%</strong></span>
+              <p className="text-xs text-muted-foreground mt-1">Combined score = Principal × {weightVal}% + Teacher × {100 - weightVal}%</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWeightDialog(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              try {
+                const r = await fetch("/api/settings/tpa-weights", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal }),
+                })
+                if (r.ok) { toast.success("Weights updated!"); setWeightDialog(false) }
+                else toast.error("Failed")
+              } catch { toast.error("Failed") }
+            }}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Analytics */}
       <VisualizationDashboard apiType="tpa" />
