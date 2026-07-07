@@ -251,7 +251,14 @@ export default function TPAPage() {
       if (isP && principalTpaSig) body.signature_data_url = principalTpaSig
       if (!isP && teacherTpaSig) body.signature_data_url = teacherTpaSig
       const r = await fetch(`/api/tpa/${editingScores.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      if (r.ok) { toast.success(submit ? "Submitted!" : "Saved!"); setEditingScores(null); fetchItems() }
+      if (r.ok) {
+        toast.success(submit ? "Submitted!" : "Saved!"); setEditingScores(null); fetchItems()
+        // Refresh accumulations if visible
+        try {
+          const accR = await fetch("/api/tpa/accumulations")
+          if (accR.ok) setAccumulations(await accR.json())
+        } catch {}
+      }
       else { const e = await r.json(); toast.error(e.error || "Failed") }
     } catch { toast.error("Failed") }
     finally { setSaving(false) }
