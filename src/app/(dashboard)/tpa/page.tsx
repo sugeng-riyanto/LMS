@@ -591,35 +591,67 @@ export default function TPAPage() {
         </Card>
       )}
 
-      {/* Weight Settings Dialog */}
+      {/* Weight Settings Dialog — Full CRUD */}
       <Dialog open={weightDialog} onOpenChange={setWeightDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>TPA Weight Settings</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>⚙️ Weight Settings (CRUD)</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">Set the weight split between principal assessment and teacher self-assessment. Total must equal 100%.</p>
-            <div className="space-y-2">
-              <Label>Principal Weight: <strong>{weightVal}%</strong></Label>
-              <input type="range" min={0} max={100} value={weightVal} onChange={e => setWeightVal(Number(e.target.value))} className="w-full" />
-              <div className="flex justify-between text-xs text-muted-foreground"><span>0%</span><span>100%</span></div>
+            <p className="text-sm text-muted-foreground">Set the weight split between principal and teacher assessment. Total = 100%.</p>
+
+            {/* READ: Current value display */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-3 text-center">
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-semibold">Principal</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{weightVal}%</p>
+              </div>
+              <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-3 text-center">
+                <p className="text-[10px] text-green-600 dark:text-green-400 uppercase font-semibold">Teacher</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{100 - weightVal}%</p>
+              </div>
             </div>
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <span>Teacher Weight: <strong>{100 - weightVal}%</strong></span>
-              <p className="text-xs text-muted-foreground mt-1">Combined score = Principal × {weightVal}% + Teacher × {100 - weightVal}%</p>
+
+            {/* UPDATE: Slider */}
+            <div className="space-y-2">
+              <Label className="text-xs">Adjust Principal Weight (slider)</Label>
+              <input type="range" min={0} max={100} value={weightVal} onChange={e => setWeightVal(Number(e.target.value))} className="w-full h-2 accent-primary" />
+              <div className="flex justify-between text-[10px] text-muted-foreground"><span>0% (teacher only)</span><span>100% (principal only)</span></div>
+            </div>
+
+            <div className="rounded-lg bg-muted p-3 text-xs">
+              <p><strong>Formula:</strong> Combined = Principal × <strong>{weightVal}%</strong> + Teacher × <strong>{100 - weightVal}%</strong></p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setWeightDialog(false)}>Cancel</Button>
-            <Button onClick={async () => {
-              try {
-                const r = await fetch("/api/settings/tpa-weights", {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal }),
-                })
-                if (r.ok) { toast.success("Weights updated!"); setWeightDialog(false) }
-                else toast.error("Failed")
-              } catch { toast.error("Failed") }
-            }}>Save</Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div className="flex gap-2">
+              {/* DELETE: Reset to defaults */}
+              <Button variant="outline" size="sm" onClick={async () => {
+                if (!confirm("Reset weights to default (70/30)?")) return
+                try {
+                  const r = await fetch("/api/settings/tpa-weights", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ principal: 70, teacher: 30 }),
+                  })
+                  if (r.ok) { setWeightVal(70); toast.success("Reset to defaults"); setWeightDialog(false) }
+                  else toast.error("Failed")
+                } catch { toast.error("Failed") }
+              }}>Reset</Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setWeightDialog(false)}>Cancel</Button>
+              {/* CREATE / UPDATE */}
+              <Button onClick={async () => {
+                try {
+                  const r = await fetch("/api/settings/tpa-weights", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal }),
+                  })
+                  if (r.ok) { toast.success("Weights saved!"); setWeightDialog(false) }
+                  else toast.error("Failed")
+                } catch { toast.error("Failed") }
+              }}>Save</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
