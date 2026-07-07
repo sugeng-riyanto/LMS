@@ -84,6 +84,25 @@
   --line-height-readable: 1.65;
 }
 
+/* ── Scalable text utilities (respect font-size CSS variables) ── */
+.text-size-xs { font-size: var(--font-size-sm); }
+.text-size-sm { font-size: var(--font-size-base); }
+.text-size-base { font-size: var(--font-size-lg); }
+.text-size-lg { font-size: var(--font-size-xl); }
+.text-size-xl { font-size: var(--font-size-2xl); }
+.text-size-2xl { font-size: var(--font-size-2xl); line-height: 1.3; }
+
+/* Override Tailwind fixed sizes to use our scalable variables */
+.text-xs { font-size: var(--font-size-sm) !important; }
+.text-sm { font-size: var(--font-size-base) !important; }
+.text-base { font-size: var(--font-size-lg) !important; }
+.text-lg { font-size: var(--font-size-xl) !important; }
+.text-xl { font-size: var(--font-size-2xl) !important; }
+.text-2xl { font-size: var(--font-size-2xl) !important; line-height: 1.3 !important; }
+.text-3xl { font-size: calc(var(--font-size-2xl) * 1.2) !important; }
+
+
+
 .dark {
   --background: oklch(0.13 0.01 60);
   --foreground: oklch(0.93 0.005 80);

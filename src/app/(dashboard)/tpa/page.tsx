@@ -151,8 +151,8 @@ export default function TPAPage() {
             const me = await meR.json()
             const myMappings = allMappings.filter((m: any) => m.principal_id === me.id)
             if (myMappings.length > 0) {
-              const mappedIds = new Set(myMappings.map((m: any) => m.teacher_id))
-              teachers = teachers.filter((p: any) => mappedIds.has(p.id))
+              const mappingIds = new Set(myMappings.map((m: any) => m.teacher_id))
+              teachers = teachers.filter((p: any) => mappingIds.has(p.id))
             }
           }
         }
@@ -333,9 +333,9 @@ export default function TPAPage() {
                     <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                       {tpa.principal_total != null && <span>Principal: <strong className={tpa.principal_total >= 60 ? "text-green-600" : "text-red-600"}>{tpa.principal_total.toFixed(1)}%</strong></span>}
                       {tpa.teacher_total != null && <span>Teacher: <strong className={tpa.teacher_total >= 60 ? "text-green-600" : "text-red-600"}>{tpa.teacher_total.toFixed(1)}%</strong></span>}
-                      {tpa.combined_total != null && <span>Combined: <strong className="text-primary">{tpa.combined_total.toFixed(1)}%</strong> <Badge variant="outline" className="text-[10px]">{tpa.combined_grade}</Badge></span>}
-                      {tpa.principal_signature && <span className="text-green-600 text-[10px]">✓ P-signed</span>}
-                      {tpa.teacher_signature && <span className="text-blue-600 text-[10px]">✓ T-signed</span>}
+                      {tpa.combined_total != null && <span>Combined: <strong className="text-primary">{tpa.combined_total.toFixed(1)}%</strong> <Badge variant="outline" className="text-size-xs">{tpa.combined_grade}</Badge></span>}
+                      {tpa.principal_signature && <span className="text-green-600 text-size-xs">✓ P-signed</span>}
+                      {tpa.teacher_signature && <span className="text-blue-600 text-size-xs">✓ T-signed</span>}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0 flex-wrap">
@@ -415,13 +415,13 @@ export default function TPAPage() {
                   <div key={cat.key} className="border-b border-border pb-3 last:border-0">
                     <div className="flex items-center justify-between mb-1.5">
                       <h3 className="font-semibold text-xs sm:text-sm">{cat.label} <span className="text-muted-foreground font-normal">({cat.weight}%)</span></h3>
-                      <span className="text-[10px] sm:text-xs text-muted-foreground">{raw}/{max} · {pct}%</span>
+                      <span className="text-size-xs sm:text-xs text-muted-foreground">{raw}/{max} · {pct}%</span>
                     </div>
                     <div className="divide-y divide-border/50">
                       {cat.items.map(item => (
                         <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1.5">
-                          <span className="text-[10px] sm:text-xs text-muted-foreground sm:w-5 shrink-0 text-right hidden sm:block">{item.id}.</span>
-                          <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight flex-1 min-w-0">{item.text}</span>
+                          <span className="text-size-xs sm:text-xs text-muted-foreground sm:w-5 shrink-0 text-right hidden sm:block">{item.id}.</span>
+                          <span className="text-size-xs sm:text-xs text-muted-foreground leading-tight flex-1 min-w-0">{item.text}</span>
                           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                             <span className="text-[9px] text-red-400 w-3 text-center hidden sm:inline">0</span>
                             <input type="range" min={0} max={4} step={1}
@@ -429,13 +429,13 @@ export default function TPAPage() {
                               onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
                               className="w-16 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
                             <span className="text-[9px] text-green-400 w-3 text-center hidden sm:inline">4</span>
-                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-size-xs font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                               {catScores[item.id] ?? 0}
                             </span>
                             <div className="flex gap-px">
                               {[0,1,2,3,4].map(v => (
                                 <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm text-[8px] sm:text-[10px] font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm text-[8px] sm:text-size-xs font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
                               ))}
                             </div>
                           </div>
@@ -462,7 +462,7 @@ export default function TPAPage() {
                   </div>
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-sm font-bold">Total: {computedTotals.total.toFixed(1)}%</span>
-                    <Badge className={`text-[10px] ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                    <Badge className={`text-size-xs ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
                       {getGradeLabel(computedTotals.total)}
                     </Badge>
                   </div>
@@ -474,13 +474,13 @@ export default function TPAPage() {
                 <div className="py-1">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="text-xs font-semibold">AI Feedback</h3>
-                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={handleGenerateFeedback}>
+                    <Button size="sm" variant="outline" className="h-6 text-size-xs px-2" onClick={handleGenerateFeedback}>
                       Generate
                     </Button>
                   </div>
                   {aiFeedback && (
                     <textarea readOnly value={aiFeedback} rows={3}
-                      className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
+                      className="w-full text-size-sm text-foreground bg-background rounded border border-border p-2 resize-none" />
                   )}
                 </div>
               )}

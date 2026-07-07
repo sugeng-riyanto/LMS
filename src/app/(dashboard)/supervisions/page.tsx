@@ -81,12 +81,11 @@ export default function SupervisionsPage() {
 
   async function fetchTeachers() {
     try {
-      // Load all teacher profiles
       const r = await fetch("/api/profiles?role=teacher")
       if (!r.ok) return
       let teachers: any[] = await r.json()
 
-      // Try grade-level filtering from teacher_assignments
+      // Grade-level filtering from teacher_assignments
       try {
         const taR = await fetch("/api/teacher-assignments")
         if (taR.ok) {
@@ -100,7 +99,7 @@ export default function SupervisionsPage() {
         }
       } catch {}
 
-      // Also try principal mappings for more precise filtering
+      // Try principal mappings (table may not exist)
       try {
         const mR = await fetch("/api/principal/mappings")
         if (mR.ok) {
@@ -110,8 +109,8 @@ export default function SupervisionsPage() {
             const me = await meR.json()
             const myMappings = allMappings.filter((m: any) => m.principal_id === me.id)
             if (myMappings.length > 0) {
-              const mappedIds = new Set(myMappings.map((m: any) => m.teacher_id))
-              teachers = teachers.filter((p: any) => mappedIds.has(p.id))
+              const mappingIds = new Set(myMappings.map((m: any) => m.teacher_id))
+              teachers = teachers.filter((p: any) => mappingIds.has(p.id))
             }
           }
         }
@@ -228,12 +227,12 @@ export default function SupervisionsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-sm font-semibold">{s.teacher?.full_name}</span>
-                  <Badge variant="outline" className="text-[10px]">G{s.grade} {s.subject}</Badge>
-                  {s.class_name && <Badge variant="secondary" className="text-[10px]">{s.class_name}</Badge>}
+                  <Badge variant="outline" className="text-size-xs">G{s.grade} {s.subject}</Badge>
+                  {s.class_name && <Badge variant="secondary" className="text-size-xs">{s.class_name}</Badge>}
                   {statusBadge(s.status)}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{new Date(s.observation_date).toLocaleDateString()}</p>
-                <div className="flex gap-2 mt-0.5 text-[10px]">
+                <p className="text-size-sm text-muted-foreground mt-0.5">{new Date(s.observation_date).toLocaleDateString()}</p>
+                <div className="flex gap-2 mt-0.5 text-size-xs">
                   {s.principal_signature && <span className="text-green-600">✓ Principal</span>}
                   {s.teacher_signature && <span className="text-blue-600">✓ Teacher</span>}
                 </div>
@@ -258,26 +257,26 @@ export default function SupervisionsPage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="space-y-1"><Label className="text-[11px]">Teacher</Label>
+            <div className="space-y-1"><Label className="text-size-sm">Teacher</Label>
               <select value={form.teacher_id} onChange={e => setForm(p => ({ ...p, teacher_id: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" disabled={!!editing}>
                 <option value="">Select...</option>{teachers.map((t: any) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select></div>
-            <div className="space-y-1"><Label className="text-[11px]">Grade</Label>
+            <div className="space-y-1"><Label className="text-size-sm">Grade</Label>
               <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
                 {availableGrades.map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
-            <div className="space-y-1"><Label className="text-[11px]">Subject</Label>
+            <div className="space-y-1"><Label className="text-size-sm">Subject</Label>
               <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
                 {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
-            <div className="space-y-1"><Label className="text-[11px]">Class</Label>
+            <div className="space-y-1"><Label className="text-size-sm">Class</Label>
               <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" /></div>
           </div>
           <div className="flex gap-2 items-center">
-            <Label className="text-[11px] shrink-0">Date</Label>
+            <Label className="text-size-sm shrink-0">Date</Label>
             <input type="date" value={form.observation_date} onChange={e => setForm(p => ({ ...p, observation_date: e.target.value }))} className="h-8 text-xs rounded-md border border-input bg-background px-2" />
           </div>
 
           <Separator />
-          <p className="text-[11px] text-muted-foreground">Rate 0-4. Slider or click number. Default: <strong>4</strong> (All of the time).</p>
+          <p className="text-size-sm text-muted-foreground">Rate 0-4. Slider or click number. Default: <strong>4</strong> (All of the time).</p>
 
           {TPA_CATEGORIES.map(cat => {
             const catScores = scores[cat.key] || {}
@@ -287,12 +286,12 @@ export default function SupervisionsPage() {
               <div key={cat.key} className="border-b border-border pb-2 last:border-0">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold text-xs sm:text-sm">{cat.label} <span className="text-muted-foreground font-normal">({cat.weight}%)</span></h3>
-                  <span className="text-[10px] text-muted-foreground">{raw}/{max} · {max > 0 ? Math.round((raw / max) * 100) : 0}%</span>
+                  <span className="text-size-xs text-muted-foreground">{raw}/{max} · {max > 0 ? Math.round((raw / max) * 100) : 0}%</span>
                 </div>
                 <div className="divide-y divide-border/30">
                   {cat.items.map(item => (
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1">
-                      <span className="text-[10px] sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
+                      <span className="text-size-xs sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 4}
                           onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
@@ -329,7 +328,7 @@ export default function SupervisionsPage() {
               </div>
               <div className="flex items-center justify-center gap-3">
                 <span className="text-sm font-bold">Total: {computedTotals.total.toFixed(1)}%</span>
-                <Badge className={`text-[10px] ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                <Badge className={`text-size-xs ${computedTotals.total >= 90 ? 'bg-green-100 text-green-700' : computedTotals.total >= 80 ? 'bg-blue-100 text-blue-700' : computedTotals.total >= 70 ? 'bg-amber-100 text-amber-700' : computedTotals.total >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
                   {getGradeLabel(computedTotals.total)}
                 </Badge>
               </div>
@@ -340,10 +339,10 @@ export default function SupervisionsPage() {
             <div className="py-1">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-xs font-semibold">AI Feedback</h3>
-                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={generateFeedback}>Generate</Button>
+                <Button size="sm" variant="outline" className="h-6 text-size-xs px-2" onClick={generateFeedback}>Generate</Button>
               </div>
               {aiFeedback && (
-                <textarea readOnly value={aiFeedback} rows={3} className="w-full text-[11px] text-foreground bg-background rounded border border-border p-2 resize-none" />
+                <textarea readOnly value={aiFeedback} rows={3} className="w-full text-size-sm text-foreground bg-background rounded border border-border p-2 resize-none" />
               )}
             </div>
           )}

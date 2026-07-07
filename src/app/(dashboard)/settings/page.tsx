@@ -999,6 +999,7 @@ function RbacTab() {
   const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
   const [principalMappings, setPrincipalMappings] = useState<any[]>([])
   const [allTeachers, setAllTeachers] = useState<any[]>([])
+  const [editTab, setEditTab] = useState<"view" | "edit">("view")
 
   // All routes from defaults merged with dbRoutes for display
   const allRouteKeys = [...new Set([...Object.keys(defaults), ...Object.keys(dbRoutes)])].sort()
@@ -1066,10 +1067,15 @@ function RbacTab() {
         body: JSON.stringify({ route, roles: updated }),
       })
       if (res.ok) {
-        if (updated.length > 0) setDbRoutes(p => ({ ...p, [route]: updated }))
-        else {
-          const { [route]: _, ...rest } = dbRoutes
-          setDbRoutes(rest)
+        const data = await res.json().catch(() => ({}))
+        if (data.saved === false) {
+          toast.success("Click 'Setup Database' to enable saving")
+        } else {
+          if (updated.length > 0) setDbRoutes(p => ({ ...p, [route]: updated }))
+          else {
+            const { [route]: _, ...rest } = dbRoutes
+            setDbRoutes(rest)
+          }
         }
       } else {
         const err = await res.json().catch(() => ({ error: "Unknown error" }))
@@ -1108,35 +1114,7 @@ function RbacTab() {
       {/* === ROLE PERMISSIONS CHECKLIST === */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Role Permissions <span className="text-xs font-normal text-muted-foreground">— toggle which roles can access each page</span></CardTitle>
-            <Dialog open={!!initSql} onOpenChange={(o) => { if (!o) setInitSql(null) }}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={async () => {
-                  setInitializing(true)
-                  try {
-                    const r = await fetch("/api/settings/rbac/init", { method: "POST" })
-                    if (r.ok) {
-                      const d = await r.json()
-                      if (d.sql) { setInitSql(d.sql); toast.success("SQL generated — paste it into Supabase SQL editor") }
-                      else { toast.success("RBAC table initialized!"); fetchData() }
-                    } else { const e = await r.json(); toast.error(e.error || "Failed") }
-                  } catch { toast.error("Failed to initialize") }
-                  finally { setInitializing(false) }
-                }} disabled={initializing}>
-                  <Settings className="mr-1 h-3 w-3" />{initializing ? "..." : "Init Table"}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader><DialogTitle>Run this SQL in Supabase SQL Editor</DialogTitle></DialogHeader>
-                <textarea readOnly value={initSql ?? ""} rows={20} className="w-full text-xs font-mono border rounded p-2 bg-muted" onClick={(e) => (e.target as HTMLTextAreaElement).select()} />
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => { navigator.clipboard.writeText(initSql ?? ""); toast.success("Copied!") }}>Copy SQL</Button>
-                  <Button onClick={() => setInitSql(null)}>Done</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <CardTitle>Role Permissions <span className="text-xs font-normal text-muted-foreground">— toggle which roles can access each page</span></CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -1147,39 +1125,33 @@ function RbacTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allRouteKeys.map(route => {
-                const hasOverrides = route in dbRoutes
-                return (
-                  <TableRow key={route} className={hasOverrides ? "" : "opacity-60"}>
-                    <TableCell className="sticky left-0 bg-background font-mono text-xs">
-                      {route}
-                      {!hasOverrides && <span className="ml-2 text-[10px] text-muted-foreground">(default)</span>}
-                    </TableCell>
-                    {allRoles.map(role => {
-                      const checked = hasRole(route, role)
-                      return (
-                        <TableCell key={role} className="text-center">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={saving === route}
-                            onChange={() => toggleRoute(route, role, !checked)}
-                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
-                          />
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
-                )
-              })}
+              {allRouteKeys.map(route => (
+                <TableRow key={route}>
+                  <TableCell className="sticky left-0 bg-background font-mono text-xs">{route}</TableCell>
+                  {allRoles.map(role => {
+                    const checked = hasRole(route, role)
+                    return (
+                      <TableCell key={role} className="text-center">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={saving === route}
+                          onChange={() => toggleRoute(route, role, !checked)}
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        />
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* === CALENDAR CRUD PERMISSIONS === */}
+      {/* === CALENDAR CRUD (read-only) === */}
       <Card>
-        <CardHeader><CardTitle>Calendar CRUD <span className="text-xs font-normal text-muted-foreground">— who can create, edit, delete calendar events</span></CardTitle></CardHeader>
+        <CardHeader><CardTitle>Calendar CRUD <span className="text-xs font-normal text-muted-foreground">— read-only view</span></CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -1191,20 +1163,15 @@ function RbacTab() {
             <TableBody>
               {["calendar:create", "calendar:edit", "calendar:delete"].map(perm => {
                 const label = perm.split(":")[1]
+                const defaultValue = perm === "calendar:create" ? ["super_admin", "teacher", "lab_assistant", "principal"] : ["super_admin"]
                 return (
                   <TableRow key={perm}>
                     <TableCell className="font-medium text-xs capitalize">{label}</TableCell>
                     {allRoles.map(role => {
-                      const checked = hasRole(perm, role)
+                      const isChecked = defaultValue.includes(role)
                       return (
                         <TableCell key={role} className="text-center">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={saving === perm}
-                            onChange={() => toggleRoute(perm, role, !checked)}
-                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
-                          />
+                          <div className={`w-4 h-4 mx-auto rounded-sm ${isChecked ? 'bg-primary' : 'bg-muted border border-border'}`} />
                         </TableCell>
                       )
                     })}
@@ -1213,7 +1180,6 @@ function RbacTab() {
               })}
             </TableBody>
           </Table>
-          <p className="text-xs text-muted-foreground mt-2">Changes affect the Calendar page. Reload the page after saving for new permissions to take effect.</p>
         </CardContent>
       </Card>
 
@@ -1277,19 +1243,34 @@ function RbacTab() {
       </Card>
 
       {/* === SUPERVISION MAPPING === */}
-      <SupervisionMappingCard assignments={assignments} teacherAssignments={teacherAssignments} principalMappings={principalMappings} allTeachers={allTeachers} onRefresh={fetchData} />
+      {/* === SETUP DATABASE === */}
+      <Card>
+        <CardHeader><CardTitle>Setup Database <span className="text-xs font-normal text-muted-foreground">— create missing tables for RBAC & mapping</span></CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">One-click setup. Creates <code>role_permissions</code> and <code>principal_teacher_mappings</code> tables.</p>
+          <Button onClick={async () => {
+            setInitializing(true)
+            try {
+              const r = await fetch("/api/setup-db", { method: "POST" })
+              const d = await r.json()
+              if (r.ok) { toast.success(d.message); fetchData() }
+              else { toast.error(d.error + (d.hint ? " — " + d.hint : "")) }
+            } catch { toast.error("Failed") }
+            finally { setInitializing(false) }
+          }} disabled={initializing}>
+            <Settings className="mr-1 h-4 w-4" />{initializing ? "Working..." : "Setup Database"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <SupervisionMappingCard assignments={assignments} teacherAssignments={teacherAssignments} />
     </div>
   )
 }
 
-function SupervisionMappingCard({ assignments, teacherAssignments, principalMappings, allTeachers, onRefresh }: {
-  assignments: any[]; teacherAssignments: any[]; principalMappings: any[]; allTeachers: any[]; onRefresh: () => void
+function SupervisionMappingCard({ assignments, teacherAssignments }: {
+  assignments: any[]; teacherAssignments: any[]
 }) {
-  const [addPrincipalId, setAddPrincipalId] = useState("")
-  const [addTeacherId, setAddTeacherId] = useState("")
-  const [saving, setSaving] = useState(false)
-
-  // Group teachers by grade level for display
   const jhsTeachers = new Map<string, any[]>()
   const shsTeachers = new Map<string, any[]>()
   for (const ta of teacherAssignments) {
@@ -1298,119 +1279,41 @@ function SupervisionMappingCard({ assignments, teacherAssignments, principalMapp
     tMap.get(ta.teacher_id)!.push(ta)
   }
 
-  // Build mapping lookup: principal_id → Set of teacher_ids
-  const mappingByPrincipal: Record<string, Set<string>> = {}
-  for (const m of principalMappings) {
-    if (!mappingByPrincipal[m.principal_id]) mappingByPrincipal[m.principal_id] = new Set()
-    mappingByPrincipal[m.principal_id].add(m.teacher_id)
-  }
-
-  async function addMapping() {
-    if (!addPrincipalId || !addTeacherId) return
-    setSaving(true)
-    try {
-      const r = await fetch("/api/principal/mappings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ principal_id: addPrincipalId, teacher_id: addTeacherId }),
-      })
-      if (r.ok) { toast.success("Mapping added!"); setAddTeacherId(""); onRefresh() }
-      else { const e = await r.json(); toast.error(e.error || "Failed") }
-    } catch { toast.error("Failed") }
-    finally { setSaving(false) }
-  }
-
-  async function removeMapping(id: string) {
-    if (!confirm("Remove this mapping?")) return
-    try {
-      const r = await fetch(`/api/principal/mappings/${id}`, { method: "DELETE" })
-      if (r.ok) { toast.success("Removed!"); onRefresh() }
-      else toast.error("Failed")
-    } catch { toast.error("Failed") }
-  }
-
-  // Available teachers = all teachers not already mapped to this principal
-  function availableTeachers(principalId: string): any[] {
-    const mapped = mappingByPrincipal[principalId]
-    return allTeachers.filter(t => !mapped?.has(t.id))
-  }
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Supervision & TPA Mapping <span className="text-xs font-normal text-muted-foreground">— directly assign teachers to principals</span></CardTitle>
+        <CardTitle>Supervision & TPA Mapping <span className="text-xs font-normal text-muted-foreground">— teachers by grade level (read-only)</span></CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {assignments.length === 0 && principalMappings.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Assign principals to JHS/SHS first to see and manage mappings.</p>
+          {assignments.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Assign principals to JHS/SHS first.</p>
           ) : (
             assignments.map((a: any) => {
-              const mapped = principalMappings.filter((m: any) => m.principal_id === a.principal_id)
-              const levelTeacherEntries = a.level === "JHS"
-                ? Array.from(jhsTeachers.entries())
-                : Array.from(shsTeachers.entries())
+              const levelTeachers = a.level === "JHS" ? jhsTeachers : shsTeachers
+              const gradeRange = a.level === "JHS" ? "Grades 7-9" : "Grades 10-12"
               return (
                 <div key={a.id} className="rounded-lg border p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="font-semibold text-sm">{a.principal?.full_name}</span>
                     <Badge variant={a.level === "JHS" ? "default" : "secondary"}>{a.level}</Badge>
+                    <span className="text-xs text-muted-foreground">{gradeRange}</span>
                   </div>
-
-                  {/* Manual mapping add */}
-                  <div className="flex items-end gap-2 mb-3 flex-wrap">
-                    <div className="space-y-0.5">
-                      <label className="text-[10px] text-muted-foreground">Teacher</label>
-                      <select value={addPrincipalId === a.principal_id ? addTeacherId : ""}
-                        onChange={e => { setAddPrincipalId(a.principal_id); setAddTeacherId(e.target.value) }}
-                        className="h-7 text-xs rounded-md border border-input bg-background px-2 min-w-[180px]">
-                        <option value="">Select teacher...</option>
-                        {availableTeachers(a.principal_id).map(t => (
-                          <option key={t.id} value={t.id}>{t.full_name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <Button size="sm" className="h-7 text-xs" onClick={addMapping}
-                      disabled={saving || addPrincipalId !== a.principal_id || !addTeacherId}>
-                      <Plus className="mr-1 h-3 w-3" />Assign
-                    </Button>
-                  </div>
-
-                  {/* Current mappings */}
-                  {mapped.length === 0 ? (
-                    <p className="text-xs text-muted-foreground py-2">No teachers directly assigned. Select a teacher above and click Assign.</p>
+                  {levelTeachers.size === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No teachers assigned to {gradeRange}.</p>
                   ) : (
                     <div className="grid gap-1.5">
-                      {mapped.map((m: any) => (
-                        <div key={m.id} className="flex items-center justify-between rounded bg-muted/50 px-3 py-1.5 text-xs">
-                          <span className="font-medium">{m.teacher?.full_name || "Unknown"}</span>
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeMapping(m.id)}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </div>
-                      ))}
+                      {Array.from(levelTeachers.entries()).map(([teacherId, tas]) => {
+                        const teacher = tas[0]?.profiles
+                        return (
+                          <div key={teacherId} className="flex items-center gap-2 rounded bg-muted/50 px-3 py-1.5 text-xs">
+                            <span className="font-medium min-w-[160px]">{teacher?.full_name || "Unknown"}</span>
+                            <span className="text-muted-foreground">{[...new Set(tas.map((t: any) => `G${t.grade}`))].join(", ")}</span>
+                            <span className="text-muted-foreground">{[...new Set(tas.map((t: any) => t.subject))].join(", ")}</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )}
-
-                  {/* Grade-level suggestion */}
-                  {levelTeacherEntries.length > 0 && (
-                    <details className="mt-2">
-                      <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">
-                        Show suggested teachers by grade level
-                      </summary>
-                      <div className="mt-1 grid gap-1">
-                        {levelTeacherEntries.map(([teacherId, tas]) => {
-                          const t = tas[0]?.profiles
-                          return (
-                            <div key={teacherId} className="text-[10px] text-muted-foreground flex gap-2">
-                              <span>{t?.full_name || "Unknown"}</span>
-                              <span>{[...new Set(tas.map((x: any) => `G${x.grade}`))].join(", ")}</span>
-                              <span>{[...new Set(tas.map((x: any) => x.subject))].join(", ")}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </details>
                   )}
                 </div>
               )

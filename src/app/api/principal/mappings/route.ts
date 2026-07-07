@@ -6,13 +6,17 @@ export async function GET() {
     const { supabase, error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
-    const { data } = await (supabase.from("principal_teacher_mappings") as any)
-      .select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)")
-      .order("created_at")
-
-    return NextResponse.json(data ?? [])
+    try {
+      const { data } = await (supabase.from("principal_teacher_mappings") as any)
+        .select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)")
+        .order("created_at")
+      return NextResponse.json(data ?? [])
+    } catch {
+      // Table may not exist
+      return NextResponse.json([])
+    }
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json([])
   }
 }
 
@@ -26,16 +30,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "principal_id and teacher_id are required" }, { status: 400 })
     }
 
-    const { data, error } = await (supabase.from("principal_teacher_mappings") as any)
-      .insert({ principal_id: body.principal_id, teacher_id: body.teacher_id })
-      .select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)")
-      .single()
+    try {
+      const { data, error } = await (supabase.from("principal_teacher_mappings") as any)
+        .insert({ principal_id: body.principal_id, teacher_id: body.teacher_id })
+        .select("*, principal:principal_id(id, full_name), teacher:teacher_id(id, full_name)")
+        .single()
 
-    if (error) {
-      if (error.code === "23505") return NextResponse.json({ error: "Mapping already exists" }, { status: 409 })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        if (error.code === "23505") return NextResponse.json({ error: "Mapping already exists" }, { status: 409 })
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+      return NextResponse.json(data, { status: 201 })
+    } catch {
+      return NextResponse.json({ error: "Table not available" }, { status: 400 })
     }
-    return NextResponse.json(data, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

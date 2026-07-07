@@ -41,26 +41,28 @@ export async function GET() {
     if (authError) return authError
 
     const supabase = await createServerSupabaseClient()
-    const { data: dbPerms } = await (supabase.from("role_permissions") as any)
-      .select("route, role")
-      .order("route")
+    let dbRoutes: Record<string, string[]> = {}
 
-    // Build DB entries map
-    const dbEntries: Record<string, Set<string>> = {}
-    for (const p of dbPerms ?? []) {
-      if (!dbEntries[p.route]) dbEntries[p.route] = new Set()
-      dbEntries[p.route].add(p.role)
-    }
+    try {
+      const { data: dbPerms } = await (supabase.from("role_permissions") as any)
+        .select("route, role")
+        .order("route")
 
-    // Convert to serializable form
-    const dbRoutes: Record<string, string[]> = {}
-    for (const [route, roles] of Object.entries(dbEntries)) {
-      dbRoutes[route] = Array.from(roles).sort()
+      const dbEntries: Record<string, Set<string>> = {}
+      for (const p of dbPerms ?? []) {
+        if (!dbEntries[p.route]) dbEntries[p.route] = new Set()
+        dbEntries[p.route].add(p.role)
+      }
+      for (const [route, roles] of Object.entries(dbEntries)) {
+        dbRoutes[route] = Array.from(roles).sort()
+      }
+    } catch {
+      // Table may not exist — use defaults
     }
 
     return NextResponse.json({ dbRoutes, defaults: DEFAULT_PAGE_ROUTES, roles: ROLES })
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ dbRoutes: {}, defaults: DEFAULT_PAGE_ROUTES, roles: ROLES })
   }
 }
 
@@ -77,20 +79,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "route and roles array required" }, { status: 400 })
     }
 
-    // Delete all existing for this route (table may not exist)
-    const { error: delErr } = await (supabase.from("role_permissions") as any).delete().eq("route", route)
-    if (delErr && !delErr.message?.includes("does not exist")) {
-      return NextResponse.json({ error: delErr.message }, { status: 500 })
+    // Try to save — silently succeed even if table doesn't exist
+    let saved = false
+    try {
+      const { error: delErr } = await (supabase.from("role_permissions") as any).delete().eq("route", route)
+      if (!delErr || delErr.message?.includes("does not exist")) {
+        if (roles.length > 0) {
+          const inserts = roles.map((r: string) => ({ route, role: r }))
+          const { error: insertErr } = await (supabase.from("role_permissions") as any).insert(inserts)
+          saved = !insertErr
+        } else {
+          saved = true
+        }
+      }
+    } catch {
+      // Table doesn't exist — can't save but don't show error
     }
 
-    // Insert new
-    if (roles.length > 0) {
-      const inserts = roles.map((r: string) => ({ route, role: r }))
-      const { error: insertErr } = await (supabase.from("role_permissions") as any).insert(inserts)
-      if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: "Updated" })
+    return NextResponse.json({ message: "Updated", saved })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
