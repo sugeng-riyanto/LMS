@@ -238,7 +238,7 @@ export default function SupervisionsPage() {
                   {s.teacher_signature && <span className="text-blue-600">✓ Teacher</span>}
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0">
+              <div className="flex gap-1 shrink-0 flex-wrap justify-end">
                 {(isPrincipal || isSuperAdmin) && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openEdit(s)}><FileText className="h-3 w-3 mr-1" />Edit</Button>}
                 {isTeacher && s.status === "published" && <Button size="sm" className="h-7 text-xs" onClick={() => setViewing(s)}><CheckCircle className="h-3 w-3 mr-1" />Sign</Button>}
                 {s.status === "draft" && (isPrincipal || isSuperAdmin) && <Button size="sm" className="h-7 text-xs" onClick={() => handlePublish(s)}><Send className="h-3 w-3 mr-1" />Publish</Button>}
@@ -291,19 +291,19 @@ export default function SupervisionsPage() {
                 </div>
                 <div className="divide-y divide-border/30">
                   {cat.items.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1">
-                      <span className="text-size-xs sm:text-xs text-muted-foreground flex-1 min-w-0">{item.id}. {item.text}</span>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-xs sm:text-sm text-muted-foreground flex-1 min-w-0 leading-snug">{item.id}. {item.text}</span>
+                      <div className="flex items-center gap-2 shrink-0">
                         <input type="range" min={0} max={4} step={1} value={catScores[item.id] ?? 0}
                           onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
-                          className="w-14 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
-                        <span className={`w-4 h-4 flex items-center justify-center rounded text-[9px] font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                          className="w-20 sm:w-24 h-2 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
+                        <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                           {catScores[item.id] ?? 0}
                         </span>
-                        <div className="flex gap-px">
+                        <div className="flex gap-0.5">
                           {[0,1,2,3,4].map(v => (
                             <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm text-[7px] sm:text-[9px] font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-accent border border-border/50'}`}>{v}</button>
                           ))}
                         </div>
                       </div>

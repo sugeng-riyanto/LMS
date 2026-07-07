@@ -432,23 +432,20 @@ export default function TPAPage() {
                     </div>
                     <div className="divide-y divide-border/50">
                       {cat.items.map(item => (
-                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1 py-1.5">
-                          <span className="text-size-xs sm:text-xs text-muted-foreground sm:w-5 shrink-0 text-right hidden sm:block">{item.id}.</span>
-                          <span className="text-size-xs sm:text-xs text-muted-foreground leading-tight flex-1 min-w-0">{item.text}</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                            <span className="text-[9px] text-red-400 w-3 text-center hidden sm:inline">0</span>
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 py-1.5 border-b border-border/50 last:border-0">
+                          <span className="text-xs sm:text-sm text-muted-foreground leading-snug flex-1 min-w-0">{item.id}. {item.text}</span>
+                          <div className="flex items-center gap-2 shrink-0">
                             <input type="range" min={0} max={4} step={1}
                               value={catScores[item.id] ?? 0}
                               onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
-                              className="w-16 sm:w-20 h-1 rounded-full appearance-none bg-muted accent-primary cursor-pointer" />
-                            <span className="text-[9px] text-green-400 w-3 text-center hidden sm:inline">4</span>
-                            <span className={`w-5 h-5 flex items-center justify-center rounded text-size-xs font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                              className="w-20 sm:w-24 h-2 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
+                            <span className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${(catScores[item.id] ?? 0) >= 3 ? 'bg-green-100 text-green-700' : (catScores[item.id] ?? 0) >= 2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                               {catScores[item.id] ?? 0}
                             </span>
-                            <div className="flex gap-px">
+                            <div className="flex gap-0.5">
                               {[0,1,2,3,4].map(v => (
                                 <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-sm text-[8px] sm:text-size-xs font-medium transition-all ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{v}</button>
+                                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${(catScores[item.id] ?? 0) === v ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-accent border border-border/50'}`}>{v}</button>
                               ))}
                             </div>
                           </div>
