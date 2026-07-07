@@ -994,6 +994,9 @@ document.addEventListener("DOMContentLoaded", function() {
           <Button variant="outline" size="sm" onClick={handleShare}>
             <Share2 className="mr-1 h-3 w-3" />Share
           </Button>
+          <Button variant="outline" size="sm" onClick={() => window.open("/syllabus-manager", "_blank")}>
+            <FileText className="mr-1 h-3 w-3" />Docs
+          </Button>
           <Separator orientation="vertical" className="h-6" />
           <Button onClick={() => handleSave()} disabled={loading} variant="outline" size="sm">
             <Save className="mr-1 h-3 w-3" />
