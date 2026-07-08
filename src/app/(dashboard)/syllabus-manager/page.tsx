@@ -1,17 +1,32 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { SUBJECTS, GRADES } from "@/lib/utils/constants"
-import { Upload, FileText, FileSpreadsheet, CheckCircle, ChevronDown, ChevronRight, Loader2, Save, BookOpen, ListOrdered } from "lucide-react"
+import { Upload, FileText, FileSpreadsheet, CheckCircle, ChevronDown, ChevronRight, Loader2, Save, BookOpen, ListOrdered, Pencil, Trash2 } from "lucide-react"
 import toast from "react-hot-toast"
+
+interface SyllabusTopicRow {
+  id: string
+  grade: number
+  unit_id: string
+  topic: string
+  subtopics: string[]
+  syllabus_ref: string
+  curriculum: string
+  suggested_weeks: number[]
+  subject: string
+  created_at: string
+}
 
 interface ParsedTopic {
   unitId: string
@@ -32,6 +47,7 @@ export default function SyllabusManagerPage() {
   const teacherSubjects = useTeacherSubjects()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [activeTab, setActiveTab] = useState<"upload" | "list">("list")
   const [subject, setSubject] = useState("PHY")
   const [grade, setGrade] = useState(10)
   const [pasteText, setPasteText] = useState("")
@@ -42,9 +58,34 @@ export default function SyllabusManagerPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // CRUD state
+  const [rows, setRows] = useState<SyllabusTopicRow[]>([])
+  const [loadingRows, setLoadingRows] = useState(false)
+  const [filterSubject, setFilterSubject] = useState("")
+  const [filterGrade, setFilterGrade] = useState<number | "">("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ topic: "", unit_id: "", syllabus_ref: "", curriculum: "" })
+  const [deleting, setDeleting] = useState<string | null>(null)
+
   const availableSubjects = teacherSubjects.length === 0
     ? SUBJECTS
     : SUBJECTS.filter(s => teacherSubjects.includes(s.code))
+
+  const fetchRows = useCallback(async () => {
+    setLoadingRows(true)
+    try {
+      const params = new URLSearchParams()
+      if (filterSubject) params.set("subject", filterSubject)
+      if (filterGrade) params.set("grade", String(filterGrade))
+      const res = await fetch(`/api/syllabus/topics?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setRows(Array.isArray(data) ? data : [])
+      }
+    } catch { } finally { setLoadingRows(false) }
+  }, [filterSubject, filterGrade])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
 
   const toggleExpand = (i: number) => {
     const next = new Set(expandedTopics)
@@ -53,32 +94,22 @@ export default function SyllabusManagerPage() {
   }
 
   async function handleParse() {
-    if (!pasteText.trim() && !fileName) {
-      toast.error("Upload a file or paste syllabus content")
-      return
-    }
-    setParsing(true)
-    setResult(null)
-    setSaved(false)
+    if (!pasteText.trim() && !fileName) { toast.error("Upload a file or paste syllabus content"); return }
+    setParsing(true); setResult(null); setSaved(false)
     try {
       const formData = new FormData()
-      if (fileInputRef.current?.files?.[0]) {
-        formData.append("file", fileInputRef.current.files[0])
-      } else {
-        formData.append("content", pasteText)
-      }
+      if (fileInputRef.current?.files?.[0]) formData.append("file", fileInputRef.current.files[0])
+      else formData.append("content", pasteText)
       formData.append("subject", subject)
       formData.append("grade", String(grade))
-
       const res = await fetch("/api/syllabus/upload", { method: "POST", body: formData })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
       const data = await res.json()
       setResult(data)
-      setExpandedTopics(new Set(data.topics.length > 0 ? [0] : []))
+      setExpandedTopics(new Set(data.topics.length ? [0] : []))
       toast.success(data.message)
-    } catch (e) {
-      toast.error("Parse failed: " + (e instanceof Error ? e.message : "Unknown"))
-    } finally { setParsing(false) }
+    } catch (e) { toast.error("Parse failed: " + (e instanceof Error ? e.message : "Unknown")) }
+    finally { setParsing(false) }
   }
 
   async function handleSave() {
@@ -91,117 +122,198 @@ export default function SyllabusManagerPage() {
         body: JSON.stringify({ topics: result.topics, subject, grade, curriculum: result.curriculum }),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      const data = await res.json()
-      toast.success(data.message)
+      toast.success((await res.json()).message)
       setSaved(true)
-    } catch (e) {
-      toast.error("Save failed: " + (e instanceof Error ? e.message : "Unknown"))
-    } finally { setSaving(false) }
+      fetchRows()
+    } catch (e) { toast.error("Save failed: " + (e instanceof Error ? e.message : "Unknown")) }
+    finally { setSaving(false) }
+  }
+
+  async function handleUpdate(id: string) {
+    try {
+      const res = await fetch("/api/syllabus/topics", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...editForm }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      toast.success("Updated!")
+      setEditingId(null)
+      fetchRows()
+    } catch (e) { toast.error("Update failed: " + (e instanceof Error ? e.message : "Unknown")) }
+  }
+
+  async function handleDelete(id: string) {
+    setDeleting(id)
+    try {
+      const res = await fetch(`/api/syllabus/topics?id=${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Delete failed")
+      toast.success("Deleted!")
+      fetchRows()
+    } catch (e) { toast.error("Delete failed") }
+    finally { setDeleting(null) }
   }
 
   function resetForm() {
-    setPasteText("")
-    setFileName("")
-    setResult(null)
-    setSaved(false)
+    setPasteText(""); setFileName(""); setResult(null); setSaved(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   if (!canManagePackages) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <p className="text-sm text-muted-foreground">You do not have access to Syllabus Manager.</p>
-      </div>
-    )
+    return <div className="flex h-[50vh] items-center justify-center"><p className="text-sm text-muted-foreground">No access.</p></div>
   }
+
+  const listContent = (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
+          <option value="">All Subjects</option>
+          {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+        </select>
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value ? Number(e.target.value) : "")}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm w-28">
+          <option value="">All Grades</option>
+          {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+        </select>
+        <Badge variant="secondary" className="text-xs">{rows.length} topics</Badge>
+      </div>
+
+      <div className="rounded-md border max-h-[500px] overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs w-12">Grade</TableHead>
+              <TableHead className="text-xs">Subject</TableHead>
+              <TableHead className="text-xs">Topic</TableHead>
+              <TableHead className="text-xs w-20">Curriculum</TableHead>
+              <TableHead className="text-xs w-20">Weeks</TableHead>
+              <TableHead className="text-xs w-20">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loadingRows ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">No topics. Upload a syllabus above.</TableCell></TableRow>
+            ) : rows.map(r => (
+              <TableRow key={r.id}>
+                <TableCell className="text-xs">{r.grade}</TableCell>
+                <TableCell className="text-xs">{r.subject}</TableCell>
+                <TableCell className="text-xs max-w-[200px] truncate">
+                  {editingId === r.id ? (
+                    <div className="flex flex-col gap-1">
+                      <Input value={editForm.topic} onChange={e => setEditForm(p => ({ ...p, topic: e.target.value }))} className="h-7 text-xs" />
+                      <Input value={editForm.unit_id} onChange={e => setEditForm(p => ({ ...p, unit_id: e.target.value }))} className="h-7 text-xs" placeholder="unit_id" />
+                    </div>
+                  ) : r.topic}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {editingId === r.id ? (
+                    <Input value={editForm.curriculum} onChange={e => setEditForm(p => ({ ...p, curriculum: e.target.value }))} className="h-7 text-xs" />
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">{r.curriculum}</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs">{(r.suggested_weeks || []).length}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    {editingId === r.id ? (
+                      <>
+                        <Button size="sm" className="h-7 text-[10px]" onClick={() => handleUpdate(r.id)}>Save</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setEditingId(null)}>Cancel</Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditingId(r.id); setEditForm({ topic: r.topic, unit_id: r.unit_id, syllabus_ref: r.syllabus_ref || "", curriculum: r.curriculum }) }}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(r.id)} disabled={deleting === r.id}>
+                          {deleting === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+
+  const uploadContent = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Upload className="h-4 w-4" />
+          Upload Syllabus
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-4">
+          <div className="space-y-1">
+            <Label>Subject</Label>
+            <select value={subject} onChange={e => setSubject(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
+              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label>Grade</Label>
+            <select value={grade} onChange={e => setGrade(Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-24">
+              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+        </div>
+        <Separator />
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Upload file (.md / .pdf) or paste below</Label>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
+              <FileText className="h-4 w-4" /> Choose File
+            </Button>
+            <span className="text-sm text-muted-foreground">{fileName || "No file"}</span>
+          </div>
+          <input ref={fileInputRef} type="file" accept=".md,.pdf,.txt,text/markdown,application/pdf" className="hidden" onChange={e => setFileName(e.target.files?.[0]?.name || "")} />
+          <p className="text-xs text-muted-foreground"><strong>.md</strong> preferred. <strong>.pdf</strong> auto-converted.</p>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Or paste markdown text</Label>
+          <Textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
+            placeholder="Paste Cambridge syllabus markdown..."
+            rows={8} className="font-mono text-xs" />
+        </div>
+        <Button onClick={handleParse} disabled={parsing} className="gap-2">
+          {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+          {parsing ? "Parsing..." : "Parse Syllabus"}
+        </Button>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Syllabus Manager</h1>
-          <p className="text-sm text-muted-foreground">
-            Upload Cambridge syllabus files (.md or .pdf) to extract topics and learning objectives, then distribute across weeks.
-          </p>
+          <p className="text-sm text-muted-foreground">Upload syllabus files to extract topics & objectives, or manage existing data.</p>
         </div>
-        {result && (
-          <Button variant="ghost" size="sm" onClick={resetForm}>
-            Upload Another
+        <div className="flex gap-2">
+          <Button variant={activeTab === "list" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("list")}>
+            <ListOrdered className="mr-1 h-3 w-3" /> Data ({rows.length})
           </Button>
-        )}
+          <Button variant={activeTab === "upload" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("upload")}>
+            <Upload className="mr-1 h-3 w-3" /> Upload
+          </Button>
+        </div>
       </div>
 
-      {!result ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Upload className="h-4 w-4" />
-              Upload Syllabus
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="space-y-1">
-                <Label>Subject</Label>
-                <select value={subject} onChange={e => setSubject(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
-                  {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label>Grade</Label>
-                <select value={grade} onChange={e => setGrade(Number(e.target.value))}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm w-24">
-                  {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
-                </select>
-              </div>
-            </div>
+      {activeTab === "list" ? listContent : uploadContent}
 
-            <Separator />
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Method 1: Upload file</Label>
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                  <FileText className="h-4 w-4" />
-                  Choose File (.md / .pdf)
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {fileName || "No file selected"}
-                </span>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".md,.pdf,.txt,text/markdown,application/pdf"
-                className="hidden"
-                onChange={(e) => setFileName(e.target.files?.[0]?.name || "")}
-              />
-              <p className="text-xs text-muted-foreground">
-                <strong>.md</strong> (markdown) preferred — faster and more accurate.
-                <br />
-                <strong>.pdf</strong> will be converted to text automatically (formatting may vary).
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Method 2: Paste syllabus text</Label>
-              <Textarea
-                value={pasteText}
-                onChange={(e) => setPasteText(e.target.value)}
-                placeholder="Paste markdown content from a Cambridge syllabus (e.g., content of convert_0625_y26-28_sy.md)..."
-                rows={10}
-                className="font-mono text-xs"
-              />
-            </div>
-
-            <Button onClick={handleParse} disabled={parsing} className="gap-2">
-              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-              {parsing ? "Parsing..." : "Parse Syllabus"}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+      {result && (
         <div className="space-y-4">
           <Card>
             <CardHeader className="py-3">
@@ -209,21 +321,20 @@ export default function SyllabusManagerPage() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   Parse Results
-                  <Badge variant="secondary" className="text-xs ml-2">{result.curriculum}</Badge>
+                  <Badge variant="secondary" className="text-xs">{result.curriculum}</Badge>
                   <Badge variant="outline" className="text-xs">{result.sourceType}</Badge>
                   <Badge variant="outline" className="text-xs">{result.topics.length} topics</Badge>
                 </CardTitle>
                 <div className="flex gap-2">
                   {saved ? (
-                    <Badge className="bg-green-600 gap-1">
-                      <CheckCircle className="h-3 w-3" /> Saved to DB
-                    </Badge>
+                    <Badge className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Saved</Badge>
                   ) : (
                     <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1 h-8">
                       {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                      Save to Database
+                      Save to DB
                     </Button>
                   )}
+                  <Button size="sm" variant="ghost" className="h-8" onClick={resetForm}>Clear</Button>
                 </div>
               </div>
             </CardHeader>
@@ -231,19 +342,11 @@ export default function SyllabusManagerPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <CardHeader className="py-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Topics & Objectives
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-96 overflow-y-auto">
+              <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><BookOpen className="h-4 w-4" /> Topics & Objectives</CardTitle></CardHeader>
+              <CardContent className="space-y-2 max-h-80 overflow-y-auto">
                 {result.topics.map((t, i) => (
                   <div key={i} className="rounded-lg border">
-                    <button
-                      onClick={() => toggleExpand(i)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent/50"
-                    >
+                    <button onClick={() => toggleExpand(i)} className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent/50">
                       {expandedTopics.has(i) ? <ChevronDown className="h-3 w-3 shrink-0" /> : <ChevronRight className="h-3 w-3 shrink-0" />}
                       <span className="font-medium truncate">{t.topic}</span>
                       <Badge variant="outline" className="text-[10px] ml-auto shrink-0">{t.objectives.length}</Badge>
@@ -251,44 +354,24 @@ export default function SyllabusManagerPage() {
                     {expandedTopics.has(i) && (
                       <div className="border-t px-3 py-2 space-y-1">
                         {t.objectives.length > 0 ? (
-                          <ul className="space-y-1">
-                            {t.objectives.map((o, oi) => (
-                              <li key={oi} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                <span className="text-green-500 mt-0.5 shrink-0">•</span>
-                                <span>{o}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">No objectives extracted</p>
-                        )}
+                          <ul className="space-y-1">{t.objectives.map((o, oi) => <li key={oi} className="text-xs text-muted-foreground flex items-start gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{o}</span></li>)}</ul>
+                        ) : <p className="text-xs text-muted-foreground italic">No objectives</p>}
                       </div>
                     )}
                   </div>
                 ))}
               </CardContent>
             </Card>
-
             <Card>
-              <CardHeader className="py-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <ListOrdered className="h-4 w-4" />
-                  Week Distribution
-                  <Badge variant="outline" className="text-xs">{new Set(result.distribution.map(d => d.week)).size} weeks</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-96 overflow-y-auto">
-                <div className="space-y-1">
-                  {result.distribution.map((d, i) => (
-                    <div key={i} className="flex items-center gap-2 rounded border px-2 py-1 text-xs">
-                      <Badge variant="secondary" className="shrink-0 text-[10px]">W{d.week}</Badge>
-                      <span className="truncate">{d.topic}</span>
-                      {d.objectives.length > 0 && (
-                        <span className="text-muted-foreground shrink-0 ml-auto">({d.objectives.length})</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><ListOrdered className="h-4 w-4" /> Week Distribution <Badge variant="outline" className="text-xs">{new Set(result.distribution.map(d => d.week)).size} weeks</Badge></CardTitle></CardHeader>
+              <CardContent className="max-h-80 overflow-y-auto">
+                <div className="space-y-1">{result.distribution.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded border px-2 py-1 text-xs">
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">W{d.week}</Badge>
+                    <span className="truncate">{d.topic}</span>
+                    {d.objectives.length > 0 && <span className="text-muted-foreground shrink-0 ml-auto">({d.objectives.length})</span>}
+                  </div>
+                ))}</div>
               </CardContent>
             </Card>
           </div>
