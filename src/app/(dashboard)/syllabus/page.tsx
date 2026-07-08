@@ -16,7 +16,7 @@ import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
-import { getSubjectTopic, SUBJECTS_WITH_TEMPLATES } from "@/lib/syllabus/subject-templates"
+import { getSubjectTopic, SUBJECTS_WITH_TEMPLATES, SUBJECT_GRADE_SEQUENCES } from "@/lib/syllabus/subject-templates"
 import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
 
@@ -173,7 +173,28 @@ export default function SyllabusPlannerPage() {
         supabase.from("syllabus_planning").select("*").eq("grade", selectedGrade).eq("week_number", selectedWeek).eq("subject", plan.subject || "PHY").maybeSingle(),
       ])
 
-      if (topicsRes.data) setTopics(topicsRes.data as SyllabusTopic[])
+      if (topicsRes.data && topicsRes.data.length > 0) {
+        setTopics(topicsRes.data as SyllabusTopic[])
+      } else if (SUBJECTS_WITH_TEMPLATES.includes(plan.subject as any)) {
+        const seq = SUBJECT_GRADE_SEQUENCES[plan.subject as keyof typeof SUBJECT_GRADE_SEQUENCES]?.[selectedGrade]
+        if (seq) {
+          const virtualTopics: SyllabusTopic[] = Object.entries(seq).map(([week, topic]) => ({
+            id: `template-${plan.subject}-${selectedGrade}-${week}`,
+            grade: selectedGrade,
+            unit_id: topic.toLowerCase().replace(/[\s:,.']+/g, "-").replace(/[^a-z0-9-]/g, ""),
+            topic,
+            subtopics: [],
+            syllabus_ref: "Cambridge Template",
+            curriculum: "Cambridge",
+            suggested_weeks: [parseInt(week)],
+          }))
+          setTopics(virtualTopics)
+        } else {
+          setTopics(topicsRes.data as SyllabusTopic[] || [])
+        }
+      } else {
+        setTopics(topicsRes.data as SyllabusTopic[] || [])
+      }
       if (eventsRes.data) setEvents(eventsRes.data as CalendarEvent[])
       // Load objectives
       try {
