@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2, FileSpreadsheet } from "lucide-react"
+import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2, FileSpreadsheet, Upload, FileCheck } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
@@ -117,6 +117,52 @@ export default function SyllabusPlannerPage() {
   const [mediaForm, setMediaForm] = useState({ section: "opening", type: "youtube", title: "", url: "" })
   const [editingMedia, setEditingMedia] = useState<{ section: string; index: number } | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Upload Syllabus dialog state
+  const [showUpload, setShowUpload] = useState(false)
+  const [uploadContent, setUploadContent] = useState("")
+  const [parsing, setParsing] = useState(false)
+  const [parsedTopics, setParsedTopics] = useState<{ unitId: string; topic: string; objectives: string[] }[]>([])
+  const [parsedCurriculum, setParsedCurriculum] = useState("")
+  const [parsedDistribution, setParsedDistribution] = useState<{ week: number; topic: string; objectives: string[] }[]>([])
+
+  async function handleParseSyllabus() {
+    if (!uploadContent.trim()) { toast.error("Paste syllabus content first"); return }
+    setParsing(true)
+    try {
+      const formData = new FormData()
+      formData.append("content", uploadContent)
+      formData.append("subject", plan.subject)
+      formData.append("grade", String(selectedGrade))
+      const res = await fetch("/api/syllabus/parse", { method: "POST", body: formData })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      const data = await res.json()
+      setParsedTopics(data.topics)
+      setParsedCurriculum(data.curriculum)
+      setParsedDistribution(data.distribution)
+      toast.success(`Found ${data.topicCount} topics from ${data.curriculum}`)
+    } catch (e) { toast.error("Parse failed: " + (e instanceof Error ? e.message : "Unknown")) }
+    finally { setParsing(false) }
+  }
+
+  async function handleDistributeSyllabus() {
+    if (!parsedTopics.length) { toast.error("No topics to distribute"); return }
+    try {
+      const res = await fetch("/api/syllabus/distribute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topics: parsedTopics, subject: plan.subject, grade: selectedGrade, curriculum: parsedCurriculum }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      const data = await res.json()
+      toast.success(data.message)
+      setShowUpload(false)
+      setUploadContent("")
+      setParsedTopics([])
+      setParsedDistribution([])
+      fetchData()
+    } catch (e) { toast.error("Distribute failed: " + (e instanceof Error ? e.message : "Unknown")) }
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -1022,6 +1068,9 @@ document.addEventListener("DOMContentLoaded", function() {
           <Button variant="outline" size="sm" onClick={() => window.open("/syllabus-manager", "_blank")}>
             <FileText className="mr-1 h-3 w-3" />Docs
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowUpload(true)}>
+            <Upload className="mr-1 h-3 w-3" />Upload
+          </Button>
           <Separator orientation="vertical" className="h-6" />
           <Button onClick={() => handleSave()} disabled={loading} variant="outline" size="sm">
             <Save className="mr-1 h-3 w-3" />
@@ -1526,6 +1575,94 @@ document.addEventListener("DOMContentLoaded", function() {
           </Card>
         </div>
       </div>
+
+      {/* Upload Syllabus Dialog */}
+      <Dialog open={showUpload} onOpenChange={setShowUpload}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Upload Syllabus</DialogTitle>
+            <DialogDescription>
+              Paste syllabus markdown text to extract topics and learning objectives, then distribute across {22} weeks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-4 p-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{plan.subject}</Badge>
+              <Badge variant="outline">Grade {selectedGrade}</Badge>
+              <Badge variant="outline">{parsedCurriculum || "Not parsed yet"}</Badge>
+            </div>
+            <div className="space-y-2">
+              <Label>Paste syllabus content (markdown)</Label>
+              <Textarea
+                value={uploadContent}
+                onChange={(e) => setUploadContent(e.target.value)}
+                placeholder="Paste the Cambridge syllabus markdown text here (e.g., from convert_0625_y26-28_sy.md)..."
+                rows={10}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Tip: You can also convert syllabus PDF to markdown first, then paste here.
+              </p>
+            </div>
+
+            {parsedTopics.length > 0 && (
+              <div className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Extracted Topics ({parsedTopics.length})</h3>
+                  <Badge variant="secondary">{parsedCurriculum}</Badge>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {parsedTopics.map((t, i) => (
+                    <div key={i} className="rounded border p-2 text-xs">
+                      <p className="font-medium">{t.topic}</p>
+                      {t.objectives.length > 0 && (
+                        <ul className="mt-1 space-y-0.5">
+                          {t.objectives.slice(0, 3).map((o, oi) => (
+                            <li key={oi} className="text-muted-foreground truncate">• {o}</li>
+                          ))}
+                          {t.objectives.length > 3 && (
+                            <li className="text-muted-foreground italic">...and {t.objectives.length - 3} more</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {parsedDistribution.length > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-xs text-muted-foreground">
+                      Distribution: {new Set(parsedDistribution.map(d => d.week)).size} weeks
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {parsedDistribution.map((d, i) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">
+                          W{d.week}: {d.topic.split(" ").slice(0, 3).join(" ")}...
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowUpload(false); setParsedTopics([]); setParsedDistribution([]); setUploadContent("") }}>
+              Cancel
+            </Button>
+            {parsedTopics.length > 0 ? (
+              <Button onClick={handleDistributeSyllabus} disabled={parsing}>
+                <FileCheck className="mr-1 h-4 w-4" />
+                Save & Distribute
+              </Button>
+            ) : (
+              <Button onClick={handleParseSyllabus} disabled={parsing || !uploadContent.trim()}>
+                {parsing ? "Parsing..." : "Parse Syllabus"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
