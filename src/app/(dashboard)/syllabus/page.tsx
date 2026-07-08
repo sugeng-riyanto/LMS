@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2 } from "lucide-react"
+import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2, FileSpreadsheet } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import { getCurrentWeek } from "@/lib/utils/week-calculator"
+import { getSubjectTopic, SUBJECTS_WITH_TEMPLATES } from "@/lib/syllabus/subject-templates"
 import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
 
@@ -438,6 +439,26 @@ export default function SyllabusPlannerPage() {
       toast.success("AI content generated! Review before saving.")
     } catch { toast.error("AI generation failed") }
     finally { setGeneratingAI(false) }
+  }
+
+  function handleTemplateFill() {
+    const topic = getSubjectTopic(plan.subject as any, selectedGrade, selectedWeek)
+    if (!topic) {
+      toast.error("No template data for this subject, grade, and week.")
+      return
+    }
+
+    const matchingTopic = topics.find(t => t.topic.toLowerCase() === topic.toLowerCase() || t.unit_id.toLowerCase() === topic.toLowerCase().replace(/\s+/g, ""))
+    if (matchingTopic) {
+      if (!selectedTopicIds.has(matchingTopic.unit_id)) {
+        toggleTopic(matchingTopic.unit_id)
+      }
+      toast.success(`Template: "${topic}" selected!`)
+    } else {
+      setPlan(prev => ({ ...prev, topic }))
+      setSelectedTopicIds(new Set())
+      toast.success(`Template: "${topic}" set. Adjust topics as needed.`)
+    }
   }
 
   function generateSyllabusMD(): string {
@@ -976,6 +997,10 @@ document.addEventListener("DOMContentLoaded", function() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          <Button onClick={handleTemplateFill} disabled={loading} variant="outline" size="sm">
+            <FileSpreadsheet className="mr-1 h-3 w-3" />
+            Template Fill
+          </Button>
           <Button onClick={handleAIGenerate} disabled={loading || generatingAI} variant="outline" size="sm">
             <Wand2 className="mr-1 h-3 w-3" />
             {generatingAI ? "AI Generating..." : "AI Fill"}

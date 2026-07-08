@@ -58,6 +58,7 @@ export default function SettingsPage() {
   const [inviteForm, setInviteForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7 })
   const [editForm, setEditForm] = useState({ email: "", role: "student" as UserProfile["role"], grade: 7 })
   const [resettingPw, setResettingPw] = useState<string | null>(null)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -171,6 +172,22 @@ export default function SettingsPage() {
     } catch {
       toast.error("Failed to invite user.")
     }
+  }
+
+  async function handleDeleteUser(userId: string, userName: string) {
+    if (!confirm(`Permanently delete user "${userName}"? This will remove their profile and auth account.`)) return
+    setDeletingUser(userId)
+    try {
+      const res = await fetch(`/api/profiles/${userId}`, { method: "DELETE" })
+      if (res.ok) {
+        toast.success("User deleted.")
+        fetchUsers()
+      } else {
+        const err = await res.json().catch(() => ({ error: "Failed" }))
+        toast.error(err.error ?? "Failed to delete user.")
+      }
+    } catch { toast.error("Failed to delete user.") }
+    finally { setDeletingUser(null) }
   }
 
   // === AI PROVIDERS ===
@@ -531,6 +548,10 @@ export default function SettingsPage() {
                             <Button variant="ghost" size="sm" onClick={() => handleResetPassword(user.id, user.full_name)} disabled={resettingPw === user.id}>
                               <Key className="mr-1 h-3 w-3" />
                               {resettingPw === user.id ? "..." : "Reset PW"}
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id, user.full_name)} disabled={deletingUser === user.id}>
+                              <Trash2 className="mr-1 h-3 w-3 text-destructive" />
+                              {deletingUser === user.id ? "..." : "Delete"}
                             </Button>
                           </TableCell>
                         </TableRow>
