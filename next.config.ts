@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
     optimizePackageImports: ["lucide-react", "date-fns", "@radix-ui/react-checkbox"],
+    serverComponentsExternalPackages: ["pdfjs-dist"],
     staleTimes: {
       dynamic: 30,
       static: 180,
