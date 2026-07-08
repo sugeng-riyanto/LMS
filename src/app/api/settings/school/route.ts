@@ -22,6 +22,8 @@ export async function GET() {
       shs_vp_name: "Aji Wahyu Budiyanto, M.Si",
       shs_principal_name: "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
       unit: "Academic",
+      tpa_principal_weight: 70,
+      tpa_teacher_weight: 30,
     })
   } catch (error) {
     return NextResponse.json(
@@ -41,6 +43,7 @@ export async function PUT(request: NextRequest) {
       "school_name", "brand_name", "vp_name", "principal_name",
       "shs_vp_name", "shs_principal_name",
       "unit", "address", "phone", "email", "logo_url",
+      "tpa_principal_weight", "tpa_teacher_weight",
     ]
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString(), updated_by: user.id }
     for (const field of allowed) {

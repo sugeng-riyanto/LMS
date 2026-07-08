@@ -1170,9 +1170,9 @@ function RbacTab() {
         </CardContent>
       </Card>
 
-      {/* === CALENDAR CRUD (read-only) === */}
+      {/* === CALENDAR CRUD === */}
       <Card>
-        <CardHeader><CardTitle>Calendar CRUD <span className="text-xs font-normal text-muted-foreground">— read-only view</span></CardTitle></CardHeader>
+        <CardHeader><CardTitle>Calendar CRUD <span className="text-xs font-normal text-muted-foreground">— toggle which roles can create/edit/delete calendar events</span></CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -1184,15 +1184,20 @@ function RbacTab() {
             <TableBody>
               {["calendar:create", "calendar:edit", "calendar:delete"].map(perm => {
                 const label = perm.split(":")[1]
-                const defaultValue = perm === "calendar:create" ? ["super_admin", "teacher", "lab_assistant", "principal"] : ["super_admin"]
                 return (
                   <TableRow key={perm}>
                     <TableCell className="font-medium text-xs capitalize">{label}</TableCell>
                     {allRoles.map(role => {
-                      const isChecked = defaultValue.includes(role)
+                      const checked = hasRole(perm, role)
                       return (
                         <TableCell key={role} className="text-center">
-                          <div className={`w-4 h-4 mx-auto rounded-sm ${isChecked ? 'bg-primary' : 'bg-muted border border-border'}`} />
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={saving === perm}
+                            onChange={() => toggleRoute(perm, role, !checked)}
+                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          />
                         </TableCell>
                       )
                     })}
@@ -1356,19 +1361,26 @@ function SchoolSettings() {
     shs_principal_name: "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
     unit: "Academic",
     logo_url: "",
+    tpa_principal_weight: 70,
+    tpa_teacher_weight: 30,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [logoPreview, setLogoPreview] = useState("")
 
   useEffect(() => {
-    fetch("/api/settings/school").then((r) => r.json()).then((d) => {
+    Promise.all([
+      fetch("/api/settings/school").then(r => r.json()),
+      fetch("/api/settings/tpa-weights").then(r => r.json()).catch(() => ({ principal: 70, teacher: 30 })),
+    ]).then(([d, tpa]) => {
       setForm({
         school_name: d.school_name ?? "",
         brand_name: d.brand_name ?? "SHB Learning Hub",
         vp_name: d.vp_name ?? "", principal_name: d.principal_name ?? "",
         shs_vp_name: d.shs_vp_name ?? "", shs_principal_name: d.shs_principal_name ?? "",
         unit: d.unit ?? "", logo_url: d.logo_url ?? "",
+        tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
+        tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
       })
       setLogoPreview(d.logo_url ?? "")
       setLoading(false)
@@ -1475,6 +1487,49 @@ function SchoolSettings() {
           <Label>Unit</Label>
           <Input value={form.unit} onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))} />
         </div>
+
+        <Separator />
+        <h3 className="text-sm font-semibold">TPA Weight Allocation</h3>
+        <p className="text-xs text-muted-foreground">Split between principal assessment and teacher self-assessment. Must add up to 100.</p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label>Principal Assessment</Label>
+              <span className="text-sm font-mono font-bold">{form.tpa_principal_weight}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={form.tpa_principal_weight}
+              onChange={(e) => {
+                const p = Number(e.target.value)
+                setForm((prev) => ({ ...prev, tpa_principal_weight: p, tpa_teacher_weight: 100 - p }))
+              }}
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label>Self-Assessment</Label>
+              <span className="text-sm font-mono font-bold">{form.tpa_teacher_weight}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={form.tpa_teacher_weight}
+              onChange={(e) => {
+                const t = Number(e.target.value)
+                setForm((prev) => ({ ...prev, tpa_teacher_weight: t, tpa_principal_weight: 100 - t }))
+              }}
+              className="w-full"
+            />
+          </div>
+        </div>
+
         <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />Save School Settings</Button>
       </CardContent>
     </Card>
