@@ -8,8 +8,8 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_SUPABASE_URL : FALLBACK_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ') ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : FALLBACK_ANON_KEY,
+    FALLBACK_URL,
+    FALLBACK_ANON_KEY,
     {
       cookies: {
         getAll() {

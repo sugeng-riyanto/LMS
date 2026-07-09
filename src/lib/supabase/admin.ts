@@ -6,8 +6,8 @@ const FALLBACK_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 
 export function createAdminClient() {
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_SUPABASE_URL : FALLBACK_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.startsWith('eyJ') ? process.env.SUPABASE_SERVICE_ROLE_KEY : FALLBACK_SERVICE_KEY,
+    FALLBACK_URL,
+    FALLBACK_SERVICE_KEY,
     {
       auth: {
         autoRefreshToken: false,

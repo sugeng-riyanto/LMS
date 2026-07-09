@@ -49,8 +49,8 @@ export async function GET(
     let autoFillName = ""
     try {
       const authSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_SUPABASE_URL : 'https://yvnomvcmqsfbkqqjwzhi.supabase.co',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ') ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw',
+        'https://yvnomvcmqsfbkqqjwzhi.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw',
         { cookies: { getAll() { return request.cookies.getAll() }, setAll() {} } }
       )
       const { data: { user } } = await authSupabase.auth.getUser()
