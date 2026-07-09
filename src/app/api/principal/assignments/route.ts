@@ -3,12 +3,18 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET() {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "principal"])
     if (authError) return authError
 
-    const { data } = await (supabase.from("principal_assignments") as any)
+    let query = (supabase.from("principal_assignments") as any)
       .select("*, principal:principal_id(id, email, full_name)")
       .order("created_at")
+
+    if (user.role === "principal") {
+      query = query.eq("principal_id", user.id)
+    }
+
+    const { data } = await query
 
     return NextResponse.json(data ?? [])
   } catch (error) {

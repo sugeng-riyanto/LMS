@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/supabase/require-role"
 
 export async function GET() {
   try {
-    const { error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student"])
+    const { error: authError } = await requireRole(["super_admin", "teacher", "lab_assistant", "student", "principal"])
     if (authError) return authError
     const supabase = createAdminClient()
     const { data } = await (supabase.from("classes") as any).select("*").order("grade").order("class_name")
