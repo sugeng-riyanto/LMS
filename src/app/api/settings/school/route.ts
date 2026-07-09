@@ -24,6 +24,10 @@ export async function GET() {
       unit: "Academic",
       tpa_principal_weight: 70,
       tpa_teacher_weight: 30,
+      supabase_url: "",
+      supabase_anon_key: "",
+      supabase_service_role_key: "",
+      supabase_db_connection: "",
     })
   } catch (error) {
     return NextResponse.json(
@@ -44,6 +48,7 @@ export async function PUT(request: NextRequest) {
       "shs_vp_name", "shs_principal_name",
       "unit", "address", "phone", "email", "logo_url",
       "tpa_principal_weight", "tpa_teacher_weight",
+      "supabase_url", "supabase_anon_key", "supabase_service_role_key", "supabase_db_connection",
     ]
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString(), updated_by: user.id }
     for (const field of allowed) {

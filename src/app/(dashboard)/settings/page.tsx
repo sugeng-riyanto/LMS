@@ -1363,6 +1363,10 @@ function SchoolSettings() {
     logo_url: "",
     tpa_principal_weight: 70,
     tpa_teacher_weight: 30,
+    supabase_url: "",
+    supabase_anon_key: "",
+    supabase_service_role_key: "",
+    supabase_db_connection: "",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1381,6 +1385,10 @@ function SchoolSettings() {
         unit: d.unit ?? "", logo_url: d.logo_url ?? "",
         tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
         tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
+        supabase_url: d.supabase_url ?? "",
+        supabase_anon_key: d.supabase_anon_key ?? "",
+        supabase_service_role_key: d.supabase_service_role_key ?? "",
+        supabase_db_connection: d.supabase_db_connection ?? "",
       })
       setLogoPreview(d.logo_url ?? "")
       setLoading(false)
@@ -1488,6 +1496,27 @@ function SchoolSettings() {
           <Input value={form.unit} onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))} />
         </div>
 
+        <Separator />
+        <h3 className="text-sm font-semibold">Supabase Connection</h3>
+        <p className="text-xs text-muted-foreground">Set Supabase credentials here instead of .env.local. Save, then redeploy.</p>
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label>Supabase URL</Label>
+            <Input value={form.supabase_url} onChange={(e) => setForm((p) => ({ ...p, supabase_url: e.target.value }))} placeholder="https://xxx.supabase.co" />
+          </div>
+          <div className="space-y-1">
+            <Label>Anon Key (publishable)</Label>
+            <Input value={form.supabase_anon_key} onChange={(e) => setForm((p) => ({ ...p, supabase_anon_key: e.target.value }))} type="password" />
+          </div>
+          <div className="space-y-1">
+            <Label>Service Role Key (secret)</Label>
+            <Input value={form.supabase_service_role_key} onChange={(e) => setForm((p) => ({ ...p, supabase_service_role_key: e.target.value }))} type="password" />
+          </div>
+          <div className="space-y-1">
+            <Label>DB Connection String</Label>
+            <Input value={form.supabase_db_connection} onChange={(e) => setForm((p) => ({ ...p, supabase_db_connection: e.target.value }))} type="password" />
+          </div>
+        </div>
         <Separator />
         <h3 className="text-sm font-semibold">TPA Weight Allocation</h3>
         <p className="text-xs text-muted-foreground">Split between principal assessment and teacher self-assessment. Must add up to 100.</p>
