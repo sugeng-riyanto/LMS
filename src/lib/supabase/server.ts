@@ -8,8 +8,8 @@ const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_SUPABASE_URL : FALLBACK_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('eyJ') ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : FALLBACK_ANON_KEY,
     {
       cookies: {
         getAll() {
