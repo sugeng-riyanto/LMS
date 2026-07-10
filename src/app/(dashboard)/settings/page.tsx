@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User, CheckCircle } from "lucide-react"
+import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User, CheckCircle, Database } from "lucide-react"
 import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
@@ -422,6 +422,12 @@ export default function SettingsPage() {
             <TabsTrigger value="rbac">
               <Shield className="mr-1 h-4 w-4" />
               RBAC
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="database">
+              <Database className="mr-1 h-4 w-4" />
+              Database
             </TabsTrigger>
           )}
         </TabsList>
@@ -1001,6 +1007,11 @@ export default function SettingsPage() {
             <RbacTab />
           </TabsContent>
         )}
+        {isSuperAdmin && (
+          <TabsContent value="database" className="space-y-6">
+            <SupabaseTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
@@ -1363,10 +1374,6 @@ function SchoolSettings() {
     logo_url: "",
     tpa_principal_weight: 70,
     tpa_teacher_weight: 30,
-    supabase_url: "",
-    supabase_anon_key: "",
-    supabase_service_role_key: "",
-    supabase_db_connection: "",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1385,10 +1392,6 @@ function SchoolSettings() {
         unit: d.unit ?? "", logo_url: d.logo_url ?? "",
         tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
         tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
-        supabase_url: d.supabase_url ?? "",
-        supabase_anon_key: d.supabase_anon_key ?? "",
-        supabase_service_role_key: d.supabase_service_role_key ?? "",
-        supabase_db_connection: d.supabase_db_connection ?? "",
       })
       setLogoPreview(d.logo_url ?? "")
       setLoading(false)
@@ -1497,27 +1500,6 @@ function SchoolSettings() {
         </div>
 
         <Separator />
-        <h3 className="text-sm font-semibold">Supabase Connection</h3>
-        <p className="text-xs text-muted-foreground">Set Supabase credentials here instead of .env.local. Save, then redeploy.</p>
-        <div className="space-y-2">
-          <div className="space-y-1">
-            <Label>Supabase URL</Label>
-            <Input value={form.supabase_url} onChange={(e) => setForm((p) => ({ ...p, supabase_url: e.target.value }))} placeholder="https://xxx.supabase.co" />
-          </div>
-          <div className="space-y-1">
-            <Label>Anon Key (publishable)</Label>
-            <Input value={form.supabase_anon_key} onChange={(e) => setForm((p) => ({ ...p, supabase_anon_key: e.target.value }))} type="password" />
-          </div>
-          <div className="space-y-1">
-            <Label>Service Role Key (secret)</Label>
-            <Input value={form.supabase_service_role_key} onChange={(e) => setForm((p) => ({ ...p, supabase_service_role_key: e.target.value }))} type="password" />
-          </div>
-          <div className="space-y-1">
-            <Label>DB Connection String</Label>
-            <Input value={form.supabase_db_connection} onChange={(e) => setForm((p) => ({ ...p, supabase_db_connection: e.target.value }))} type="password" />
-          </div>
-        </div>
-        <Separator />
         <h3 className="text-sm font-semibold">TPA Weight Allocation</h3>
         <p className="text-xs text-muted-foreground">Split between principal assessment and teacher self-assessment. Must add up to 100.</p>
         <div className="space-y-3">
@@ -1560,6 +1542,141 @@ function SchoolSettings() {
         </div>
 
         <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />Save School Settings</Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function SupabaseTab() {
+  const [form, setForm] = useState({
+    supabase_url: "",
+    supabase_anon_key: "",
+    supabase_service_role_key: "",
+    supabase_db_connection: "",
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [showAnon, setShowAnon] = useState(false)
+  const [showService, setShowService] = useState(false)
+  const [showDb, setShowDb] = useState(false)
+
+  useEffect(() => { fetchCredentials() }, [])
+
+  async function fetchCredentials() {
+    try {
+      const res = await fetch("/api/settings/supabase-credentials")
+      if (res.ok) {
+        const d = await res.json()
+        setForm({
+          supabase_url: d.supabase_url ?? "",
+          supabase_anon_key: d.supabase_anon_key ?? "",
+          supabase_service_role_key: d.supabase_service_role_key ?? "",
+          supabase_db_connection: d.supabase_db_connection ?? "",
+        })
+      }
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setTestResult(null)
+    try {
+      const res = await fetch("/api/settings/supabase-credentials", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        toast.success("Supabase credentials saved! Will take effect on next request.")
+      } else {
+        const err = await res.json().catch(() => ({ error: "Failed" }))
+        toast.error(err.error ?? "Failed to save.")
+      }
+    } catch { toast.error("Failed to save.") }
+    finally { setSaving(false) }
+  }
+
+  async function testConnection() {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const testUrl = form.supabase_url || "https://yvnomvcmqsfbkqqjwzhi.supabase.co"
+      const testKey = form.supabase_anon_key || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw"
+      const res = await fetch("/api/settings/supabase-credentials/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supabase_url: testUrl, supabase_anon_key: testKey }),
+      })
+      const result = await res.json()
+      setTestResult({ ok: res.ok, message: res.ok ? "Connected successfully!" : result.error })
+      if (res.ok) toast.success("Connection OK!")
+      else toast.error(result.error ?? "Connection failed")
+    } catch { setTestResult({ ok: false, message: "Connection test failed" }) }
+    finally { setTesting(false) }
+  }
+
+  if (loading) return <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Loading...</CardContent></Card>
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Supabase Database Connection</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Configure your Supabase project credentials here instead of <code className="bg-accent px-1 rounded">.env.local</code>.
+          Save, then the app will use these credentials on the next request.
+        </p>
+
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label>Supabase URL</Label>
+            <Input value={form.supabase_url} onChange={(e) => setForm((p) => ({ ...p, supabase_url: e.target.value }))} placeholder="https://xxx.supabase.co" />
+          </div>
+          <div className="space-y-1">
+            <Label>Anon Key (public)</Label>
+            <div className="flex gap-1">
+              <Input value={form.supabase_anon_key} onChange={(e) => setForm((p) => ({ ...p, supabase_anon_key: e.target.value }))} type={showAnon ? "text" : "password"} placeholder="eyJ..." className="font-mono text-xs" />
+              <Button variant="outline" size="icon" onClick={() => setShowAnon(!showAnon)} tabIndex={-1}>{showAnon ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Service Role Key (secret)</Label>
+            <div className="flex gap-1">
+              <Input value={form.supabase_service_role_key} onChange={(e) => setForm((p) => ({ ...p, supabase_service_role_key: e.target.value }))} type={showService ? "text" : "password"} placeholder="eyJ..." className="font-mono text-xs" />
+              <Button variant="outline" size="icon" onClick={() => setShowService(!showService)} tabIndex={-1}>{showService ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>DB Connection String</Label>
+            <div className="flex gap-1">
+              <Input value={form.supabase_db_connection} onChange={(e) => setForm((p) => ({ ...p, supabase_db_connection: e.target.value }))} type={showDb ? "text" : "password"} placeholder="postgresql://..." className="font-mono text-xs" />
+              <Button variant="outline" size="icon" onClick={() => setShowDb(!showDb)} tabIndex={-1}>{showDb ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />{saving ? "Saving..." : "Save Credentials"}</Button>
+          <Button variant="outline" onClick={testConnection} disabled={testing}>{testing ? "Testing..." : "Test Connection"}</Button>
+        </div>
+
+        {testResult && (
+          <div className={`rounded-lg border p-3 text-sm ${testResult.ok ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"}`}>
+            {testResult.ok ? "Connected" : "Error"}: {testResult.message}
+          </div>
+        )}
+
+        <Separator />
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+          <p className="text-xs text-amber-800 dark:text-amber-300">
+            Credentials are stored in the school_settings table. After saving, the app will use them automatically.
+            The hardcoded fallback keys in the code will be overridden once DB credentials are configured.
+          </p>
+        </div>
       </CardContent>
     </Card>
   )

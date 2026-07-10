@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { loadServerCredentials, getFallbackCredentials, getCredentialsSnapshot } from "@/lib/supabase/supabase-config"
 
 type Role = "super_admin" | "teacher" | "lab_assistant" | "student" | "principal"
 
@@ -53,6 +54,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/memory/": ["super_admin", "teacher"],
   "/api/notifications": ["super_admin", "teacher", "student", "principal"],
   "/api/packages": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
+  "/api/settings/supabase-credentials": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
   "/api/settings/tpa-weights": ["super_admin", "principal"],
   "/api/profiles": ["super_admin", "teacher", "principal", "student"],
   "/api/student-work": ["super_admin", "teacher", "student", "principal"],
@@ -77,10 +79,9 @@ const PUBLIC_API_ROUTES = [
 ]
 
 function getSupabase(request: NextRequest) {
-  const FALLBACK_URL = 'https://yvnomvcmqsfbkqqjwzhi.supabase.co'
-  const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw'
-  const supabaseUrl = FALLBACK_URL
-  const supabaseAnonKey = FALLBACK_ANON_KEY
+  const creds = getCredentialsSnapshot() ?? getFallbackCredentials()
+  const supabaseUrl = creds.url
+  const supabaseAnonKey = creds.anonKey
 
   let supabaseResponse = NextResponse.next({ request })
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -134,6 +135,7 @@ function isPublicApiRoute(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  await loadServerCredentials()
   const ctx = getSupabase(request)
   if (!ctx) {
     return NextResponse.next({ request })

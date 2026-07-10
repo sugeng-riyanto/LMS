@@ -1,15 +1,15 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-
-const FALLBACK_URL = 'https://yvnomvcmqsfbkqqjwzhi.supabase.co'
-const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw'
+import { loadServerCredentials, getFallbackCredentials, getCredentialsSnapshot } from "./supabase-config"
 
 export async function updateSession(request: NextRequest) {
+  await loadServerCredentials()
+  const creds = getCredentialsSnapshot() ?? getFallbackCredentials()
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    FALLBACK_URL,
-    FALLBACK_ANON_KEY,
+    creds.url,
+    creds.anonKey,
     {
       cookies: {
         getAll() {

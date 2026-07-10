@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createServerClient } from "@supabase/ssr"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
+import { loadServerCredentials, getFallbackCredentials, getCredentialsSnapshot } from "@/lib/supabase/supabase-config"
 
 export async function GET(
   request: NextRequest,
@@ -30,9 +31,11 @@ export async function GET(
     // Check if logged-in student is viewing
     let autoFillName = ""
     try {
+      await loadServerCredentials()
+      const _creds = getCredentialsSnapshot() ?? getFallbackCredentials()
       const authSupabase = createServerClient(
-        'https://yvnomvcmqsfbkqqjwzhi.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDk5OTIsImV4cCI6MjA2NDg4NTk5Mn0.vWLHVhrRqxS3uK32Pob8cBESQqJfZbyEze3Ky3JHTRw',
+        _creds.url,
+        _creds.anonKey,
         { cookies: { getAll() { return request.cookies.getAll() }, setAll() {} } }
       )
       const { data: { user } } = await authSupabase.auth.getUser()
