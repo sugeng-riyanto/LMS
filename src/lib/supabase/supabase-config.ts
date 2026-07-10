@@ -10,7 +10,7 @@ interface SupabaseCredentials {
   serviceKey: string
 }
 
-let cachedCredentials: SupabaseCredentials | null = null
+let cachedAdminCredentials: { url: string; serviceKey: string } | null = null
 let lastFetch = 0
 const CACHE_TTL = 60_000
 
@@ -22,40 +22,32 @@ export function getFallbackCredentials(): SupabaseCredentials {
   }
 }
 
-export async function loadServerCredentials(): Promise<SupabaseCredentials> {
-  if (cachedCredentials && Date.now() - lastFetch < CACHE_TTL) {
-    return cachedCredentials
+export async function loadAdminServiceCredentials(): Promise<{ url: string; serviceKey: string }> {
+  if (cachedAdminCredentials && Date.now() - lastFetch < CACHE_TTL) {
+    return cachedAdminCredentials
   }
-  const fallback = getFallbackCredentials()
+  const fallback = { url: FALLBACK_URL, serviceKey: FALLBACK_SERVICE_KEY }
   try {
-    const bootstrap = createClient(fallback.url, fallback.serviceKey, {
+    const bootstrap = createClient(FALLBACK_URL, FALLBACK_SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const { data } = await (bootstrap.from("school_settings") as any)
-      .select("supabase_url, supabase_anon_key, supabase_service_role_key")
+      .select("supabase_service_role_key")
       .eq("id", 1)
       .single()
-    if (data?.supabase_url && data?.supabase_anon_key) {
-      cachedCredentials = {
-        url: data.supabase_url,
-        anonKey: data.supabase_anon_key,
-        serviceKey: data.supabase_service_role_key || fallback.serviceKey,
-      }
+    if (data?.supabase_service_role_key) {
+      cachedAdminCredentials = { url: FALLBACK_URL, serviceKey: data.supabase_service_role_key }
     } else {
-      cachedCredentials = fallback
+      cachedAdminCredentials = fallback
     }
   } catch {
-    cachedCredentials = fallback
+    cachedAdminCredentials = fallback
   }
   lastFetch = Date.now()
-  return cachedCredentials
+  return cachedAdminCredentials
 }
 
 export async function clearCredentialsCache() {
-  cachedCredentials = null
+  cachedAdminCredentials = null
   lastFetch = 0
-}
-
-export function getCredentialsSnapshot(): SupabaseCredentials | null {
-  return cachedCredentials
 }

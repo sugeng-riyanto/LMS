@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { loadServerCredentials, getFallbackCredentials, getCredentialsSnapshot } from "@/lib/supabase/supabase-config"
+import { getFallbackCredentials } from "@/lib/supabase/supabase-config"
 
 type Role = "super_admin" | "teacher" | "lab_assistant" | "student" | "principal"
 
@@ -79,7 +79,7 @@ const PUBLIC_API_ROUTES = [
 ]
 
 function getSupabase(request: NextRequest) {
-  const creds = getCredentialsSnapshot() ?? getFallbackCredentials()
+  const creds = getFallbackCredentials()
   const supabaseUrl = creds.url
   const supabaseAnonKey = creds.anonKey
 
@@ -135,7 +135,6 @@ function isPublicApiRoute(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  await loadServerCredentials()
   const ctx = getSupabase(request)
   if (!ctx) {
     return NextResponse.next({ request })

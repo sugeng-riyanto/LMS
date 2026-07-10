@@ -1,10 +1,10 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/database"
-import { getFallbackCredentials, getCredentialsSnapshot } from "./supabase-config"
+import { getFallbackCredentials } from "./supabase-config"
 
 export async function createServerSupabaseClient() {
-  const creds = getCredentialsSnapshot() ?? getFallbackCredentials()
+  const creds = getFallbackCredentials()
   const cookieStore = await cookies()
   return createServerClient<Database>(
     creds.url,

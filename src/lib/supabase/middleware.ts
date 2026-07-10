@@ -1,10 +1,9 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { loadServerCredentials, getFallbackCredentials, getCredentialsSnapshot } from "./supabase-config"
+import { getFallbackCredentials } from "./supabase-config"
 
 export async function updateSession(request: NextRequest) {
-  await loadServerCredentials()
-  const creds = getCredentialsSnapshot() ?? getFallbackCredentials()
+  const creds = getFallbackCredentials()
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
