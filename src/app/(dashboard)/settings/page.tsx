@@ -725,7 +725,11 @@ export default function SettingsPage() {
                   <Button variant="outline" size="sm" onClick={async () => {
                     try {
                       const res = await fetch("/api/export/distribution-xlsx")
-                      if (!res.ok) throw new Error("Failed")
+                      if (!res.ok) {
+                        const text = await res.text().catch(() => "unknown")
+                        toast.error(`Download failed (${res.status}): ${text}`)
+                        return
+                      }
                       const blob = await res.blob()
                       const url = URL.createObjectURL(blob)
                       const a = document.createElement("a")
@@ -742,7 +746,11 @@ export default function SettingsPage() {
                   <Button variant="outline" size="sm" onClick={async () => {
                     try {
                       const res = await fetch("/api/export/master-template")
-                      if (!res.ok) throw new Error("Failed")
+                      if (!res.ok) {
+                        const text = await res.text().catch(() => "unknown")
+                        toast.error(`Download failed (${res.status}): ${text}`)
+                        return
+                      }
                       const blob = await res.blob()
                       const url = URL.createObjectURL(blob)
                       const a = document.createElement("a")
