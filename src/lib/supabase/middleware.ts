@@ -27,6 +27,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // Refresh token invalid — clear auth cookies
+    const authCookies = ["sb-refresh-token", "sb-access-token", "supabase-auth-token"]
+    for (const name of authCookies) {
+      supabaseResponse.cookies.set(name, "", { maxAge: 0, path: "/" })
+    }
+  }
   return supabaseResponse
 }

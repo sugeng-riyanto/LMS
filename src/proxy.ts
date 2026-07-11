@@ -135,6 +135,13 @@ function isPublicApiRoute(pathname: string): boolean {
   return PUBLIC_API_ROUTES.some((r) => pathname.startsWith(r))
 }
 
+function clearAuthCookies(response: NextResponse) {
+  const authCookies = ["sb-refresh-token", "sb-access-token", "supabase-auth-token"]
+  for (const name of authCookies) {
+    response.cookies.set(name, "", { maxAge: 0, path: "/" })
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const ctx = getSupabase(request)
   if (!ctx) {
@@ -142,8 +149,17 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, supabaseResponse } = ctx
-  const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
+
+  let user: any = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data?.user ?? null
+  } catch {
+    // Refresh token invalid — clear auth cookies, treat as unauthenticated
+    clearAuthCookies(supabaseResponse)
+    user = null
+  }
 
   const authRoutes = ["/login", "/register", "/forgot-password", "/update-password"]
   const isAuthPage = authRoutes.some((route) => pathname.startsWith(route))
