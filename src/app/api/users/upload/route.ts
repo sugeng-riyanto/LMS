@@ -33,14 +33,17 @@ export async function POST(request: NextRequest) {
       const gradeRaw = (row.grade_assigned ?? "").toString().trim()
       const grade = gradeRaw ? parseInt(gradeRaw) : null
 
-      // Auto-append @shb.sch.id if no @ sign
-      if (email && !email.includes("@")) email += "@shb.sch.id"
-      email = email.toLowerCase()
-
-      if (!email || !full_name) {
-        // Skip blank rows silently
-        results.push({ row: rowNum, email, status: "skipped", error: "email or full_name is empty" })
+      if (!full_name) {
+        results.push({ row: rowNum, email, status: "skipped", error: "full_name is empty" })
         continue
+      }
+
+      // Auto-generate email from full_name if not provided
+      if (!email) {
+        email = full_name.toLowerCase().replace(/\s+/g, ".").replace(/[^a-z.0-9]/g, "") + "@shb.sch.id"
+      } else {
+        if (!email.includes("@")) email += "@shb.sch.id"
+        email = email.toLowerCase()
       }
       if (!validRoles.includes(role)) {
         results.push({ row: rowNum, email, status: "skipped", error: `role "${role}" is not valid` })

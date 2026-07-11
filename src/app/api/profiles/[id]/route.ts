@@ -97,19 +97,28 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
     const { id } = await params
+    const admin = createAdminClient()
 
-    const { error } = await supabase
+    // Delete auth user first
+    const { error: authDeleteError } = await admin.auth.admin.deleteUser(id)
+    if (authDeleteError) {
+      // If auth user not found, still try to delete profile
+      console.warn("Auth delete warning:", authDeleteError.message)
+    }
+
+    // Delete profile
+    const { error: profileError } = await admin
       .from("profiles")
       .delete()
       .eq("id", id)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
 
-    return NextResponse.json({ message: "Profile deleted" })
+    return NextResponse.json({ message: "User deleted" })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
