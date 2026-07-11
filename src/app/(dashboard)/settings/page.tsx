@@ -719,7 +719,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Upload an XLSX file (<strong>Data</strong> sheet). Columns: <code>email</code>, <code>full_name</code>, <code>role</code>, <code>grade_assigned</code>. Role: super_admin / teacher / lab_assistant / student. Password auto-generated.
+                  Upload an XLSX file (<strong>Data</strong> sheet). Columns: <code>email</code>, <code>full_name</code>, <code>role</code>, <code>grade_assigned</code>. Role: super_admin / teacher / lab_assistant / student / principal. Password auto-generated.
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={async () => {
@@ -768,11 +768,13 @@ export default function SettingsPage() {
                         if (!file) return
                         const fd = new FormData()
                         fd.append("file", file)
+                        setCsvResult(null)
                         try {
                           const res = await fetch("/api/users/upload", { method: "POST", body: fd })
                           const result = await res.json()
                           if (res.ok) {
-                            toast.success(result.message ?? "Upload berhasil")
+                            setCsvResult({ summary: result.summary, results: result.results })
+                            toast.success(result.message)
                             fetchUsers(roleFilter)
                           } else {
                             toast.error(result.error ?? "Upload gagal")
@@ -784,7 +786,24 @@ export default function SettingsPage() {
                       }}
                     />
                   </label>
+                  {csvResult && (
+                    <Button variant="ghost" size="sm" onClick={() => setCsvResult(null)}>
+                      Clear
+                    </Button>
+                  )}
                 </div>
+                {csvResult && (
+                  <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border p-3 text-xs">
+                    <p className="mb-1 font-medium">
+                      {csvResult.summary.created ?? csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.partial} partial
+                    </p>
+                    {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
+                      <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
+                        Row {r.row}: {r.email || r.name} — {r.error || r.status}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
