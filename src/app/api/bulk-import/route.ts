@@ -106,7 +106,11 @@ export async function POST(request: NextRequest) {
           user_metadata: { full_name: fullName, role },
           app_metadata: { role, full_name: fullName },
         })
-        if (signUpError) { results.push({ type: "user", name: fullName, status: "failed", error: signUpError.message }); continue }
+        if (signUpError) {
+          const isDuplicate = signUpError.message?.toLowerCase().includes("already been registered")
+          results.push({ type: "user", name: fullName, status: isDuplicate ? "skipped" : "failed", error: signUpError.message })
+          continue
+        }
 
         if (authUser?.user) {
           const { error: profileError } = await (admin.from("profiles") as any).upsert({
@@ -130,6 +134,9 @@ export async function POST(request: NextRequest) {
       failed: results.filter(r => r.status === "failed").length,
       partial: results.filter(r => r.status === "partial").length,
     }
+
+    // Treat blank rows (skipped with empty name) as truly ignored — omit from summary counts
+    const ignoredBlanks = results.filter(r => r.status === "skipped" && !r.name).length
 
     return NextResponse.json({ summary, results })
   } catch (error) {

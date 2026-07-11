@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       email = email.toLowerCase()
 
       if (!email || !full_name) {
+        // Skip blank rows silently
         results.push({ row: rowNum, email, status: "skipped", error: "email or full_name is empty" })
         continue
       }
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
         })
 
         if (signUpError) {
-          results.push({ row: rowNum, email, status: "failed", error: signUpError.message })
+          const isDuplicate = signUpError.message?.toLowerCase().includes("already been registered")
+          results.push({ row: rowNum, email, status: isDuplicate ? "skipped" : "failed", error: signUpError.message })
           continue
         }
 
@@ -89,12 +91,13 @@ export async function POST(request: NextRequest) {
 
     const created = results.filter((r) => r.status === "created").length
     const partial = results.filter((r) => r.status === "partial").length
-    const failed = results.filter((r) => r.status === "failed" || r.status === "skipped").length
+    const failed = results.filter((r) => r.status === "failed").length
+    const skipped = results.filter((r) => r.status === "skipped").length
 
     return NextResponse.json({
-      message: `Complete: ${created} created, ${partial} partial, ${failed} failed`,
+      message: `${created} created, ${skipped} skipped (duplicate/blank), ${failed} failed, ${partial} partial`,
       results,
-      summary: { created, partial, failed, total: results.length },
+      summary: { created, partial, failed, skipped, total: results.length },
     })
   } catch (error) {
     return NextResponse.json(
