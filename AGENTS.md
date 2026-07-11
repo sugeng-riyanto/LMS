@@ -173,6 +173,16 @@ sudo pm2 restart lmsshb
 - Student logins: `student7@shb.sch.id` — `student12@shb.sch.id` / `student123`
 - Admin: `admin@shb.sch.id` / `admin123`
 - `getCurrentWeek()` starts from 2026-07-13
+## VPS Deployment Lessons Learned (July 2026)
+- **NEVER use `sed -i` on files with CRLF line endings** — corrupts the file. Use `cat > file << 'EOF' ... EOF` instead (see `fix-keys2.sh`).
+- **Auth clients (client.ts, server.ts, proxy.ts, middleware.ts) must ALWAYS use hardcoded fallback keys** — never read from `school_settings` DB table for auth. Otherwise a stale key in DB breaks login.
+- **Supabase can rotate anon keys anytime** — user must check Project Settings → API for current key.
+- **After `git reset --hard origin/main`**, always verify key files: `grep "QBpmyNn" src/lib/supabase/client.ts`.
+- **Multiple PM2 instances cause EADDRINUSE + OOM** — always `sudo pm2 delete all` before restart.
+- **Build on 1GB RAM VPS**: use `NODE_OPTIONS="--max-old-space-size=512"` and `SKIP_TYPECHECK=1`.
+- **Fix script pattern**: create `fix-keys*.sh` in repo root that user runs with `bash fix-keys*.sh` — no long typing in noVNC.
+- VPS `.env.local` might be corrupted — avoid depending on it. Keys should be hardcoded as fallback or configurable via Settings → Database tab.
+- `serverExternalPackages: ["pdfjs-dist"]` must be at top-level in next.config.ts (not inside `experimental`).
 - `getGradeSequence()` has all 6 grades (7–12) with 22-week sequences aligned to Cambridge curriculum
 - `TOPIC_MAP` in orchestrator uses broad categories: Kinematics, Forces, Energy, Waves, Light, Sound, Electricity, Magnetism, Density, Pressure, Thermal
 - Build passes with 74 routes, zero TS errors

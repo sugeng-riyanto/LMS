@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     const headers = parseCSVLine(lines[0])
     const hMap: Record<string, number> = {}
-    headers.forEach((h, i) => { hMap[h.toLowerCase()] = i })
+    headers.forEach((h, i) => { hMap[h.toLowerCase().replace(/[^a-z_]/g, "")] = i })
 
     const admin = createAdminClient()
     const results: { type: string; name: string; status: string; error?: string }[] = []
@@ -55,16 +55,17 @@ export async function POST(request: NextRequest) {
     for (let r = 1; r < lines.length; r++) {
       const cols = parseCSVLine(lines[r])
 
-      const email = (cols[0] || "").trim()
-      const fullName = (cols[1] || "").trim()
-      const role = (cols[2] || "").trim().toLowerCase()
-      const gradeAssigned = (cols[3] || "").trim()
-      const code = (cols[4] || "").trim()
-      const subjName = (cols[5] || "").trim()
-      const icon = (cols[6] || "").trim()
-      const sortOrder = (cols[7] || "").trim()
-      const grade = (cols[8] || "").trim()
-      const className = (cols[9] || "").trim()
+      // Use header map to resolve columns (fall back to hardcoded index for backward compat)
+      const email = (cols[hMap["email"] ?? hMap["username"] ?? 0] || "").trim()
+      const fullName = (cols[hMap["full_name"] ?? hMap["name"] ?? 1] || "").trim()
+      const role = (cols[hMap["role"] ?? 2] || "").trim().toLowerCase()
+      const gradeAssigned = (cols[hMap["grade_assigned"] ?? hMap["grade"] ?? 3] || "").trim()
+      const code = (cols[hMap["code"] ?? 4] || "").trim()
+      const subjName = (cols[hMap["name"] ?? hMap["subject_name"] ?? 5] || "").trim()
+      const icon = (cols[hMap["icon"] ?? 6] || "").trim()
+      const sortOrder = (cols[hMap["sort_order"] ?? 7] || "").trim()
+      const grade = (cols[hMap["grade"] ?? hMap["grade_assigned"] ?? 8] || "").trim()
+      const className = (cols[hMap["class_name"] ?? hMap["class"] ?? 9] || "").trim()
 
       // SUBJECT row
       if (code && subjName) {

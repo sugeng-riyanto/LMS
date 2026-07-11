@@ -26,6 +26,8 @@ import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
 import type { AIProvider } from "@/types/ai-provider"
+import type { Role } from "@/lib/utils/constants"
+const FILTER_ROLES: (Role | "all")[] = ["all", ...ROLES]
 import toast from "react-hot-toast"
 
 const roleColors: Record<string, string> = {
@@ -52,13 +54,17 @@ export default function SettingsPage() {
   // Users
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
+  const [roleFilter, setRoleFilter] = useState<Role | "all">("all")
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
   const [inviteForm, setInviteForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7 })
-  const [editForm, setEditForm] = useState({ email: "", role: "student" as UserProfile["role"], grade: 7 })
+  const [createForm, setCreateForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, password: "", class_name: "" })
+  const [editForm, setEditForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, class_name: "", is_active: true })
   const [resettingPw, setResettingPw] = useState<string | null>(null)
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
+  const [csvResult, setCsvResult] = useState<{ summary: any; results: any[] } | null>(null)
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -82,18 +88,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (isSuperAdmin) {
-      if (tab === "users") fetchUsers()
+      if (tab === "users") fetchUsers(roleFilter)
     }
     if (isSuperAdmin || role === "teacher" || role === "principal") {
       if (tab === "ai-providers") fetchProviders()
     }
-  }, [isSuperAdmin, role, tab])
+  }, [isSuperAdmin, role, tab, roleFilter])
 
   // === USERS ===
-  async function fetchUsers() {
+  async function fetchUsers(role?: string) {
     setLoadingUsers(true)
     try {
-      const res = await fetch("/api/profiles")
+      const params = role && role !== "all" ? `?role=${role}` : ""
+      const res = await fetch(`/api/profiles${params}`)
       if (res.ok) setUsers(await res.json())
     } catch {
       toast.error("Failed to load users.")
@@ -104,14 +111,42 @@ export default function SettingsPage() {
 
   function openEditDialog(user: UserProfile) {
     setEditingUser(user)
-    setEditForm({ email: user.email ?? "", role: user.role, grade: user.grade_assigned ?? 7 })
+    setEditForm({ email: user.email ?? "", full_name: user.full_name, role: user.role, grade: user.grade_assigned ?? 7, class_name: (user as any).class_name ?? "", is_active: (user as any).is_active ?? true })
     setEditOpen(true)
+  }
+
+  async function handleCreateUser() {
+    if (!createForm.full_name || !createForm.email) { toast.error("Name and email are required"); return }
+    try {
+      const res = await fetch("/api/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: createForm.email, full_name: createForm.full_name, role: createForm.role, grade: createForm.grade, password: createForm.password }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`User created! Temp password: ${data.temp_password}`, { duration: 10000 })
+        setCreateOpen(false)
+        setCreateForm({ email: "", full_name: "", role: "student", grade: 7, password: "", class_name: "" })
+        fetchUsers(roleFilter)
+      } else {
+        toast.error(data.error ?? "Failed to create user.")
+      }
+    } catch {
+      toast.error("Failed to create user.")
+    }
   }
 
   async function handleEditRole() {
     if (!editingUser) return
     try {
-      const body: Record<string, any> = { role: editForm.role, grade_assigned: editForm.grade }
+      const body: Record<string, any> = {
+        role: editForm.role,
+        grade_assigned: editForm.grade,
+        full_name: editForm.full_name,
+        is_active: editForm.is_active,
+      }
+      if ((editForm as any).class_name !== undefined) body.class_name = (editForm as any).class_name
       if (editForm.email !== editingUser.email) body.email = editForm.email
       const res = await fetch(`/api/profiles/${editingUser.id}`, {
         method: "PUT",
@@ -122,7 +157,7 @@ export default function SettingsPage() {
         toast.success("User updated!")
         setEditOpen(false)
         setEditingUser(null)
-        fetchUsers()
+        fetchUsers(roleFilter)
       } else {
         const err = await res.json().catch(() => ({ error: "Failed" }))
         toast.error(err.error ?? "Failed to update user.")
@@ -165,7 +200,7 @@ export default function SettingsPage() {
         toast.success("Invitation sent!")
         setInviteOpen(false)
         setInviteForm({ email: "", full_name: "", role: "student", grade: 7 })
-        fetchUsers()
+        fetchUsers(roleFilter)
       } else {
         toast.error("Failed to invite user.")
       }
@@ -181,7 +216,7 @@ export default function SettingsPage() {
       const res = await fetch(`/api/profiles/${userId}`, { method: "DELETE" })
       if (res.ok) {
         toast.success("User deleted.")
-        fetchUsers()
+        fetchUsers(roleFilter)
       } else {
         const err = await res.json().catch(() => ({ error: "Failed" }))
         toast.error(err.error ?? "Failed to delete user.")
@@ -434,76 +469,123 @@ export default function SettingsPage() {
 
         {isSuperAdmin && (
           <TabsContent value="users" className="space-y-6">
-            <div className="flex items-center justify-end">
-              <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <UserPlus className="mr-1 h-4 w-4" />
-                    Invite User
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Invite New User</DialogTitle>
-                    <DialogDescription>Send an invitation to join the platform.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-1">
-                      <Label>Full Name</Label>
-                      <Input
-                        value={inviteForm.full_name}
-                        onChange={(e) => setInviteForm((p) => ({ ...p, full_name: e.target.value }))}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={inviteForm.email}
-                        onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Role</Label>
-                      <select
-                        value={inviteForm.role}
-                        onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Grade Assignment</Label>
-                      <select
-                        value={inviteForm.grade}
-                        onChange={(e) => setInviteForm((p) => ({ ...p, grade: Number(e.target.value) }))}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                      >
-                        {GRADES.map((g) => (
-                          <option key={g} value={g}>Grade {g}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-                    <Button onClick={handleInvite}>
-                      <Mail className="mr-1 h-4 w-4" />
-                      Send Invite
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                {(FILTER_ROLES as (Role | "all")[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRoleFilter(r)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      roleFilter === r
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {r === "all" ? "All" : ROLE_LABELS[r as Role] ?? r}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <UserPlus className="mr-1 h-4 w-4" />
+                      Create User
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create User</DialogTitle>
+                      <DialogDescription>Create a new user with password.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-1">
+                        <Label>Full Name</Label>
+                        <Input value={createForm.full_name} onChange={(e) => setCreateForm((p) => ({ ...p, full_name: e.target.value }))} placeholder="John Doe" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Email</Label>
+                        <Input type="email" value={createForm.email} onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))} placeholder="john@shb.sch.id" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Password (optional — auto-generated if blank)</Label>
+                        <Input type="text" value={createForm.password} onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))} placeholder="Leave blank for auto-generate" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Role</Label>
+                        <select value={createForm.role} onChange={(e) => setCreateForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                          {ROLES.map((r) => (<option key={r} value={r}>{ROLE_LABELS[r]}</option>))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Grade Assignment</Label>
+                        <select value={createForm.grade} onChange={(e) => setCreateForm((p) => ({ ...p, grade: Number(e.target.value) }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                          {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Class Name (optional)</Label>
+                        <Input value={createForm.class_name} onChange={(e) => setCreateForm((p) => ({ ...p, class_name: e.target.value }))} placeholder="A" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                      <Button onClick={handleCreateUser}>
+                        <UserPlus className="mr-1 h-4 w-4" />
+                        Create User
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Mail className="mr-1 h-4 w-4" />
+                      Invite
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Invite New User</DialogTitle>
+                      <DialogDescription>Send an invitation to join the platform.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-1">
+                        <Label>Full Name</Label>
+                        <Input value={inviteForm.full_name} onChange={(e) => setInviteForm((p) => ({ ...p, full_name: e.target.value }))} placeholder="John Doe" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Email</Label>
+                        <Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))} placeholder="john@example.com" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Role</Label>
+                        <select value={inviteForm.role} onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                          {ROLES.map((r) => (<option key={r} value={r}>{ROLE_LABELS[r]}</option>))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Grade Assignment</Label>
+                        <select value={inviteForm.grade} onChange={(e) => setInviteForm((p) => ({ ...p, grade: Number(e.target.value) }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                          {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+                        </select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                      <Button onClick={handleInvite}>
+                        <Mail className="mr-1 h-4 w-4" />
+                        Send Invite
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
+                <CardTitle>User Management <span className="text-xs font-normal text-muted-foreground">({users.length} users)</span></CardTitle>
               </CardHeader>
               <CardContent>
                 {loadingUsers ? (
@@ -512,6 +594,8 @@ export default function SettingsPage() {
                       <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
                     ))}
                   </div>
+                ) : users.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-muted-foreground">No users found.</div>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -520,6 +604,7 @@ export default function SettingsPage() {
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Grade</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -538,7 +623,12 @@ export default function SettingsPage() {
                                     .slice(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{user.full_name}</span>
+                              <div>
+                                <span className="font-medium">{user.full_name}</span>
+                                {(user as any).class_name && (
+                                  <span className="ml-1 text-xs text-muted-foreground">(Class {(user as any).class_name})</span>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
@@ -546,6 +636,13 @@ export default function SettingsPage() {
                             <Badge className={roleColors[user.role] ?? ""}>{ROLE_LABELS[user.role]}</Badge>
                           </TableCell>
                           <TableCell>{user.grade_assigned ? `Grade ${user.grade_assigned}` : "-"}</TableCell>
+                          <TableCell>
+                            {(user as any).is_active === false ? (
+                              <Badge variant="destructive" className="text-xs">Inactive</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs text-green-600 border-green-300">Active</Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
                               <Settings className="mr-1 h-3 w-3" />
@@ -569,45 +666,41 @@ export default function SettingsPage() {
             </Card>
 
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Edit User</DialogTitle>
                   <DialogDescription>
-                    {editingUser ? `Update role and grade for ${editingUser.full_name}` : ""}
+                    {editingUser ? `Update profile for ${editingUser.full_name}` : ""}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-1">
+                    <Label>Full Name</Label>
+                    <Input value={editForm.full_name} onChange={(e) => setEditForm((p) => ({ ...p, full_name: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
                     <Label>Email</Label>
-                    <Input
-                      value={editForm.email}
-                      onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
-                      placeholder="user@shb.sch.id"
-                    />
+                    <Input value={editForm.email} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))} placeholder="user@shb.sch.id" />
                   </div>
                   <div className="space-y-1">
                     <Label>Role</Label>
-                    <select
-                      value={editForm.role}
-                      onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                      ))}
+                    <select value={editForm.role} onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserProfile["role"] }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                      {ROLES.map((r) => (<option key={r} value={r}>{ROLE_LABELS[r]}</option>))}
                     </select>
                   </div>
                   <div className="space-y-1">
                     <Label>Grade Assignment</Label>
-                    <select
-                      value={editForm.grade}
-                      onChange={(e) => setEditForm((p) => ({ ...p, grade: Number(e.target.value) }))}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                    >
-                      {GRADES.map((g) => (
-                        <option key={g} value={g}>Grade {g}</option>
-                      ))}
+                    <select value={editForm.grade} onChange={(e) => setEditForm((p) => ({ ...p, grade: Number(e.target.value) }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                      {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
                     </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Class Name (optional)</Label>
+                    <Input value={(editForm as any).class_name} onChange={(e) => setEditForm((p) => ({ ...p, class_name: e.target.value }))} placeholder="A" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_active" checked={editForm.is_active} onChange={(e) => setEditForm((p) => ({ ...p, is_active: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />
+                    <Label htmlFor="is_active" className="cursor-pointer">Active</Label>
                   </div>
                 </div>
                 <DialogFooter>
@@ -680,7 +773,7 @@ export default function SettingsPage() {
                           const result = await res.json()
                           if (res.ok) {
                             toast.success(result.message ?? "Upload berhasil")
-                            fetchUsers()
+                            fetchUsers(roleFilter)
                           } else {
                             toast.error(result.error ?? "Upload gagal")
                           }
@@ -703,30 +796,51 @@ export default function SettingsPage() {
                 <p className="mb-3 text-sm text-muted-foreground">
                   Upload a CSV with 3 sections: users (email auto-generated as <code>firstname.lastname@shb.sch.id</code>), subjects (code, name), and classes (grade, name). Uses semicolon delimiter. <a href="/api/users/template" className="text-primary underline">Download template</a>
                 </p>
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
-                  <Upload className="h-3 w-3" />
-                  Upload CSV
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const fd = new FormData()
-                      fd.append("file", file)
-                      const res = await fetch("/api/bulk-import", { method: "POST", body: fd })
-                      const result = await res.json()
-                      if (res.ok) {
-                        toast.success(`${result.summary.ok} ok, ${result.summary.skipped} skipped, ${result.summary.failed} failed`)
-                        fetchUsers()
-                      } else {
-                        toast.error(result.error ?? "Upload failed")
-                      }
-                      e.target.value = ""
-                    }}
-                  />
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
+                    <Upload className="h-3 w-3" />
+                    Upload CSV
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const fd = new FormData()
+                        fd.append("file", file)
+                        setCsvResult(null)
+                        const res = await fetch("/api/bulk-import", { method: "POST", body: fd })
+                        const result = await res.json()
+                        if (res.ok) {
+                          setCsvResult(result)
+                          toast.success(`${result.summary.ok} ok, ${result.summary.skipped} skipped, ${result.summary.failed} failed, ${result.summary.partial} partial`)
+                          fetchUsers(roleFilter)
+                        } else {
+                          toast.error(result.error ?? "Upload failed")
+                        }
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                  {csvResult && (
+                    <Button variant="ghost" size="sm" onClick={() => setCsvResult(null)}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {csvResult && (
+                  <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border p-3 text-xs">
+                    <p className="mb-1 font-medium">
+                      {csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.skipped} skipped, {csvResult.summary.partial} partial
+                    </p>
+                    {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
+                      <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
+                        [{r.type}] {r.name}: {r.error || r.status}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
