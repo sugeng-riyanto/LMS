@@ -694,6 +694,41 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk Import CSV (Users + Subjects + Classes)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Upload a CSV with 3 sections: users (email auto-generated as <code>firstname.lastname@shb.sch.id</code>), subjects (code, name), and classes (grade, name). Uses semicolon delimiter. <a href="/api/users/template" className="text-primary underline">Download template</a>
+                </p>
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
+                  <Upload className="h-3 w-3" />
+                  Upload CSV
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const fd = new FormData()
+                      fd.append("file", file)
+                      const res = await fetch("/api/bulk-import", { method: "POST", body: fd })
+                      const result = await res.json()
+                      if (res.ok) {
+                        toast.success(`${result.summary.ok} ok, ${result.summary.skipped} skipped, ${result.summary.failed} failed`)
+                        fetchUsers()
+                      } else {
+                        toast.error(result.error ?? "Upload failed")
+                      }
+                      e.target.value = ""
+                    }}
+                  />
+                </label>
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 

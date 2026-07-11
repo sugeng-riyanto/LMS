@@ -65,6 +65,7 @@ const API_ROLE_ROUTES: Record<string, Role[]> = {
   "/api/teacher-assignments/template": ["super_admin"],
   "/api/teacher-assignments/upload": ["super_admin"],
   "/api/teacher-assignments": ["super_admin", "teacher", "principal"],
+  "/api/bulk-import": ["super_admin"],
   "/api/upload": ["super_admin", "teacher"],
   "/api/subjects": ["super_admin", "teacher", "lab_assistant", "student", "principal"],
   "/api/tpa": ["super_admin", "principal", "teacher"],
