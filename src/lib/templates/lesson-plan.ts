@@ -23,6 +23,7 @@ export interface LessonPlanVars {
   classwork: string
   page: string
   assessment: string
+  milestone: string
   reflection: string
   resources: string
   vp: string
@@ -39,7 +40,7 @@ export const DEFAULT_VARS: LessonPlanVars = {
   closing: "Students and teacher summarise key points. Pray.",
   model: "Flipped Classroom", classwork: "", page: "",
   assessment: "Formative assessment through worksheet and class participation",
-  reflection: "", resources: "", vp: "", principal: "", unit: "Academic",
+  milestone: "", reflection: "", resources: "", vp: "", principal: "", unit: "Academic",
 }
 
 function getLevel(grade: number): string {
@@ -57,7 +58,7 @@ function replaceVars(text: string, vars: LessonPlanVars): string {
     "<<Activities>>": vars.activities, "<<Closing>>": vars.closing,
     "<<model>>": vars.model, "<<Classwork>>": vars.classwork,
     "<<page>>": vars.page, "<<Assessment>>": vars.assessment,
-    "<<Reflection>>": vars.reflection, "<<Resources>>": vars.resources,
+    "<<Milestone>>": vars.milestone, "<<Reflection>>": vars.reflection, "<<Resources>>": vars.resources,
     "<<vp>>": vars.vp, "<<principal>>": vars.principal, "<<unit>>": vars.unit,
     "__Grade__": String(vars.grade), "__Period1__": vars.period1, "__Period2__": vars.period2,
   }
@@ -120,6 +121,7 @@ export async function fillDOCX(vars: LessonPlanVars): Promise<Buffer> {
         "&lt;&lt;Classwork&gt;&gt;": toXmlText(vars.classwork),
         "&lt;&lt;page&gt;&gt;": toXmlText(vars.page),
         "&lt;&lt;Assessment&gt;&gt;": toXmlText(vars.assessment),
+        "&lt;&lt;Milestone&gt;&gt;": toXmlText(vars.milestone),
         "&lt;&lt;Reflection&gt;&gt;": toXmlText(vars.reflection),
         "&lt;&lt;Resources&gt;&gt;": toXmlText(vars.resources),
         "&lt;&lt;vp&gt;&gt;": toXmlText(vars.vp),

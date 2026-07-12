@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (authError) return authError
 
     const body = await request.json()
-    const { grade, week_number, topic, subtopics, syllabus_ref, opening_ideas, activity_questions, problems, calendar_status, effective_days } = body
+    const { grade, week_number, topic, subtopics, syllabus_ref, opening_ideas, activity_questions, problems, calendar_status, effective_days, objectives, evaluation, milestone, reflection } = body
 
     if (!grade || !week_number || !topic) {
       return NextResponse.json({ error: "grade, week_number, and topic are required" }, { status: 400 })
@@ -82,6 +82,10 @@ export async function POST(request: NextRequest) {
         subject: body.subject ?? "PHY",
         published: body.published ?? false,
         created_by: user.id,
+        objectives: objectives ?? null,
+        evaluation: evaluation ?? {},
+        milestone: milestone ?? null,
+        reflection: reflection ?? null,
       })
       .select()
       .single()

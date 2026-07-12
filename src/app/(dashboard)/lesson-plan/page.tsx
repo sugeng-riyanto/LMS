@@ -37,7 +37,7 @@ function getDefaultForm() {
     closing: "Students and teacher summarise key points. Pray.",
     model: "Flipped Classroom", classwork: "", page: "",
     assessment: "Formative assessment through worksheet and class participation",
-    reflection: "", resources: "",
+    milestone: "", reflection: "", resources: "",
     vp: "Christina Sri Waryanti, S.Pd.", principal: "Sisilia Juni Arianti, S.Pd., M.Pd.", unit: "Academic",
   }
 }
@@ -406,6 +406,10 @@ export default function LessonPlanPage() {
                 <div className="space-y-1">
                   <Label>Reflection</Label>
                   <Textarea value={form.reflection} onChange={(e) => update("reflection", e.target.value)} rows={2} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Milestone / Checkpoint</Label>
+                  <Textarea value={form.milestone} onChange={(e) => update("milestone", e.target.value)} rows={2} placeholder="Key milestones — what should students accomplish? (e.g. 'Complete lab report', 'Submit CER')" />
                 </div>
                 <div className="space-y-1">
                   <Label>Resources / References</Label>

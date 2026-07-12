@@ -46,6 +46,9 @@ export async function POST(request: NextRequest) {
       const catIdx = headers.findIndex(h => h.includes("score") || h.includes("category"))
       const maxScoreIdx = headers.findIndex(h => h.includes("max") && h.includes("score"))
       const mediaIdx = headers.findIndex(h => h.includes("media"))
+      const objectivesIdx = headers.findIndex(h => h.includes("objective"))
+      const milestoneIdx = headers.findIndex(h => h.includes("milestone"))
+      const reflectionIdx = headers.findIndex(h => h.includes("reflection"))
 
       if (weekIdx === -1 || topicIdx === -1) {
         return NextResponse.json({ error: "Template must have 'Week' and 'Topic' columns" }, { status: 400 })
@@ -67,6 +70,9 @@ export async function POST(request: NextRequest) {
           score_category: catIdx >= 0 ? String(row.getCell(catIdx + 1).value || "classwork").trim() : "classwork",
           max_score: maxScoreIdx >= 0 ? String(row.getCell(maxScoreIdx + 1).value || "100").trim() : "100",
           media_links: mediaIdx >= 0 ? String(row.getCell(mediaIdx + 1).value || "").trim() : "",
+          objectives: objectivesIdx >= 0 ? String(row.getCell(objectivesIdx + 1).value || "").trim() : "",
+          milestone: milestoneIdx >= 0 ? String(row.getCell(milestoneIdx + 1).value || "").trim() : "",
+          reflection: reflectionIdx >= 0 ? String(row.getCell(reflectionIdx + 1).value || "").trim() : "",
         }
         rows.push(rowData)
       })
@@ -87,6 +93,9 @@ export async function POST(request: NextRequest) {
       const catIdx = headers.findIndex(h => h.includes("score") || h.includes("category"))
       const maxScoreIdx = headers.findIndex(h => h.includes("max") && h.includes("score"))
       const mediaIdx = headers.findIndex(h => h.includes("media"))
+      const objectivesIdx = headers.findIndex(h => h.includes("objective"))
+      const milestoneIdx = headers.findIndex(h => h.includes("milestone"))
+      const reflectionIdx = headers.findIndex(h => h.includes("reflection"))
 
       if (weekIdx === -1 || topicIdx === -1) {
         return NextResponse.json({ error: "CSV must have 'Week' and 'Topic' columns" }, { status: 400 })
@@ -108,6 +117,9 @@ export async function POST(request: NextRequest) {
           score_category: catIdx >= 0 ? vals[catIdx] || "classwork" : "classwork",
           max_score: maxScoreIdx >= 0 ? vals[maxScoreIdx] || "100" : "100",
           media_links: mediaIdx >= 0 ? vals[mediaIdx] || "" : "",
+          objectives: objectivesIdx >= 0 ? vals[objectivesIdx] || "" : "",
+          milestone: milestoneIdx >= 0 ? vals[milestoneIdx] || "" : "",
+          reflection: reflectionIdx >= 0 ? vals[reflectionIdx] || "" : "",
         }
         rows.push(rowData)
       }
@@ -166,6 +178,9 @@ export async function POST(request: NextRequest) {
         effective_days: 5,
         status: "planned",
         published: false,
+        objectives: row.objectives || null,
+        milestone: row.milestone || null,
+        reflection: row.reflection || null,
       }, {
         onConflict: "academic_year,grade,week_number,subject",
         ignoreDuplicates: false,

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
-import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check } from "lucide-react"
+import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check, CalendarDays, Lightbulb } from "lucide-react"
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
@@ -50,6 +50,9 @@ interface Worksheet {
   max_score: number | null
   subject: string | null
   created_at: string
+  evaluation: Record<string, any>
+  milestone: string | null
+  reflection: string | null
 }
 
 export default function WorksheetsPage() {
@@ -79,7 +82,12 @@ export default function WorksheetsPage() {
     additional_links: "",
     score_category: "classwork",
     max_score: "100",
-    subject: "PHY"
+    subject: "PHY",
+    evaluation_criteria: "",
+    evaluation_method: "formative",
+    evaluation_notes: "",
+    milestone: "",
+    reflection: "",
   })
 
   const weeks = useMemo(() => {
@@ -183,6 +191,13 @@ export default function WorksheetsPage() {
         score_category: form.score_category || null,
         max_score: form.max_score ? Number(form.max_score) : 100,
         subject: form.subject || "PHY",
+        evaluation: {
+          criteria: form.evaluation_criteria || "",
+          method: form.evaluation_method || "formative",
+          notes: form.evaluation_notes || "",
+        },
+        milestone: form.milestone || null,
+        reflection: form.reflection || null,
       }
 
       const url = editingId ? `/api/worksheets/${editingId}` : "/api/worksheets"
@@ -212,6 +227,7 @@ export default function WorksheetsPage() {
 
   function handleEdit(ws: Worksheet) {
     const addLinks = (ws.media_links || []).map(m => `${m.url} | ${m.title} | ${m.type}`).join("\n")
+    const ev = (ws.evaluation || {}) as Record<string, any>
     setForm({
       title: ws.title,
       grade: String(ws.grade),
@@ -227,6 +243,11 @@ export default function WorksheetsPage() {
       score_category: ws.score_category || "classwork",
       max_score: String(ws.max_score ?? 100),
       subject: ws.subject || "PHY",
+      evaluation_criteria: ev.criteria || "",
+      evaluation_method: ev.method || "formative",
+      evaluation_notes: ev.notes || "",
+      milestone: ws.milestone || "",
+      reflection: ws.reflection || "",
     })
     const savedObjectives = (ws.objectives || "").split("\n").filter(Boolean)
     setSelectedObjectives(new Set(savedObjectives))
@@ -239,7 +260,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100", subject: "PHY" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100", subject: "PHY", evaluation_criteria: "", evaluation_method: "formative", evaluation_notes: "", milestone: "", reflection: "" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
@@ -492,6 +513,63 @@ export default function WorksheetsPage() {
                 placeholder="100" />
             </div>
 
+            <hr className="border-dashed" />
+
+            {/* Evaluation */}
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 text-orange-600" />
+                Evaluation / Assessment
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Criteria</Label>
+                  <Input value={form.evaluation_criteria} onChange={e => updateForm({ evaluation_criteria: e.target.value })}
+                    placeholder="Accuracy, reasoning, etc." />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Method</Label>
+                  <select value={form.evaluation_method} onChange={e => updateForm({ evaluation_method: e.target.value })}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="formative">Formative</option>
+                    <option value="summative">Summative</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="peer">Peer Assessment</option>
+                    <option value="self">Self Assessment</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Notes</Label>
+                  <Input value={form.evaluation_notes} onChange={e => updateForm({ evaluation_notes: e.target.value })}
+                    placeholder="Additional notes..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Milestone */}
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
+                <CalendarDays className="h-4 w-4 text-blue-600" />
+                Milestone / Checkpoint
+              </h3>
+              <textarea className="w-full min-h-[60px] rounded-lg border border-input bg-background p-2 text-sm"
+                value={form.milestone}
+                onChange={e => updateForm({ milestone: e.target.value })}
+                placeholder="Key milestones — what should students accomplish? (e.g. 'Complete data analysis', 'Submit hypothesis')" />
+            </div>
+
+            {/* Reflection */}
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
+                <Lightbulb className="h-4 w-4 text-purple-600" />
+                Reflection / Notes
+              </h3>
+              <textarea className="w-full min-h-[60px] rounded-lg border border-input bg-background p-2 text-sm"
+                value={form.reflection}
+                onChange={e => updateForm({ reflection: e.target.value })}
+                placeholder="Post-worksheet reflection — what worked well? What to improve?" />
+            </div>
+
             {/* Additional Links */}
             <div className="space-y-2">
               <Label>Additional Embed Links <span className="text-xs text-muted-foreground font-normal">(one per line: url | title | type)</span></Label>
@@ -542,6 +620,9 @@ export default function WorksheetsPage() {
                     {ws.reference_pdf_url && <Badge variant="outline" className="text-[10px]">📄 Ref PDF</Badge>}
                     {ws.theory_video_url && <Badge variant="outline" className="text-[10px]">🎬 Theory Video</Badge>}
                     {ws.objectives && <Badge variant="outline" className="text-[10px]">🎯 Objectives</Badge>}
+                    {ws.milestone && <Badge variant="outline" className="text-[10px]">🏁 Milestone</Badge>}
+                    {ws.reflection && <Badge variant="outline" className="text-[10px]">💭 Reflection</Badge>}
+                    {ws.evaluation && (ws.evaluation as any).criteria && <Badge variant="outline" className="text-[10px]">📊 Evaluation</Badge>}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(publicUrl, "_blank")}>

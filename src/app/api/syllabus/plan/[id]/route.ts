@@ -44,6 +44,7 @@ export async function PUT(
       "opening_ideas", "activity_questions", "problems",
       "calendar_status", "effective_days", "status",
       "score_category", "max_score", "subject", "published",
+      "objectives", "evaluation", "milestone", "reflection",
     ]
 
     const updates: Record<string, unknown> = {}

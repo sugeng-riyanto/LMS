@@ -11,12 +11,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2, FileSpreadsheet, Upload, FileCheck } from "lucide-react"
+import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plus, Trash2, FileDown, FileText, FileType, Wand2, Printer, Video, Link as LinkIcon, Music, File, Share2, FileSpreadsheet, Upload, FileCheck, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
 import { GRADES, SUBJECTS } from "@/lib/utils/constants"
-import { getCurrentWeek } from "@/lib/utils/week-calculator"
+import { getCurrentWeek, getGradeSequence } from "@/lib/utils/week-calculator"
 import { getSubjectTopic, SUBJECTS_WITH_TEMPLATES, SUBJECT_GRADE_SEQUENCES } from "@/lib/syllabus/subject-templates"
 import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
@@ -60,6 +60,10 @@ interface SyllabusPlan {
   max_score: number
   subject: string
   published: boolean
+  objectives: string
+  evaluation: Record<string, any>
+  milestone: string
+  reflection: string
 }
 
 const FlippedPhases = [
@@ -84,6 +88,10 @@ const defaultPlan: SyllabusPlan = {
   max_score: 100,
   subject: "PHY",
   published: false,
+  objectives: "",
+  evaluation: {},
+  milestone: "",
+  reflection: "",
 }
 
 export default function SyllabusPlannerPage() {
@@ -174,12 +182,13 @@ export default function SyllabusPlannerPage() {
         supabase.from("syllabus_planning").select("*").eq("grade", selectedGrade).eq("week_number", selectedWeek).eq("subject", plan.subject || "PHY").maybeSingle(),
       ])
 
+      let resolvedTopics: SyllabusTopic[] = []
       if (topicsRes.data && topicsRes.data.length > 0) {
-        setTopics(topicsRes.data as SyllabusTopic[])
+        resolvedTopics = topicsRes.data as SyllabusTopic[]
       } else if (SUBJECTS_WITH_TEMPLATES.includes(plan.subject as any)) {
         const seq = SUBJECT_GRADE_SEQUENCES[plan.subject as keyof typeof SUBJECT_GRADE_SEQUENCES]?.[selectedGrade]
         if (seq) {
-          const virtualTopics: SyllabusTopic[] = Object.entries(seq).map(([week, topic]) => ({
+          resolvedTopics = Object.entries(seq).map(([week, topic]) => ({
             id: `template-${plan.subject}-${selectedGrade}-${week}`,
             grade: selectedGrade,
             unit_id: topic.toLowerCase().replace(/[\s:,.']+/g, "-").replace(/[^a-z0-9-]/g, ""),
@@ -189,13 +198,13 @@ export default function SyllabusPlannerPage() {
             curriculum: "Cambridge",
             suggested_weeks: [parseInt(week)],
           }))
-          setTopics(virtualTopics)
         } else {
-          setTopics(topicsRes.data as SyllabusTopic[] || [])
+          resolvedTopics = topicsRes.data as SyllabusTopic[] || []
         }
       } else {
-        setTopics(topicsRes.data as SyllabusTopic[] || [])
+        resolvedTopics = topicsRes.data as SyllabusTopic[] || []
       }
+      setTopics(resolvedTopics)
       if (eventsRes.data) setEvents(eventsRes.data as CalendarEvent[])
       // Load objectives
       try {
@@ -220,16 +229,35 @@ export default function SyllabusPlannerPage() {
           max_score: (p.max_score as number) ?? 100,
           subject: (p.subject as string) ?? "PHY",
           published: (p.published as boolean) ?? false,
+          objectives: (p.objectives as string) ?? "",
+          evaluation: (p.evaluation as Record<string, any>) ?? {},
+          milestone: (p.milestone as string) ?? "",
+          reflection: (p.reflection as string) ?? "",
         })
         setSelectedTopicIds(new Set(p.subtopics as string[] ?? []))
         // Load media sources from saved plan
         const media = p.media_links as Array<{ section: string; type: string; title: string; url: string }> | undefined
         if (media && Array.isArray(media) && media.length > 0) {
           setMediaSources(media)
+        } else {
+          setMediaSources([])
         }
       } else {
-        setPlan({ ...defaultPlan, grade: selectedGrade, week_number: selectedWeek })
-        setSelectedTopicIds(new Set())
+        // Auto-suggest topic from grade sequence
+        let suggestedTopic = ""
+        const seq = SUBJECT_GRADE_SEQUENCES[plan.subject as keyof typeof SUBJECT_GRADE_SEQUENCES]
+        if (seq && seq[selectedGrade] && seq[selectedGrade][selectedWeek]) {
+          suggestedTopic = seq[selectedGrade][selectedWeek]
+        } else {
+          suggestedTopic = getGradeSequence(selectedGrade, selectedWeek)
+        }
+        const matchingTopics = resolvedTopics.filter(t =>
+          t.topic.toLowerCase() === suggestedTopic.toLowerCase() ||
+          t.unit_id.toLowerCase() === suggestedTopic.toLowerCase().replace(/[\s:,.']+/g, "-").replace(/[^a-z0-9-]/g, "")
+        )
+        setPlan({ ...defaultPlan, grade: selectedGrade, week_number: selectedWeek, topic: suggestedTopic })
+        setSelectedTopicIds(new Set(matchingTopics.map(t => t.unit_id)))
+        setMediaSources([])
       }
     } catch (e) {
       console.error(e)
@@ -399,6 +427,10 @@ export default function SyllabusPlannerPage() {
         max_score: plan.max_score || 100,
         subject: plan.subject || "PHY",
         published: plan.published ?? false,
+        objectives: plan.objectives || null,
+        evaluation: plan.evaluation || {},
+        milestone: plan.milestone || null,
+        reflection: plan.reflection || null,
       }
 
       let error: any = null
@@ -527,6 +559,73 @@ export default function SyllabusPlannerPage() {
       setSelectedTopicIds(new Set())
       toast.success(`Template: "${topic}" set. Adjust topics as needed.`)
     }
+  }
+
+  function downloadMDTemplate() {
+    const subjectObj = SUBJECTS.find(s => s.code === plan.subject)
+    const subjectName = subjectObj?.name || plan.subject
+    const now = new Date().toISOString().split("T")[0]
+
+    const header = `# Syllabus Planning Template
+
+**Subject:** ${subjectName} (${plan.subject})
+**Grade:** ${selectedGrade}
+**Academic Year:** 2026-2027
+**Generated:** ${now}
+
+---
+
+| Week | Topic | Subtopics | Opening Ideas | Activity Questions | Problems | Score Category | Max Score | Media Links | Objectives | Milestone | Reflection |
+|------|-------|-----------|---------------|-------------------|----------|----------------|-----------|-------------|------------|-----------|------------|
+`
+
+    const rows: string[] = []
+    const seq = SUBJECT_GRADE_SEQUENCES[plan.subject as keyof typeof SUBJECT_GRADE_SEQUENCES]
+
+    for (let w = 1; w <= 22; w++) {
+      let topic = ""
+      if (seq && seq[selectedGrade] && seq[selectedGrade][w]) {
+        topic = seq[selectedGrade][w]
+      } else {
+        topic = getGradeSequence(selectedGrade, w)
+      }
+      rows.push(`| ${w} | ${topic} | | | | | classwork | 100 | | | | |`)
+    }
+
+    const footer = `
+---
+
+## Instructions
+
+1. **Week** — Pre-filled 1–22, do not change
+2. **Topic** — Pre-filled from your subject's Cambridge-aligned sequence
+3. **Subtopics** — Comma-separated list (e.g. distance, displacement, speed, velocity)
+4. **Opening Ideas** — A hook, myth-buster, or engaging question (e.g. "Why do astronauts float?")
+5. **Activity Questions** — One per line. Format: \`Question | BloomLevel | Timing\`
+   - Blooms: remember, understand, apply, analyze, evaluate, create
+   - Timing: 10 min (L1), 20 min (L2), 10 min CER (L3)
+   - Example: \`What is Newton's Second Law? | remember | 10 min\`
+6. **Problems** — One per line. Format: \`Problem | Level\`
+   - Levels: L1 (Sanity Check), L2 (Mistake Hunter), L3 (CER Challenge)
+7. **Score Category** — Must be one of: classwork, unit_test, project, homework, mid_semester, final_semester
+8. **Max Score** — Default 100, set the maximum score for this week's assessment
+9. **Media Links** — Comma-separated YouTube URLs, Google Drive PDF links, or resource URLs
+10. **Objectives** — Specific learning outcomes for this week
+11. **Milestone** — Key checkpoints or deliverables for students
+12. **Reflection** — Post-lesson notes on what worked well or needs improvement
+
+**Required fields:** Week, Topic, Score Category, Max Score
+`
+
+    const md = header + rows.join("\n") + footer
+    const blob = new Blob([md], { type: "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${plan.subject}-Grade${selectedGrade}-Syllabus-Template.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Markdown template downloaded!")
   }
 
   function generateSyllabusMD(): string {
@@ -1029,6 +1128,8 @@ document.addEventListener("DOMContentLoaded", function() {
             principal: selectedGrade <= 9 ? "Sisilia Juni Arianti, S.Pd., M.Pd." : "Dr Agustinus Joko Purwanto, S.Pd., M.M.",
             unit: "Academic",
             classwork: plan.problems.map(p => `${p.problem} (${p.level})`).join("\n"),
+            milestone: plan.milestone || "",
+            reflection: plan.reflection || "",
           },
         }),
       })
@@ -1068,6 +1169,10 @@ document.addEventListener("DOMContentLoaded", function() {
           <Button onClick={handleTemplateFill} disabled={loading} variant="outline" size="sm">
             <FileSpreadsheet className="mr-1 h-3 w-3" />
             Template Fill
+          </Button>
+          <Button onClick={downloadMDTemplate} variant="outline" size="sm">
+            <FileType className="mr-1 h-3 w-3" />
+            MD Template
           </Button>
           <Button onClick={handleAIGenerate} disabled={loading || generatingAI} variant="outline" size="sm">
             <Wand2 className="mr-1 h-3 w-3" />
@@ -1118,8 +1223,11 @@ document.addEventListener("DOMContentLoaded", function() {
             {GRADES.map((g) => <option key={g} value={g}>Grade {g}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Label className="font-medium">Week</Label>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))} disabled={selectedWeek <= 1}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <select
             value={selectedWeek}
             onChange={(e) => setSelectedWeek(Number(e.target.value))}
@@ -1129,6 +1237,9 @@ document.addEventListener("DOMContentLoaded", function() {
               <option key={w} value={w}>Week {w}</option>
             ))}
           </select>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedWeek(Math.min(43, selectedWeek + 1))} disabled={selectedWeek >= 43}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
         <Badge variant={eventBadgeVariant} className="gap-1">
           <CalendarDays className="h-3 w-3" />
@@ -1463,6 +1574,104 @@ document.addEventListener("DOMContentLoaded", function() {
                   </Button>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Objectives */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-green-600" />
+                Learning Objectives
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={plan.objectives}
+                onChange={(e) => setPlan(prev => ({ ...prev, objectives: e.target.value }))}
+                placeholder="What will students be able to do by the end of this lesson? List specific, measurable learning outcomes..."
+                rows={4}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Evaluation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-orange-600" />
+                Evaluation / Assessment
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Criteria</Label>
+                  <Input
+                    value={plan.evaluation.criteria ?? ""}
+                    onChange={(e) => setPlan(prev => ({ ...prev, evaluation: { ...prev.evaluation, criteria: e.target.value } }))}
+                    placeholder="Describe evaluation criteria (e.g. accuracy, methodology, reasoning)"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Method</Label>
+                  <select
+                    value={plan.evaluation.method ?? "formative"}
+                    onChange={(e) => setPlan(prev => ({ ...prev, evaluation: { ...prev.evaluation, method: e.target.value } }))}
+                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="formative">Formative</option>
+                    <option value="summative">Summative</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="peer">Peer Assessment</option>
+                    <option value="self">Self Assessment</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Notes</Label>
+                  <Input
+                    value={plan.evaluation.notes ?? ""}
+                    onChange={(e) => setPlan(prev => ({ ...prev, evaluation: { ...prev.evaluation, notes: e.target.value } }))}
+                    placeholder="Any additional evaluation notes"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Milestone */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-blue-600" />
+                Milestone / Checkpoint
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={plan.milestone}
+                onChange={(e) => setPlan(prev => ({ ...prev, milestone: e.target.value }))}
+                placeholder="Key milestones for this week — what must students accomplish? (e.g. 'Complete Lab Report Draft', 'Submit CER Response')"
+                rows={3}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Reflection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-purple-600" />
+                Reflection / Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={plan.reflection}
+                onChange={(e) => setPlan(prev => ({ ...prev, reflection: e.target.value }))}
+                placeholder="Post-lesson reflection — what worked well? What to improve? Any notes for next week..."
+                rows={3}
+              />
             </CardContent>
           </Card>
         </div>

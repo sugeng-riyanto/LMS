@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
       { header: "Score Category", key: "score_category", width: 20 },
       { header: "Max Score", key: "max_score", width: 12 },
       { header: "Media Links (comma-separated URLs)", key: "media_links", width: 50 },
+      { header: "Objectives", key: "objectives", width: 50 },
+      { header: "Milestone", key: "milestone", width: 40 },
+      { header: "Reflection", key: "reflection", width: 40 },
     ]
 
     ws.getRow(1).font = { bold: true, size: 11 }
@@ -71,6 +74,9 @@ export async function GET(request: NextRequest) {
         score_category: "classwork",
         max_score: 100,
         media_links: "",
+        objectives: "",
+        milestone: "",
+        reflection: "",
       })
 
       row.getCell(1).alignment = { horizontal: "center" }
@@ -95,7 +101,10 @@ export async function GET(request: NextRequest) {
     instructionsSheet.addRow(["6. Score Category: must be one of: classwork, unit_test, project, homework, mid_semester, final_semester"])
     instructionsSheet.addRow(["7. Max Score: default 100, set the maximum score for this week's assessment."])
     instructionsSheet.addRow(["8. Media Links: comma-separated YouTube URLs or resource links."])
-    instructionsSheet.addRow(["9. Save as XLSX and upload to Syllabus Manager > Upload > Excel/CSV tab."])
+    instructionsSheet.addRow(["9. Objectives: specific learning outcomes for this week."])
+    instructionsSheet.addRow(["10. Milestone: key checkpoints or deliverables for students."])
+    instructionsSheet.addRow(["11. Reflection: post-lesson notes — what worked well or needs improvement."])
+    instructionsSheet.addRow(["12. Save as XLSX and upload to Syllabus Manager > Upload > Excel/CSV tab."])
     instructionsSheet.addRow([])
     instructionsSheet.addRow(["Required fields: Week, Topic, Score Category, Max Score"])
     instructionsSheet.getRow(1).font = { bold: true, size: 12 }
