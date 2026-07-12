@@ -135,10 +135,12 @@ export async function POST(request: NextRequest) {
     const validCategories = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
     let saved = 0
     let errors = 0
+    let lastError = ""
 
     for (const row of rows) {
-      const weekNum = parseInt(row.week)
-      if (isNaN(weekNum) || weekNum < 1 || weekNum > 43) { errors++; continue }
+      const weekVal = row.week.replace(/\*\*/g, "").replace(/[*_~`]/g, "").trim()
+      const weekNum = parseInt(weekVal)
+      if (isNaN(weekNum) || weekNum < 1 || weekNum > 43) { errors++; lastError = `Invalid week: "${row.week}"`; continue }
 
       const cat = validCategories.includes(row.score_category) ? row.score_category : "classwork"
       const maxScore = Math.max(1, parseInt(row.max_score) || 100)
@@ -187,11 +189,11 @@ export async function POST(request: NextRequest) {
       })
 
       if (!error) saved++
-      else errors++
+      else { errors++; lastError = error.message || String(error) }
     }
 
     return NextResponse.json({
-      message: `Saved ${saved} of ${rows.length} weeks${errors > 0 ? ` (${errors} errors)` : ""}`,
+      message: `Saved ${saved} of ${rows.length} weeks${errors > 0 ? ` (${errors} errors${lastError ? `: ${lastError}` : ""})` : ""}`,
       saved,
       total: rows.length,
       errors,
