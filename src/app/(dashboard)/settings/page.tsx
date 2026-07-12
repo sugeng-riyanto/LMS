@@ -466,6 +466,12 @@ export default function SettingsPage() {
               Database
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="assessment-weights">
+              <Settings className="mr-1 h-4 w-4" />
+              Weights
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isSuperAdmin && (
@@ -1259,6 +1265,11 @@ export default function SettingsPage() {
             <SupabaseTab />
           </TabsContent>
         )}
+        {isSuperAdmin && (
+          <TabsContent value="assessment-weights" className="space-y-6">
+            <AssessmentWeightsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
@@ -2040,6 +2051,133 @@ function SubjectsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function AssessmentWeightsTab() {
+  const [selectedGrade, setSelectedGrade] = useState(10)
+  const [weightForm, setWeightForm] = useState<Record<string, string>>({
+    classwork: "0.400", unit_test: "0.200", project: "0.100", homework: "0.100", mid_semester: "0.100", final_semester: "0.100",
+  })
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [savedMessage, setSavedMessage] = useState("")
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    classwork: "Classwork", unit_test: "Unit Test", project: "Project", homework: "Homework", mid_semester: "Mid Semester", final_semester: "Final Semester",
+  }
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/assessment-weights?grade=${selectedGrade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (data.length > 0) {
+          const form: Record<string, string> = {}
+          for (const item of data) {
+            form[item.category] = item.weight.toFixed(3)
+          }
+          setWeightForm(prev => ({ ...prev, ...form }))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [selectedGrade])
+
+  async function handleSave() {
+    const weights: Record<string, number> = {}
+    for (const [cat, val] of Object.entries(weightForm)) {
+      weights[cat] = parseFloat(val) || 0
+    }
+    const total = Object.values(weights).reduce((s, w) => s + w, 0)
+    if (Math.abs(total - 1) > 0.01) { toast.error(`Total must be 100% (currently ${(total * 100).toFixed(1)}%)`); return }
+
+    setSaving(true)
+    try {
+      const res = await fetch("/api/assessment-weights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ grade: selectedGrade, weights }),
+      })
+      if (res.ok) { toast.success(`Weights saved for Grade ${selectedGrade}!`); setSavedMessage(`Last saved: ${new Date().toLocaleTimeString()}`) }
+      else { const e = await res.json(); toast.error(e.error) }
+    } catch { toast.error("Failed to save") }
+    finally { setSaving(false) }
+  }
+
+  function applyToAllGrades() {
+    if (!confirm(`Apply current weights to ALL grades (7-12)?`)) return
+    ;[7, 8, 9, 10, 11, 12].reduce(async (prev, g) => {
+      await prev
+      const weights: Record<string, number> = {}
+      for (const [cat, val] of Object.entries(weightForm)) {
+        weights[cat] = parseFloat(val) || 0
+      }
+      try {
+        await fetch("/api/assessment-weights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ grade: g, weights }),
+        })
+      } catch {}
+    }, Promise.resolve())
+    toast.success("Applied to all grades!")
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="space-y-1">
+          <Label>Grade</Label>
+          <select value={selectedGrade} onChange={e => setSelectedGrade(Number(e.target.value))}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+            {[7, 8, 9, 10, 11, 12].map(g => <option key={g} value={g}>Grade {g}</option>)}
+          </select>
+        </div>
+        <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Weights"}</Button>
+        <Button variant="outline" onClick={applyToAllGrades}>Apply to All Grades</Button>
+        {savedMessage && <span className="text-xs text-muted-foreground">{savedMessage}</span>}
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Assessment Weights — Grade {selectedGrade}</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : (
+            <div className="space-y-3">
+              {["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"].map(cat => {
+                const pct = ((parseFloat(weightForm[cat]) || 0) * 100).toFixed(1)
+                return (
+                  <div key={cat} className="flex items-center gap-4 rounded-lg border p-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{CATEGORY_LABELS[cat]}</p>
+                      <p className="text-[10px] text-muted-foreground">{cat}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="range" min="0" max="100" step="5" value={parseFloat(pct)}
+                        onChange={e => setWeightForm(prev => ({ ...prev, [cat]: (parseInt(e.target.value) / 100).toFixed(3) }))}
+                        className="w-32 h-2 accent-primary" />
+                      <input type="number" min="0" max="100" step="5" value={pct}
+                        onChange={e => setWeightForm(prev => ({ ...prev, [cat]: (parseFloat(e.target.value) / 100).toFixed(3) }))}
+                        className="w-20 h-8 rounded border border-input bg-background px-2 text-sm text-right" />
+                      <span className="text-sm text-muted-foreground w-8">%</span>
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <span className="text-sm font-semibold">Total</span>
+                <span className={`text-sm font-bold ${Math.abs(Object.values(weightForm).reduce((s, v) => s + (parseFloat(v) || 0), 0) - 1) < 0.01 ? "text-green-600" : "text-destructive"}`}>
+                  {(Object.values(weightForm).reduce((s, v) => s + (parseFloat(v) || 0), 0) * 100).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <p className="text-xs text-muted-foreground">Weights affect score calculations in Analytics, My Progress, Grading, and Score Exports.</p>
     </div>
   )
 }

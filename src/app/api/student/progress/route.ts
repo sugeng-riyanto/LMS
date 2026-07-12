@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
+import { getAssessmentWeights, CATEGORIES, CATEGORY_LABELS } from "@/lib/syllabus/assessment-weights"
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +9,14 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const subject = searchParams.get("subject")
+
+    // Get student's grade
+    const { data: stuProfile } = await (supabase.from("profiles") as any)
+      .select("grade_assigned").eq("id", user.id).maybeSingle()
+    const grade = stuProfile?.grade_assigned || 10
+    const weights = await getAssessmentWeights(supabase, grade)
+    const categories = CATEGORIES
+    const labels = CATEGORY_LABELS
 
     // Show scores only when teacher has published (status = 'returned')
     let workQuery = (supabase.from("student_work") as any)
@@ -18,11 +27,6 @@ export async function GET(request: Request) {
     const { data: work } = await workQuery.order("submitted_at", { ascending: false })
 
     const items = (work ?? []) as Array<Record<string, unknown>>
-
-    // Calculate per-category averages
-    const categories = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"] as const
-    const weights: Record<string, number> = { classwork: 0.4, unit_test: 0.2, project: 0.1, homework: 0.1, mid_semester: 0.1, final_semester: 0.1 }
-    const labels: Record<string, string> = { classwork: "Classwork", unit_test: "Unit Test", project: "Project", homework: "Homework", mid_semester: "Mid Semester", final_semester: "Final Semester" }
 
     const breakdown = categories.map((cat) => {
       const catItems = items.filter((i) => i.score_category === cat)

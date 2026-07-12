@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+import { getAssessmentWeights, CATEGORIES, CATEGORY_LABELS } from "@/lib/syllabus/assessment-weights"
 import * as XLSX from "xlsx"
-
-const CATEGORIES = ["classwork", "unit_test", "project", "homework", "mid_semester", "final_semester"]
-const WEIGHTS: Record<string, number> = { classwork: 0.4, unit_test: 0.2, project: 0.1, homework: 0.1, mid_semester: 0.1, final_semester: 0.1 }
-const LABELS: Record<string, string> = { classwork: "Classwork", unit_test: "Unit Test", project: "Project", homework: "Homework", mid_semester: "Mid Semester", final_semester: "Final Semester" }
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +10,13 @@ export async function GET(request: NextRequest) {
     if (authError) return authError
 
     const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown"
+    const { searchParams } = new URL(request.url)
+    const grade = parseInt(searchParams.get("grade") || "0")
+
+    const WEIGHTS = await getAssessmentWeights(supabase, grade)
+    const LABELS = CATEGORY_LABELS
     const geo = request.headers.get("x-vercel-ip-city") || ""
 
-    const { searchParams } = new URL(request.url)
-    const grade = searchParams.get("grade")
     const subject = searchParams.get("subject")
 
     const admin = createAdminClient()
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
       else if (level === "SHS") studentsQuery = studentsQuery.in("grade_assigned", [10, 11, 12])
     }
 
-    if (grade && grade !== "all") {
-      studentsQuery = studentsQuery.eq("grade_assigned", parseInt(grade))
+    if (grade > 0) {
+      studentsQuery = studentsQuery.eq("grade_assigned", grade)
     }
 
     const { data: students } = await studentsQuery
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
       })
     } catch { /* non-blocking */ }
 
-    const gradeLabel = grade && grade !== "all" ? `grade-${grade}` : "all-grades"
+    const gradeLabel = grade > 0 ? `grade-${grade}` : "all-grades"
     return new NextResponse(buf, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
