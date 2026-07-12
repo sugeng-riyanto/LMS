@@ -472,6 +472,18 @@ export default function SettingsPage() {
               Weights
             </TabsTrigger>
           )}
+          {isSuperAdmin && (
+            <TabsTrigger value="syllabus-refs">
+              <BookOpen className="mr-1 h-4 w-4" />
+              Syllabus Ref
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="weekly-hours">
+              <Settings className="mr-1 h-4 w-4" />
+              Hours
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {isSuperAdmin && (
@@ -1268,6 +1280,16 @@ export default function SettingsPage() {
         {isSuperAdmin && (
           <TabsContent value="assessment-weights" className="space-y-6">
             <AssessmentWeightsTab />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="syllabus-refs" className="space-y-6">
+            <SyllabusRefsTab />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="weekly-hours" className="space-y-6">
+            <WeeklyHoursTab />
           </TabsContent>
         )}
       </Tabs>
@@ -2178,6 +2200,120 @@ function AssessmentWeightsTab() {
         </CardContent>
       </Card>
       <p className="text-xs text-muted-foreground">Weights affect score calculations in Analytics, My Progress, Grading, and Score Exports.</p>
+    </div>
+  )
+}
+
+function SyllabusRefsTab() {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ subject_code: "PHY", grade: 10, ref: "" })
+
+  useEffect(() => { fetchData() }, [])
+
+  async function fetchData() {
+    setLoading(true)
+    try { const r = await fetch("/api/syllabus-refs"); if (r.ok) setData(await r.json()) }
+    catch {} finally { setLoading(false) }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const r = await fetch("/api/syllabus-refs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      if (r.ok) { toast.success("Saved!"); fetchData() } else { const e = await r.json(); toast.error(e.error) }
+    } catch { toast.error("Failed") } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Syllabus References</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="space-y-1"><Label className="text-xs">Subject</Label>
+              <select value={form.subject_code} onChange={e => setForm(p => ({ ...p, subject_code: e.target.value }))} className="h-8 rounded border border-input bg-background px-2 text-sm">
+                {["PHY","MAT","CHE","BIO","ECO","IND","ENG","PKN","HIS","GEO","ART","REL","PE"].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Grade</Label>
+              <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: Number(e.target.value) }))} className="h-8 rounded border border-input bg-background px-2 text-sm">
+                {[7,8,9,10,11,12].map(g => <option key={g} value={g}>Grade {g}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Reference</Label>
+              <input value={form.ref} onChange={e => setForm(p => ({ ...p, ref: e.target.value }))} placeholder="e.g. 0625 (Full)" className="h-8 rounded border border-input bg-background px-2 text-sm w-40" />
+            </div>
+            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "..." : "Save"}</Button>
+          </div>
+          {loading ? <div className="h-20 animate-pulse rounded bg-muted" /> : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Subject</TableHead><TableHead>Grade</TableHead><TableHead>Reference</TableHead></TableRow></TableHeader>
+              <TableBody>{data.map((d: any) => (
+                <TableRow key={d.id}><TableCell>{d.subject_code}</TableCell><TableCell>Grade {d.grade}</TableCell><TableCell>{d.ref}</TableCell></TableRow>
+              ))}</TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function WeeklyHoursTab() {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ subject_code: "PHY", grade: 10, hours: 3 })
+
+  useEffect(() => { fetchData() }, [])
+
+  async function fetchData() {
+    setLoading(true)
+    try { const r = await fetch("/api/weekly-hours"); if (r.ok) setData(await r.json()) }
+    catch {} finally { setLoading(false) }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const r = await fetch("/api/weekly-hours", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      if (r.ok) { toast.success("Saved!"); fetchData() } else { const e = await r.json(); toast.error(e.error) }
+    } catch { toast.error("Failed") } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Weekly Hours</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="space-y-1"><Label className="text-xs">Subject</Label>
+              <select value={form.subject_code} onChange={e => setForm(p => ({ ...p, subject_code: e.target.value }))} className="h-8 rounded border border-input bg-background px-2 text-sm">
+                {["PHY","MAT","CHE","BIO","ECO","IND","ENG","PKN","HIS","GEO","ART","REL","PE"].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Grade</Label>
+              <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: Number(e.target.value) }))} className="h-8 rounded border border-input bg-background px-2 text-sm">
+                {[7,8,9,10,11,12].map(g => <option key={g} value={g}>Grade {g}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Hours/week</Label>
+              <input type="number" min={1} max={6} value={form.hours} onChange={e => setForm(p => ({ ...p, hours: parseInt(e.target.value) || 3 }))} className="h-8 rounded border border-input bg-background px-2 text-sm w-20" />
+            </div>
+            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "..." : "Save"}</Button>
+          </div>
+          {loading ? <div className="h-20 animate-pulse rounded bg-muted" /> : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Subject</TableHead><TableHead>Grade</TableHead><TableHead>Hours</TableHead></TableRow></TableHeader>
+              <TableBody>{data.map((d: any) => (
+                <TableRow key={d.id}><TableCell>{d.subject_code}</TableCell><TableCell>Grade {d.grade}</TableCell><TableCell>{d.hours}h</TableCell></TableRow>
+              ))}</TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

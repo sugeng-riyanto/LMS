@@ -24,7 +24,6 @@ const TOPIC_MAP: Record<number, Record<number, string>> = {
 }
 
 const CURRICULUM: Record<number, string> = { 7: "Checkpoint", 8: "Checkpoint", 9: "IGCSE", 10: "IGCSE", 11: "AS Level", 12: "A Level" }
-const SYLLABUS_REF: Record<number, string> = { 7: "0893 Stage 7", 8: "0893 Stage 8/9", 9: "0625 (Half)", 10: "0625 (Full)", 11: "9702 AS", 12: "9702 A2 + TKA" }
 
 function getDefaultForm() {
   const week = getCurrentWeek()
@@ -90,20 +89,28 @@ export default function LessonPlanPage() {
   }
 
   function autoFillFromGrade(grade: number, week: number) {
+    const subjectCode = form.subject?.substring(0, 3).toUpperCase() || "PHY"
     const topic = TOPIC_MAP[grade]?.[week] ?? "Physics"
     const curriculum = CURRICULUM[grade] ?? "IGCSE"
-    const syllabusRef = SYLLABUS_REF[grade] ?? ""
     const ssbat = `Students will be able to analyse and apply concepts related to ${topic} in accordance with the ${curriculum} curriculum.`
     const activities = `Phase 1 — Entry Ticket & Hook (5 min): Engage students with a real-world phenomenon related to ${topic}.\nPhase 2 — Productive Struggle (20 min): Guided worksheet on ${topic} in small groups.\nPhase 3 — CER Challenge (10 min): Analyse a ${topic} phenomenon, write Claim-Evidence-Reasoning.\nPhase 4 — Wrap-up (5 min): Mistake Journal and preview of next session.`
     const opening = `Greeting, check attendance, pray. Explain learning objectives for ${topic}. Present hook question to spark curiosity about ${topic}.`
     const closing = `Students summarise key concepts about ${topic}. Teacher clarifies misconceptions. Pray.`
     const assessment = `Formative assessment through Level 1-3 worksheet on ${topic} and CER challenge.`
-    const resources = syllabusRef ? `${syllabusRef} — Cambridge ${curriculum} Physics` : `Cambridge ${curriculum} Physics curriculum`
+    // Fetch syllabus ref from DB
+    fetch(`/api/syllabus-refs?subject=${subjectCode}&grade=${grade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const syllabusRef = data.length > 0 ? data[0].ref : ""
+        const resources = syllabusRef ? `${syllabusRef} — Cambridge ${curriculum} ${form.subject}` : `Cambridge ${curriculum} ${form.subject} curriculum`
+        setForm((prev) => ({ ...prev, resources }))
+      })
+      .catch(() => {})
     const year = new Date().getFullYear()
     const isJHS = grade <= 9
     setForm((prev) => ({
       ...prev, grade, week, year: `${year}/${year + 1}`,
-      ssbat, activities, opening, closing, assessment, resources,
+      ssbat, activities, opening, closing, assessment,
       vp: schoolCfg ? (isJHS ? (schoolCfg.vp_name || prev.vp) : (schoolCfg.shs_vp_name || schoolCfg.vp_name || prev.vp)) : prev.vp,
       principal: schoolCfg ? (isJHS ? (schoolCfg.principal_name || prev.principal) : (schoolCfg.shs_principal_name || schoolCfg.principal_name || prev.principal)) : prev.principal,
     }))

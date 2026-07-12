@@ -112,6 +112,8 @@ export default function SyllabusPlannerPage() {
   const [plan, setPlan] = useState<SyllabusPlan>(defaultPlan)
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set())
   const [mediaSources, setMediaSources] = useState<Array<{ section: string; type: string; title: string; url: string }>>([])
+  const [syllabusRef, setSyllabusRef] = useState("")
+  const [weeklyHours, setWeeklyHours] = useState(3)
   const [showMediaForm, setShowMediaForm] = useState<string | null>(null)
 
   const teacherSubjects = useTeacherSubjects()
@@ -139,7 +141,16 @@ export default function SyllabusPlannerPage() {
         }
       })
       .catch(() => {})
-  }, [selectedGrade])
+    // Fetch syllabus ref and weekly hours
+    fetch(`/api/syllabus-refs?subject=${plan.subject}&grade=${selectedGrade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (data.length > 0) setSyllabusRef(data[0].ref) })
+      .catch(() => {})
+    fetch(`/api/weekly-hours?subject=${plan.subject}&grade=${selectedGrade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (data.length > 0) setWeeklyHours(data[0].hours) })
+      .catch(() => {})
+  }, [selectedGrade, plan.subject])
 
   // Upload Syllabus dialog state
   const [showUpload, setShowUpload] = useState(false)
@@ -1795,7 +1806,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Hours/week:</span>
-                <span className="font-medium">{selectedGrade <= 10 ? 3 : 4}h</span>
+                <span className="font-medium">{weeklyHours}h</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Effective days:</span>
@@ -1807,9 +1818,7 @@ document.addEventListener("DOMContentLoaded", function() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Curriculum:</span>
-                <span className="font-medium">
-                  {selectedGrade <= 8 ? "Lower Sec" : selectedGrade <= 10 ? "IGCSE" : selectedGrade === 11 ? "AS Level" : "A Level + TKA"}
-                </span>
+                <span className="font-medium">{syllabusRef || (selectedGrade <= 8 ? "Lower Sec" : selectedGrade <= 10 ? "IGCSE" : selectedGrade === 11 ? "AS Level" : "A Level + TKA")}</span>
               </div>
             </CardContent>
           </Card>
