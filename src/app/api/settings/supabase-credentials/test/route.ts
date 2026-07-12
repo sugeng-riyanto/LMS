@@ -6,14 +6,24 @@ export async function POST(request: NextRequest) {
     if (!supabase_url || !supabase_anon_key) {
       return NextResponse.json({ error: "URL and anon key required" }, { status: 400 })
     }
-    const r = await fetch(`${supabase_url.replace(/\/+$/, "")}/rest/v1/`, {
+    const base = supabase_url.replace(/\/+$/, "")
+
+    const health = await fetch(`${base}/auth/v1/health`)
+    if (!health.ok) {
+      return NextResponse.json({ error: `Supabase unreachable at ${base}` }, { status: 400 })
+    }
+
+    const test = await fetch(`${base}/rest/v1/profiles?select=count`, {
       headers: { "apikey": supabase_anon_key, "Authorization": `Bearer ${supabase_anon_key}` },
     })
-    if (r.ok || r.status === 404) {
+    if (test.ok) {
       return NextResponse.json({ ok: true })
     }
-    const body = await r.text().catch(() => "unknown")
-    return NextResponse.json({ error: `HTTP ${r.status}: ${body}` }, { status: 400 })
+    const body = await test.text().catch(() => "")
+    if (test.status === 401 && body.includes("service_role")) {
+      return NextResponse.json({ ok: true, note: "URL ok, but key is publishable-only (not suitable for server)" })
+    }
+    return NextResponse.json({ error: `HTTP ${test.status}: ${test.ok ? "unexpected" : body}` }, { status: 400 })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Connection test failed" },

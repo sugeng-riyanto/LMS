@@ -1851,7 +1851,7 @@ function SupabaseTab() {
     setTestResult(null)
     try {
       const testUrl = form.supabase_url || "https://yvnomvcmqsfbkqqjwzhi.supabase.co"
-      const testKey = form.supabase_anon_key || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2bm9tdmNtcXNmYmtxcWp3emhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjM0NzQsImV4cCI6MjA5ODMzOTQ3NH0.QBpmyNnEFxzMXoxEjQY16cOYNUUbK0I3oUU0GwjJBX0"
+      const testKey = form.supabase_anon_key || "sb_publishable_MoqvJYWgKhyM1t1uAcC4iQ_w41BiKs4"
       const res = await fetch("/api/settings/supabase-credentials/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
