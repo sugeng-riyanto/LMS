@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
 import { getFallbackCredentials } from "@/lib/supabase/supabase-config"
+import { createClient } from "@supabase/supabase-js"
 import * as XLSX from "xlsx"
 
 export async function GET() {
@@ -9,6 +10,9 @@ export async function GET() {
     if (authError) return authError
 
     const creds = getFallbackCredentials()
+    const admin = createClient(creds.url, creds.serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
 
     // Fetch all teachers + students via REST API
     async function getProfiles(role: string) {
@@ -30,20 +34,15 @@ export async function GET() {
     for (const a of assignments ?? [])
       (teacherAssignMap[a.teacher_id] ??= []).push(a)
 
-    // Generate + SET passwords via GoTrue Admin API directly
+    // Generate + SET passwords via SDK (handles new sb_secret_ key format)
     const pwMap: Record<string, string> = {}
     const errs: string[] = []
     for (const u of [...(teachers ?? []), ...(students ?? [])]) {
       const pw = "SHB-" + Math.random().toString(36).slice(2, 8)
       try {
-        const r = await fetch(`${creds.url}/auth/v1/admin/users/${u.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "apikey": creds.anonKey, "Authorization": `Bearer ${creds.serviceKey}` },
-          body: JSON.stringify({ password: pw }),
-        })
-        const body = r.ok ? "" : await r.text().catch(() => "unknown")
-        if (r.ok) pwMap[u.id] = pw
-        else errs.push(`${u.email}: HTTP ${r.status} ${body}`)
+        const { error: ue } = await admin.auth.admin.updateUserById(u.id, { password: pw })
+        if (ue) errs.push(`${u.email}: ${ue.message}`)
+        else pwMap[u.id] = pw
       } catch (e: any) { errs.push(`${u.email}: ${e.message}`) }
     }
     if (errs.length) return NextResponse.json({ error: "Password reset errors: " + errs.join(" | ") }, { status: 500 })
