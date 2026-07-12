@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { SUBJECTS, GRADES } from "@/lib/utils/constants"
-import { Upload, FileText, FileSpreadsheet, CheckCircle, ChevronDown, ChevronRight, Loader2, Save, BookOpen, ListOrdered, Pencil, Trash2 } from "lucide-react"
+import { Download, Upload, FileText, FileSpreadsheet, CheckCircle, ChevronDown, ChevronRight, Loader2, Save, BookOpen, ListOrdered, Pencil, Trash2, Table2 } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface SyllabusTopicRow {
@@ -46,8 +46,9 @@ export default function SyllabusManagerPage() {
   const { canManagePackages } = useRBAC()
   const teacherSubjects = useTeacherSubjects()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const excelInputRef = useRef<HTMLInputElement>(null)
 
-  const [activeTab, setActiveTab] = useState<"upload" | "list">("list")
+  const [activeTab, setActiveTab] = useState<"upload" | "excel" | "list">("list")
   const [subject, setSubject] = useState("PHY")
   const [grade, setGrade] = useState(10)
   const [pasteText, setPasteText] = useState("")
@@ -58,7 +59,10 @@ export default function SyllabusManagerPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // CRUD state
+  const [excelFile, setExcelFile] = useState<File | null>(null)
+  const [bulkUploading, setBulkUploading] = useState(false)
+  const [bulkResult, setBulkResult] = useState<{ message: string; saved: number; total: number; errors: number } | null>(null)
+
   const [rows, setRows] = useState<SyllabusTopicRow[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
   const [filterSubject, setFilterSubject] = useState("")
@@ -66,6 +70,10 @@ export default function SyllabusManagerPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ topic: "", unit_id: "", syllabus_ref: "", curriculum: "" })
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  const [templateSubject, setTemplateSubject] = useState("PHY")
+  const [templateGrade, setTemplateGrade] = useState(10)
+  const [downloading, setDownloading] = useState(false)
 
   const availableSubjects = teacherSubjects.length === 0
     ? SUBJECTS
@@ -127,6 +135,40 @@ export default function SyllabusManagerPage() {
       fetchRows()
     } catch (e) { toast.error("Save failed: " + (e instanceof Error ? e.message : "Unknown")) }
     finally { setSaving(false) }
+  }
+
+  async function handleBulkUpload() {
+    if (!excelFile) { toast.error("Select an XLSX or CSV file"); return }
+    setBulkUploading(true); setBulkResult(null)
+    try {
+      const formData = new FormData()
+      formData.append("file", excelFile)
+      formData.append("subject", subject)
+      formData.append("grade", String(grade))
+      const res = await fetch("/api/syllabus/bulk-upload", { method: "POST", body: formData })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      const data = await res.json()
+      setBulkResult(data)
+      toast.success(data.message)
+    } catch (e) { toast.error("Bulk upload failed: " + (e instanceof Error ? e.message : "Unknown")) }
+    finally { setBulkUploading(false) }
+  }
+
+  async function handleDownloadTemplate() {
+    setDownloading(true)
+    try {
+      const res = await fetch(`/api/syllabus/template?subject=${templateSubject}&grade=${templateGrade}`)
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${templateSubject}-Grade${templateGrade}-Syllabus-Template.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Template downloaded!")
+    } catch (e) { toast.error("Download failed: " + (e instanceof Error ? e.message : "Unknown")) }
+    finally { setDownloading(false) }
   }
 
   async function handleUpdate(id: string) {
@@ -248,7 +290,7 @@ export default function SyllabusManagerPage() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm">
           <Upload className="h-4 w-4" />
-          Upload Syllabus
+          Upload Syllabus (Markdown / PDF)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -294,24 +336,129 @@ export default function SyllabusManagerPage() {
     </Card>
   )
 
+  const excelContent = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Table2 className="h-4 w-4" />
+          Bulk Upload (Excel / CSV Template)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Download a template first, fill it in, then upload here. The template has 22 weeks pre-filled with Cambridge-aligned topics for your subject and grade.
+        </p>
+        <Separator />
+        <div className="flex flex-wrap gap-4">
+          <div className="space-y-1">
+            <Label>Subject</Label>
+            <select value={subject} onChange={e => setSubject(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
+              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label>Grade</Label>
+            <select value={grade} onChange={e => setGrade(Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-24">
+              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => excelInputRef.current?.click()} className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" /> Choose File
+          </Button>
+          <span className="text-sm text-muted-foreground">{excelFile ? excelFile.name : "No file"}</span>
+        </div>
+        <input ref={excelInputRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={e => setExcelFile(e.target.files?.[0] || null)} />
+        <div className="flex gap-2">
+          <Button onClick={handleBulkUpload} disabled={bulkUploading || !excelFile} className="gap-2">
+            {bulkUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {bulkUploading ? "Uploading..." : "Upload & Save"}
+          </Button>
+          <Button variant="outline" onClick={() => { setExcelFile(null); setBulkResult(null); if (excelInputRef.current) excelInputRef.current.value = "" }}>
+            Clear
+          </Button>
+        </div>
+        {bulkResult && (
+          <div className={`rounded-lg border p-3 text-sm ${bulkResult.errors > 0 ? "border-yellow-300 bg-yellow-50" : "border-green-300 bg-green-50"}`}>
+            <p>{bulkResult.message}</p>
+            <p className="text-xs text-muted-foreground mt-1">{bulkResult.saved} saved / {bulkResult.total} total</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+
+  const templateContent = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Download className="h-4 w-4" />
+          Download Syllabus Template
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Download a pre-filled Excel template with 22 weeks of Cambridge-aligned topics. Fill in your lesson details, then upload via the <strong>Excel/CSV</strong> tab.
+        </p>
+        <Separator />
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1">
+            <Label>Subject</Label>
+            <select value={templateSubject} onChange={e => setTemplateSubject(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
+              {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label>Grade</Label>
+            <select value={templateGrade} onChange={e => setTemplateGrade(Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-24">
+              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+          <Button onClick={handleDownloadTemplate} disabled={downloading} className="gap-2">
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {downloading ? "Downloading..." : "Download Template"}
+          </Button>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">Template columns:</p>
+          <p><strong>Week</strong> (pre-filled 1-22) · <strong>Topic</strong> (pre-filled) · <strong>Subtopics</strong> (comma-separated) · <strong>Opening Ideas</strong></p>
+          <p><strong>Activity Questions</strong> (one per line: <code>Question | Bloom | Timing</code>) · <strong>Problems</strong> (one per line: <code>Problem | Level</code>)</p>
+          <p><strong>Score Category</strong> (classwork / unit_test / project / homework / mid_semester / final_semester) · <strong>Max Score</strong> · <strong>Media Links</strong></p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Syllabus Manager</h1>
-          <p className="text-sm text-muted-foreground">Upload syllabus files to extract topics & objectives, or manage existing data.</p>
+          <p className="text-sm text-muted-foreground">Master syllabus per subject & grade. Upload, template, and manage your curriculum data.</p>
         </div>
         <div className="flex gap-2">
           <Button variant={activeTab === "list" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("list")}>
             <ListOrdered className="mr-1 h-3 w-3" /> Data ({rows.length})
           </Button>
           <Button variant={activeTab === "upload" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("upload")}>
-            <Upload className="mr-1 h-3 w-3" /> Upload
+            <Upload className="mr-1 h-3 w-3" /> Upload MD
+          </Button>
+          <Button variant={activeTab === "excel" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("excel")}>
+            <Table2 className="mr-1 h-3 w-3" /> Excel/CSV
           </Button>
         </div>
       </div>
 
-      {activeTab === "list" ? listContent : uploadContent}
+      {templateContent}
+
+      <Separator />
+
+      {activeTab === "list" ? listContent : activeTab === "upload" ? uploadContent : excelContent}
 
       {result && (
         <div className="space-y-4">
