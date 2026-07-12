@@ -192,8 +192,70 @@ export async function POST(request: NextRequest) {
       else { errors++; lastError = error.message || String(error) }
     }
 
+    // Also save objectives to syllabus_topics (one entry per unique topic)
+    const topicMap = new Map<string, { topic: string; objectives: string[]; weeks: number[]; subtopics: string[] }>()
+    for (const row of rows) {
+      const weekVal = row.week.replace(/\*\*/g, "").replace(/[*_~`]/g, "").trim()
+      const weekNum = parseInt(weekVal)
+      if (isNaN(weekNum)) continue
+      const key = row.topic.trim().toLowerCase()
+      if (!key) continue
+      if (!topicMap.has(key)) {
+        topicMap.set(key, { topic: row.topic.trim(), objectives: [], weeks: [], subtopics: [] })
+      }
+      const entry = topicMap.get(key)!
+      entry.weeks.push(weekNum)
+      if (row.objectives) {
+        entry.objectives.push(row.objectives)
+      }
+      if (row.subtopics) {
+        row.subtopics.split(",").map(s => s.trim()).filter(Boolean).forEach(s => {
+          if (!entry.subtopics.includes(s)) entry.subtopics.push(s)
+        })
+      }
+    }
+
+    const curriculum = grade <= 8 ? "Cambridge Checkpoint" : grade <= 10 ? "Cambridge IGCSE" : "Cambridge AS/A Level"
+    let topicsSaved = 0
+    for (const [, entry] of topicMap) {
+      const unitId = entry.topic.toLowerCase().replace(/[\s:,.']+/g, "-").replace(/[^a-z0-9-]/g, "")
+      const allObjectives = entry.objectives
+        .flatMap(o => o.split("\n").filter(Boolean).map(l => l.replace(/^[\s•\-\d.]+/, "").trim()))
+        .filter(Boolean)
+
+      const { error: topicErr } = await (supabase.from("syllabus_topics") as any).upsert({
+        grade,
+        subject,
+        unit_id: unitId,
+        topic: entry.topic,
+        subtopics: entry.subtopics,
+        syllabus_ref: curriculum,
+        curriculum,
+        suggested_weeks: entry.weeks,
+      }, {
+        onConflict: "grade,unit_id,subject",
+        ignoreDuplicates: false,
+      })
+      if (!topicErr) topicsSaved++
+
+      // If objectives exist, save/update to syllabus_objectives
+      if (allObjectives.length > 0) {
+        await (supabase.from("syllabus_objectives") as any).upsert({
+          grade,
+          unit_id: unitId,
+          topic: entry.topic,
+          objectives: allObjectives,
+          syllabus_ref: curriculum,
+          curriculum,
+        }, {
+          onConflict: "grade,unit_id",
+          ignoreDuplicates: false,
+        })
+      }
+    }
+
     return NextResponse.json({
-      message: `Saved ${saved} of ${rows.length} weeks${errors > 0 ? ` (${errors} errors${lastError ? `: ${lastError}` : ""})` : ""}`,
+      message: `Saved ${saved} of ${rows.length} weeks${errors > 0 ? ` (${errors} errors${lastError ? `: ${lastError}` : ""})` : ""}${topicsSaved > 0 ? ` + ${topicsSaved} topics to syllabus` : ""}`,
       saved,
       total: rows.length,
       errors,

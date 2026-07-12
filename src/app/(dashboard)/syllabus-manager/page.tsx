@@ -428,7 +428,8 @@ export default function SyllabusManagerPage() {
           <p className="font-medium text-foreground">Template columns:</p>
           <p><strong>Week</strong> (pre-filled 1-22) · <strong>Topic</strong> (pre-filled) · <strong>Subtopics</strong> (comma-separated) · <strong>Opening Ideas</strong></p>
           <p><strong>Activity Questions</strong> (one per line: <code>Question | Bloom | Timing</code>) · <strong>Problems</strong> (one per line: <code>Problem | Level</code>)</p>
-          <p><strong>Score Category</strong> (classwork / unit_test / project / homework / mid_semester / final_semester) · <strong>Max Score</strong> · <strong>Media Links</strong></p>
+          <p><strong>Score Category</strong> · <strong>Max Score</strong> · <strong>Media Links</strong> · <strong>Objectives</strong> · <strong>Milestone</strong> · <strong>Reflection</strong></p>
+          <p className="text-green-600 font-medium mt-1">✅ Objectives column otomatis disimpan ke <code>syllabus_topics</code> — cukup upload XLSX sekali!</p>
         </div>
       </CardContent>
     </Card>
