@@ -1,35 +1,10 @@
 import { NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
-import { getFallbackCredentials } from "@/lib/supabase/supabase-config"
 import * as XLSX from "xlsx"
 
 function makePassword(): string {
   return "SHB-" + Math.random().toString(36).slice(2, 8)
-}
-
-async function resetUserPassword(userId: string): Promise<string | null> {
-  const creds = getFallbackCredentials()
-  const pw = makePassword()
-  try {
-    const res = await fetch(`${creds.url}/auth/v1/admin/users/${userId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": creds.serviceKey,
-        "Authorization": `Bearer ${creds.serviceKey}`,
-      },
-      body: JSON.stringify({ password: pw }),
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => "unknown")
-      console.error(`Password reset failed for ${userId}: ${res.status} ${text}`)
-      return null
-    }
-    return pw
-  } catch (e) {
-    console.error(`Password reset error for ${userId}:`, e)
-    return null
-  }
 }
 
 export async function GET() {
@@ -37,59 +12,44 @@ export async function GET() {
     const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
-    const creds = getFallbackCredentials()
-    const supabaseUrl = creds.url
-    const supabaseServiceKey = creds.serviceKey
+    const admin = createAdminClient()
 
-    // Fetch all teachers and students via raw fetch (bypasses any SDK issues)
-    async function fetchProfilesByRole(role: string) {
-      const res = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id,email,full_name,role,grade_assigned&role=eq.${role}&order=full_name.asc`, {
-        headers: {
-          "apikey": supabaseServiceKey,
-          "Authorization": `Bearer ${supabaseServiceKey}`,
-        },
-      })
-      if (!res.ok) return []
-      return res.json()
-    }
+    // Fetch all teachers
+    const { data: teachers } = await (admin as any)
+      .from("profiles")
+      .select("id, email, full_name, role, grade_assigned")
+      .eq("role", "teacher")
+      .order("full_name")
 
-    const [teachers, students] = await Promise.all([
-      fetchProfilesByRole("teacher"),
-      fetchProfilesByRole("student"),
-    ])
+    // Fetch all students
+    const { data: students } = await (admin as any)
+      .from("profiles")
+      .select("id, email, full_name, role, grade_assigned")
+      .eq("role", "student")
+      .order("grade_assigned")
+      .order("full_name")
 
     // Fetch teacher assignments
-    const assignRes = await fetch(`${supabaseUrl}/rest/v1/teacher_assignments?select=*,classes:class_id(id,grade,class_name)&order=grade.asc`, {
-      headers: {
-        "apikey": supabaseServiceKey,
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-      },
-    })
-    const assignments = assignRes.ok ? await assignRes.json() : []
+    const { data: assignments } = await (admin as any)
+      .from("teacher_assignments")
+      .select("*, classes:class_id(id, grade, class_name)")
+      .order("grade")
 
-    // Build teacher lookup
+    // Build teacher→assignments lookup
     const teacherAssignMap: Record<string, any[]> = {}
     for (const a of assignments ?? []) {
       if (!teacherAssignMap[a.teacher_id]) teacherAssignMap[a.teacher_id] = []
       teacherAssignMap[a.teacher_id].push(a)
     }
 
-    // Reset passwords via raw fetch (GoTrue admin API)
-    const pwMap: Record<string, string> = {}
-    const allUsers = [...(teachers ?? []), ...(students ?? [])]
-    for (const u of allUsers) {
-      const pw = await resetUserPassword(u.id)
-      if (pw) pwMap[u.id] = pw
-    }
-
     const wb = XLSX.utils.book_new()
 
-    // Sheet 1: Teachers
+    // Sheet 1: Teachers (generate random passwords on the fly)
     const teacherRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class", "Password"]]
     let idx = 1
     for (const t of teachers ?? []) {
       const ta = teacherAssignMap[t.id] ?? []
-      const pw = pwMap[t.id] || "SHB-xxxxxx"
+      const pw = makePassword()
       if (ta.length === 0) {
         teacherRows.push([idx++, t.full_name, t.email, "-", "-", "-", pw])
       } else {
@@ -103,7 +63,7 @@ export async function GET() {
     wsTeachers["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 18 }]
     XLSX.utils.book_append_sheet(wb, wsTeachers, "Teachers")
 
-    // Sheet 2: Students
+    // Sheet 2: Students (generate random passwords on the fly)
     const gradeGroups: Record<number, any[]> = {}
     for (const s of students ?? []) {
       const g = s.grade_assigned ?? 0
@@ -116,8 +76,7 @@ export async function GET() {
     const sortedGrades = Object.keys(gradeGroups).sort((a, b) => Number(a) - Number(b))
     for (const g of sortedGrades) {
       for (const s of gradeGroups[Number(g)]) {
-        const pw = pwMap[s.id] || "SHB-xxxxxx"
-        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, pw])
+        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, makePassword()])
       }
     }
     const wsStudents = XLSX.utils.aoa_to_sheet(studentRows)
@@ -153,13 +112,12 @@ export async function GET() {
     const notes = [
       ["NOTES"],
       [],
-      ["Passwords are REAL and usable — already set in the system"],
-      ["Users can change password after login via Profile → Change Password"],
-      ["Forgot password: use /forgot-password page"],
-      ["Super admin can reset any user's password from Settings → Users → Reset PW"],
+      ["Passwords shown are RANDOM — they are NOT yet set in the system"],
+      ["To ACTIVATE these passwords, click 'All Passwords' button in Settings → Users"],
+      ["That button resets ALL users' passwords and downloads working CSV"],
+      ["Users can change password after login via Profile"],
       [],
       ["Teacher assignments managed in Settings → Teachers tab"],
-      ["Student grade assignments managed in Settings → Users → Edit"],
     ]
     const wsNotes = XLSX.utils.aoa_to_sheet(notes)
     wsNotes["!cols"] = [{ wch: 60 }]
