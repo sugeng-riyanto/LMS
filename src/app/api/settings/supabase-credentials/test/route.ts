@@ -8,9 +8,12 @@ export async function POST(request: NextRequest) {
     }
     const base = supabase_url.replace(/\/+$/, "")
 
-    const health = await fetch(`${base}/auth/v1/health`)
+    const health = await fetch(`${base}/auth/v1/health`, {
+      headers: { "apikey": supabase_anon_key },
+    })
     if (!health.ok) {
-      return NextResponse.json({ error: `Supabase unreachable at ${base}` }, { status: 400 })
+      const body = await health.text().catch(() => "")
+      return NextResponse.json({ error: `Supabase return HTTP ${health.status}: ${body}` }, { status: 400 })
     }
 
     const test = await fetch(`${base}/rest/v1/profiles?select=count`, {
