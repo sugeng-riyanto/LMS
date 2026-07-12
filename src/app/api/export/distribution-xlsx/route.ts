@@ -44,16 +44,24 @@ export async function GET() {
 
     // Reset passwords for all teachers and students
     const pwMap: Record<string, string> = {}
+    const errors: string[] = []
     for (const t of teachers ?? []) {
       const pw = makePassword()
-      await admin.auth.admin.updateUserById(t.id, { password: pw }).catch(() => {})
-      pwMap[t.id] = pw
+      const { error: updateErr } = await admin.auth.admin.updateUserById(t.id, { password: pw })
+      if (updateErr) errors.push(`Teacher ${t.email}: ${updateErr.message}`)
+      else pwMap[t.id] = pw
     }
     for (const s of students ?? []) {
       const pw = makePassword()
-      await admin.auth.admin.updateUserById(s.id, { password: pw }).catch(() => {})
-      pwMap[s.id] = pw
+      const { error: updateErr } = await admin.auth.admin.updateUserById(s.id, { password: pw })
+      if (updateErr) errors.push(`Student ${s.email}: ${updateErr.message}`)
+      else pwMap[s.id] = pw
     }
+    if (errors.length > 0) {
+      console.error("Password reset errors:", errors.join(" | "))
+    }
+
+    const resetOk = Object.keys(pwMap).length
 
     const wb = XLSX.utils.book_new()
 
