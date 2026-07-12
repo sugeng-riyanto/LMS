@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+import { getFallbackCredentials } from "@/lib/supabase/supabase-config"
 import * as XLSX from "xlsx"
 
 export async function GET() {
@@ -8,38 +8,45 @@ export async function GET() {
     const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
-    const admin = createAdminClient()
+    const creds = getFallbackCredentials()
 
-    // Fetch all teachers + students
-    const { data: teachers } = await (admin as any)
-      .from("profiles")
-      .select("id, email, full_name, role, grade_assigned")
-      .eq("role", "teacher")
-      .order("full_name")
+    // Fetch all teachers + students via REST API
+    async function getProfiles(role: string) {
+      const r = await fetch(`${creds.url}/rest/v1/profiles?select=id,email,full_name,role,grade_assigned&role=eq.${role}&order=full_name.asc`, {
+        headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+      })
+      return r.ok ? r.json() : []
+    }
 
-    const { data: students } = await (admin as any)
-      .from("profiles")
-      .select("id, email, full_name, role, grade_assigned")
-      .eq("role", "student")
-      .order("grade_assigned")
-      .order("full_name")
+    const [teachers, students] = await Promise.all([getProfiles("teacher"), getProfiles("student")])
 
-    const { data: assignments } = await (admin as any)
-      .from("teacher_assignments")
-      .select("*, classes:class_id(id, grade, class_name)")
-      .order("grade")
+    // Fetch teacher assignments
+    const aRes = await fetch(`${creds.url}/rest/v1/teacher_assignments?select=*,classes:class_id(id,grade,class_name)&order=grade.asc`, {
+      headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+    })
+    const assignments = aRes.ok ? await aRes.json() : []
 
     const teacherAssignMap: Record<string, any[]> = {}
     for (const a of assignments ?? [])
       (teacherAssignMap[a.teacher_id] ??= []).push(a)
 
-    // Generate + set passwords for every teacher and student
+    // Generate + SET passwords via GoTrue Admin API directly
     const pwMap: Record<string, string> = {}
+    const errs: string[] = []
     for (const u of [...(teachers ?? []), ...(students ?? [])]) {
       const pw = "SHB-" + Math.random().toString(36).slice(2, 8)
-      const { error: e } = await admin.auth.admin.updateUserById(u.id, { password: pw })
-      if (!e) pwMap[u.id] = pw
+      try {
+        const r = await fetch(`${creds.url}/auth/v1/admin/users/${u.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+          body: JSON.stringify({ password: pw }),
+        })
+        const body = r.ok ? "" : await r.text().catch(() => "unknown")
+        if (r.ok) pwMap[u.id] = pw
+        else errs.push(`${u.email}: HTTP ${r.status} ${body}`)
+      } catch (e: any) { errs.push(`${u.email}: ${e.message}`) }
     }
+    if (errs.length) return NextResponse.json({ error: "Password reset errors: " + errs.join(" | ") }, { status: 500 })
 
     const wb = XLSX.utils.book_new()
 
