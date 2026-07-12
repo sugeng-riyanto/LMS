@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter, Send, RotateCcw, Eye, Download, FileText } from "lucide-react"
-import { GRADES, SUBJECTS } from "@/lib/utils/constants"
+import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
+import { useSubjects } from "@/hooks/use-subjects"
 
 import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
 
@@ -39,6 +40,7 @@ export default function GradingPage() {
     { value: "mid_semester", label: "Mid Semester" },
     { value: "final_semester", label: "Final Semester" },
   ])
+  const { subjects: allSubjects } = useSubjects()
 
   useEffect(() => {
     if (!grade) return
@@ -284,8 +286,8 @@ export default function GradingPage() {
               className="h-9 rounded-md border border-input bg-background px-3 text-sm">
               <option value="all">All Subjects</option>
               {(assignedSubjects.length > 0
-                ? SUBJECTS.filter(s => assignedSubjects.includes(s.code))
-                : SUBJECTS
+                ? allSubjects.filter(s => assignedSubjects.includes(s.code))
+                : allSubjects
               ).map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>

@@ -13,7 +13,7 @@ import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
 import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
-import { SUBJECTS } from "@/lib/utils/constants"
+import { useSubjectsForTeacher } from "@/hooks/use-subjects"
 
 const BROAD_TOPICS = [
   "Kinematics", "Forces", "Energy", "Density", "Pressure", "Thermal",
@@ -59,6 +59,7 @@ interface Worksheet {
 export default function WorksheetsPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
   const teacherSubjects = useTeacherSubjects()
+  const { subjects: availableSubjects } = useSubjectsForTeacher(teacherSubjects)
   const canManage = isSuperAdmin || isTeacher
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [worksheets, setWorksheets] = useState<Worksheet[]>([])
@@ -177,10 +178,6 @@ export default function WorksheetsPage() {
       setForm(p => ({ ...p, subject: teacherSubjects[0] }))
     }
   }, [teacherSubjects, subjectFilter])
-
-  const availableSubjects = useMemo(() => {
-    return SUBJECTS.filter(s => teacherSubjects.length === 0 || teacherSubjects.includes(s.code))
-  }, [teacherSubjects])
 
   async function handleSave() {
     if (!form.title) { toast.error("Title is required"); return }

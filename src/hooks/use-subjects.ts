@@ -10,7 +10,7 @@ export interface Subject {
   is_active: boolean
 }
 
-const FALLBACK_SUBJECTS: Subject[] = [
+export const FALLBACK_SUBJECTS: Subject[] = [
   { code: "PHY", name: "Physics", icon: "⚛️", sort_order: 1, is_active: true },
   { code: "MAT", name: "Mathematics", icon: "📐", sort_order: 2, is_active: true },
   { code: "CHE", name: "Chemistry", icon: "🧪", sort_order: 3, is_active: true },
@@ -18,17 +18,43 @@ const FALLBACK_SUBJECTS: Subject[] = [
   { code: "ECO", name: "Economics", icon: "📊", sort_order: 5, is_active: true },
 ]
 
+let cachedSubjects: Subject[] | null = null
+let cachePromise: Promise<Subject[]> | null = null
+
+async function fetchSubjectsOnce(): Promise<Subject[]> {
+  if (cachedSubjects) return cachedSubjects
+  if (cachePromise) return cachePromise
+  cachePromise = fetch("/api/subjects")
+    .then(r => r.ok ? r.json() : [])
+    .then(data => {
+      cachedSubjects = (data.length > 0 ? data : FALLBACK_SUBJECTS)
+      return cachedSubjects!
+    })
+    .catch(() => {
+      cachedSubjects = FALLBACK_SUBJECTS
+      return FALLBACK_SUBJECTS
+    })
+  return cachePromise
+}
+
 export function useSubjects() {
   const [subjects, setSubjects] = useState<Subject[]>(FALLBACK_SUBJECTS)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/subjects")
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && data.length > 0) setSubjects(data) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    fetchSubjectsOnce().then(data => {
+      setSubjects(data)
+      setLoading(false)
+    })
   }, [])
 
-  return { subjects, loading, refetch: () => fetch("/api/subjects").then(r => r.json()).then(setSubjects).catch(() => {}) }
+  return { subjects, loading, refetch: () => { cachedSubjects = null; cachePromise = null; return fetchSubjectsOnce().then(setSubjects) } }
+}
+
+export function useSubjectsForTeacher(teacherSubjects: string[]) {
+  const { subjects, loading, refetch } = useSubjects()
+  const available = teacherSubjects.length === 0
+    ? subjects
+    : subjects.filter(s => teacherSubjects.includes(s.code))
+  return { subjects: available, loading, refetch }
 }

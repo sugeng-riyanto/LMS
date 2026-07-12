@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { BarChart3, TrendingUp, AlertTriangle, Users, ArrowUpDown, BookOpen, BrainCircuit, GraduationCap, CheckCircle2, Download, Search, SortAsc, SortDesc } from "lucide-react"
-import { GRADES, SUBJECTS } from "@/lib/utils/constants"
+import { GRADES } from "@/lib/utils/constants"
+import { useSubjects } from "@/hooks/use-subjects"
 import toast from "react-hot-toast"
 
 interface StudentRow {
@@ -37,6 +38,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [sortAsc, setSortAsc] = useState(true)
+  const { subjects: allSubjects } = useSubjects()
 
   useEffect(() => {
     if (canView) fetchAnalytics()
@@ -126,7 +128,7 @@ export default function AnalyticsPage() {
           <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}
             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
             <option value="all">All Subjects</option>
-            {SUBJECTS.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
+            {allSubjects.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
           </select>
           <Button variant="outline" size="sm" onClick={fetchAnalytics}><ArrowUpDown className="mr-1 h-4 w-4" />Refresh</Button>
         </div>

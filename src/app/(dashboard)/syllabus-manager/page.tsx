@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
-import { SUBJECTS, GRADES } from "@/lib/utils/constants"
+import { useSubjectsForTeacher, useSubjects } from "@/hooks/use-subjects"
+import { GRADES } from "@/lib/utils/constants"
 import { Download, Upload, FileText, FileSpreadsheet, CheckCircle, ChevronDown, ChevronRight, Loader2, Save, BookOpen, ListOrdered, Pencil, Trash2, Table2 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -45,6 +46,8 @@ interface DistItem {
 export default function SyllabusManagerPage() {
   const { canManagePackages } = useRBAC()
   const teacherSubjects = useTeacherSubjects()
+  const { subjects: availableSubjects } = useSubjectsForTeacher(teacherSubjects)
+  const { subjects: allSubjects } = useSubjects()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const excelInputRef = useRef<HTMLInputElement>(null)
 
@@ -75,10 +78,7 @@ export default function SyllabusManagerPage() {
   const [templateGrade, setTemplateGrade] = useState(10)
   const [downloading, setDownloading] = useState(false)
 
-  const availableSubjects = teacherSubjects.length === 0
-    ? SUBJECTS
-    : SUBJECTS.filter(s => teacherSubjects.includes(s.code))
-
+  
   const fetchRows = useCallback(async () => {
     setLoadingRows(true)
     try {
@@ -409,7 +409,7 @@ export default function SyllabusManagerPage() {
             <Label>Subject</Label>
             <select value={templateSubject} onChange={e => setTemplateSubject(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
-              {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+              {allSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>
           <div className="space-y-1">

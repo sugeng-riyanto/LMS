@@ -15,10 +15,11 @@ import { AlertCircle, BookOpen, BrainCircuit, CalendarDays, Lightbulb, Save, Plu
 import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { createClient } from "@/lib/supabase/client"
-import { GRADES, SUBJECTS } from "@/lib/utils/constants"
+import { GRADES } from "@/lib/utils/constants"
 import { getCurrentWeek, getGradeSequence } from "@/lib/utils/week-calculator"
 import { getSubjectTopic, SUBJECTS_WITH_TEMPLATES, SUBJECT_GRADE_SEQUENCES } from "@/lib/syllabus/subject-templates"
 import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
+import { useSubjectsForTeacher } from "@/hooks/use-subjects"
 import { generateSyllabusMD as generateSyllabusExport } from "@/lib/export"
 import toast from "react-hot-toast"
 
@@ -114,9 +115,7 @@ export default function SyllabusPlannerPage() {
   const [showMediaForm, setShowMediaForm] = useState<string | null>(null)
 
   const teacherSubjects = useTeacherSubjects()
-  const availableSubjects = useMemo(() => {
-    return SUBJECTS.filter(s => teacherSubjects.length === 0 || teacherSubjects.includes(s.code))
-  }, [teacherSubjects])
+  const { subjects: availableSubjects } = useSubjectsForTeacher(teacherSubjects)
 
   // Sync plan.subject to first available subject if current not allowed
   useEffect(() => {
@@ -577,7 +576,7 @@ export default function SyllabusPlannerPage() {
   }
 
   function downloadMDTemplate() {
-    const subjectObj = SUBJECTS.find(s => s.code === plan.subject)
+    const subjectObj = availableSubjects.find(s => s.code === plan.subject)
     const subjectName = subjectObj?.name || plan.subject
     const now = new Date().toISOString().split("T")[0]
 
