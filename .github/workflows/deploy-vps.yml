@@ -12,10 +12,10 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 103.93.133.193
-          username: root
+          username: aqeela123
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/lmsshb/physics-command-center
-            git pull
-            npm run build
-            pm2 restart lmsshb
+            sudo git pull
+            sudo npm run build
+            sudo pm2 restart lmsshb
