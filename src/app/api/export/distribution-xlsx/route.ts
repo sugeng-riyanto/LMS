@@ -1,10 +1,35 @@
 import { NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
+import { getFallbackCredentials } from "@/lib/supabase/supabase-config"
 import * as XLSX from "xlsx"
 
 function makePassword(): string {
   return "SHB-" + Math.random().toString(36).slice(2, 8)
+}
+
+async function resetUserPassword(userId: string): Promise<string | null> {
+  const creds = getFallbackCredentials()
+  const pw = makePassword()
+  try {
+    const res = await fetch(`${creds.url}/auth/v1/admin/users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": creds.serviceKey,
+        "Authorization": `Bearer ${creds.serviceKey}`,
+      },
+      body: JSON.stringify({ password: pw }),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => "unknown")
+      console.error(`Password reset failed for ${userId}: ${res.status} ${text}`)
+      return null
+    }
+    return pw
+  } catch (e) {
+    console.error(`Password reset error for ${userId}:`, e)
+    return null
+  }
 }
 
 export async function GET() {
@@ -12,20 +37,35 @@ export async function GET() {
     const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
-    const admin = createAdminClient()
+    const creds = getFallbackCredentials()
+    const supabaseUrl = creds.url
+    const supabaseServiceKey = creds.serviceKey
 
-    // Fetch all teachers with their assignments
-    const { data: teachers } = await (admin as any)
-      .from("profiles")
-      .select("id, email, full_name, role, grade_assigned")
-      .eq("role", "teacher")
-      .order("full_name")
+    // Fetch all teachers and students via raw fetch (bypasses any SDK issues)
+    async function fetchProfilesByRole(role: string) {
+      const res = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id,email,full_name,role,grade_assigned&role=eq.${role}&order=full_name.asc`, {
+        headers: {
+          "apikey": supabaseServiceKey,
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+      })
+      if (!res.ok) return []
+      return res.json()
+    }
 
-    // Fetch teacher assignments with class info
-    const { data: assignments } = await (admin as any)
-      .from("teacher_assignments")
-      .select("*, classes:class_id(id, grade, class_name)")
-      .order("grade")
+    const [teachers, students] = await Promise.all([
+      fetchProfilesByRole("teacher"),
+      fetchProfilesByRole("student"),
+    ])
+
+    // Fetch teacher assignments
+    const assignRes = await fetch(`${supabaseUrl}/rest/v1/teacher_assignments?select=*,classes:class_id(id,grade,class_name)&order=grade.asc`, {
+      headers: {
+        "apikey": supabaseServiceKey,
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+      },
+    })
+    const assignments = assignRes.ok ? await assignRes.json() : []
 
     // Build teacher lookup
     const teacherAssignMap: Record<string, any[]> = {}
@@ -34,34 +74,13 @@ export async function GET() {
       teacherAssignMap[a.teacher_id].push(a)
     }
 
-    // Students
-    const { data: students } = await (admin as any)
-      .from("profiles")
-      .select("id, email, full_name, role, grade_assigned")
-      .eq("role", "student")
-      .order("grade_assigned")
-      .order("full_name")
-
-    // Reset passwords for all teachers and students
+    // Reset passwords via raw fetch (GoTrue admin API)
     const pwMap: Record<string, string> = {}
-    const errors: string[] = []
-    for (const t of teachers ?? []) {
-      const pw = makePassword()
-      const { error: updateErr } = await admin.auth.admin.updateUserById(t.id, { password: pw })
-      if (updateErr) errors.push(`Teacher ${t.email}: ${updateErr.message}`)
-      else pwMap[t.id] = pw
+    const allUsers = [...(teachers ?? []), ...(students ?? [])]
+    for (const u of allUsers) {
+      const pw = await resetUserPassword(u.id)
+      if (pw) pwMap[u.id] = pw
     }
-    for (const s of students ?? []) {
-      const pw = makePassword()
-      const { error: updateErr } = await admin.auth.admin.updateUserById(s.id, { password: pw })
-      if (updateErr) errors.push(`Student ${s.email}: ${updateErr.message}`)
-      else pwMap[s.id] = pw
-    }
-    if (errors.length > 0) {
-      console.error("Password reset errors:", errors.join(" | "))
-    }
-
-    const resetOk = Object.keys(pwMap).length
 
     const wb = XLSX.utils.book_new()
 
