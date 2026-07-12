@@ -13,15 +13,6 @@ import toast from "react-hot-toast"
 import { PDFPageBackground } from "@/components/pdf-page-background"
 import { useRBAC } from "@/hooks/use-rbac"
 
-const CATEGORIES = [
-  { value: "classwork", label: "Classwork", weight: "40%" },
-  { value: "unit_test", label: "Unit Test", weight: "20%" },
-  { value: "project", label: "Project", weight: "10%" },
-  { value: "homework", label: "Homework", weight: "10%" },
-  { value: "mid_semester", label: "Mid Semester", weight: "10%" },
-  { value: "final_semester", label: "Final Semester", weight: "10%" },
-]
-
 export default function GradingReviewPage() {
   return (
     <Suspense fallback={<div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
@@ -60,6 +51,31 @@ function ReviewContent() {
   const [pageImages, setPageImages] = useState<string[]>([])
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [sourceMaxScore, setSourceMaxScore] = useState(0)
+  const [catOpts, setCatOpts] = useState<{ value: string; label: string }[]>([])
+
+  useEffect(() => {
+    if (!studentGrade) return
+    fetch(`/api/assessment-weights?grade=${studentGrade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (data.length > 0) {
+          setCatOpts(data.map((d: any) => ({
+            value: d.category,
+            label: `${d.category.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} (${Math.round(d.weight * 100)}%)`,
+          })))
+        } else {
+          setCatOpts([
+            { value: "classwork", label: "Classwork" },
+            { value: "unit_test", label: "Unit Test" },
+            { value: "project", label: "Project" },
+            { value: "homework", label: "Homework" },
+            { value: "mid_semester", label: "Mid Semester" },
+            { value: "final_semester", label: "Final Semester" },
+          ])
+        }
+      })
+      .catch(() => {})
+  }, [studentGrade])
   const annoRendered = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -409,7 +425,7 @@ function ReviewContent() {
             items.forEach(i => updateField(i.id, "_score_category", e.target.value))
           }} className="h-7 text-[11px] rounded-md border border-input bg-background px-1.5">
             <option value="">Category...</option>
-            {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {catOpts.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <div className="flex-1" />
           <Button size="sm" className="h-7 text-[11px]" onClick={saveGrade} disabled={saving === "all"}>

@@ -24,3 +24,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
   classwork: "Classwork", unit_test: "Unit Test", project: "Project", homework: "Homework",
   mid_semester: "Mid Semester", final_semester: "Final Semester",
 }
+
+export function getCategoryOptions(weightMap: Record<string, number>): { value: string; label: string; weight: number }[] {
+  return CATEGORIES.map(c => ({
+    value: c,
+    label: `${CATEGORY_LABELS[c]} (${Math.round((weightMap[c] || 0) * 100)}%)`,
+    weight: weightMap[c] || 0,
+  }))
+}

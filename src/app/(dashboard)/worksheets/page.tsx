@@ -12,6 +12,7 @@ import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, 
 import toast from "react-hot-toast"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
+import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
 import { SUBJECTS } from "@/lib/utils/constants"
 
 const BROAD_TOPICS = [
@@ -89,6 +90,23 @@ export default function WorksheetsPage() {
     milestone: "",
     reflection: "",
   })
+
+  const [catOptions, setCatOptions] = useState(() => getCategoryOptions({ classwork: 0.4, unit_test: 0.2, project: 0.1, homework: 0.1, mid_semester: 0.1, final_semester: 0.1 }))
+
+  useEffect(() => {
+    const g = Number(form.grade)
+    if (!g) return
+    fetch(`/api/assessment-weights?grade=${g}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (data.length > 0) {
+          const wm: Record<string, number> = {}
+          for (const item of data) wm[item.category] = item.weight
+          setCatOptions(getCategoryOptions(wm))
+        }
+      })
+      .catch(() => {})
+  }, [form.grade])
 
   const weeks = useMemo(() => {
     const g = Number(form.grade)
@@ -497,12 +515,7 @@ export default function WorksheetsPage() {
               <Label>Assessment Category</Label>
               <select value={form.score_category} onChange={e => updateForm({ score_category: e.target.value })}
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="classwork">Classwork (40%)</option>
-                <option value="unit_test">Unit Test (20%)</option>
-                <option value="project">Project (10%)</option>
-                <option value="homework">Homework (10%)</option>
-                <option value="mid_semester">Mid Semester (10%)</option>
-                <option value="final_semester">Final Semester (10%)</option>
+                {catOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
 

@@ -15,14 +15,7 @@ import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter,
 import { GRADES, SUBJECTS } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
-const CATEGORIES = [
-  { value: "classwork", label: "Classwork", weight: "40%" },
-  { value: "unit_test", label: "Unit Test", weight: "20%" },
-  { value: "project", label: "Project", weight: "10%" },
-  { value: "homework", label: "Homework", weight: "10%" },
-  { value: "mid_semester", label: "Mid Semester", weight: "10%" },
-  { value: "final_semester", label: "Final Semester", weight: "10%" },
-]
+import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
 
 export default function GradingPage() {
   const { isSuperAdmin, isTeacher } = useRBAC()
@@ -38,6 +31,29 @@ export default function GradingPage() {
   const [submissions, setSubmissions] = useState<any[]>([])
   const [sourceMap, setSourceMap] = useState<Record<string, string>>({})
   const [maxScoreMap, setMaxScoreMap] = useState<Record<string, number>>({})
+  const [catOpts, setCatOpts] = useState<{ value: string; label: string }[]>([
+    { value: "classwork", label: "Classwork" },
+    { value: "unit_test", label: "Unit Test" },
+    { value: "project", label: "Project" },
+    { value: "homework", label: "Homework" },
+    { value: "mid_semester", label: "Mid Semester" },
+    { value: "final_semester", label: "Final Semester" },
+  ])
+
+  useEffect(() => {
+    if (!grade) return
+    fetch(`/api/assessment-weights?grade=${grade}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (data.length > 0) {
+          setCatOpts(data.map((d: any) => ({
+            value: d.category,
+            label: `${d.category.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())} (${Math.round(d.weight * 100)}%)`,
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [grade])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -262,7 +278,7 @@ export default function GradingPage() {
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm">
               <option value="all">All Types</option>
-              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {catOpts.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
             <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm">
@@ -352,7 +368,7 @@ export default function GradingPage() {
                   <td className="p-3 text-xs text-muted-foreground max-w-[160px] truncate">{g.sourceLabel}</td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1 justify-center">
-                      {CATEGORIES.map(cat => (
+                      {catOpts.map(cat => (
                         <button key={cat.value}
                           onClick={async () => {
                             const newCat = g.category === cat.value ? "" : cat.value
