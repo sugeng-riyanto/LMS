@@ -77,6 +77,8 @@ const PUBLIC_API_ROUTES = [
   "/api/published-items",
   "/api/syllabus/public/",
   "/api/worksheet/public/",
+  "/api/student-work/submit",
+  "/api/student-work",
 ]
 
 function getSupabase(request: NextRequest) {
