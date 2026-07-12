@@ -801,15 +801,34 @@ export default function SettingsPage() {
                   )}
                 </div>
                 {csvResult && (
-                  <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border p-3 text-xs">
-                    <p className="mb-1 font-medium">
-                      {csvResult.summary.created ?? csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.partial} partial
-                    </p>
-                    {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
-                      <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
-                        Row {r.row}: {r.email || r.name} — {r.error || r.status}
-                      </div>
-                    ))}
+                  <div className="mt-3 rounded-lg border p-3 text-xs">
+                    <div className="mb-1 flex items-center justify-between">
+                      <p className="font-medium">
+                        {csvResult.summary.created ?? csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.partial} partial
+                      </p>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                        const created = csvResult.results.filter((r: any) => r.status === "created" || r.status === "ok")
+                        if (created.length === 0) { toast.error("No users created to export"); return }
+                        const header = "email;password;full_name;role"
+                        const rows = created.map((r: any) => `${r.email};${r.temp_password || "SHB-xxxxxx"};${r.full_name || r.name || ""};${r.role || ""}`)
+                        const csv = [header, ...rows].join("\n")
+                        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement("a")
+                        a.href = url; a.download = "passwords.csv"; a.click()
+                        URL.revokeObjectURL(url)
+                      }}>
+                        <Download className="mr-1 h-3 w-3" />
+                        Passwords
+                      </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
+                        <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
+                          Row {r.row}: {r.email || r.name} — {r.error || r.status}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -857,15 +876,34 @@ export default function SettingsPage() {
                   )}
                 </div>
                 {csvResult && (
-                  <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border p-3 text-xs">
-                    <p className="mb-1 font-medium">
-                      {csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.skipped} skipped, {csvResult.summary.partial} partial
-                    </p>
-                    {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
-                      <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
-                        [{r.type}] {r.name}: {r.error || r.status}
-                      </div>
-                    ))}
+                  <div className="mt-3 rounded-lg border p-3 text-xs">
+                    <div className="mb-1 flex items-center justify-between">
+                      <p className="font-medium">
+                        {csvResult.summary.ok} ok, {csvResult.summary.failed} failed, {csvResult.summary.skipped} skipped, {csvResult.summary.partial} partial
+                      </p>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                        const created = csvResult.results.filter((r: any) => r.status === "ok" || r.status === "created")
+                        if (created.length === 0) { toast.error("No users created to export"); return }
+                        const header = "email;password;full_name;role"
+                        const rows = created.map((r: any) => `${r.email};${r.temp_password || "SHB-xxxxxx"};${r.name || ""};${r.type === "user" ? r.role : ""}`)
+                        const csv = [header, ...rows].join("\n")
+                        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement("a")
+                        a.href = url; a.download = "passwords.csv"; a.click()
+                        URL.revokeObjectURL(url)
+                      }}>
+                        <Download className="mr-1 h-3 w-3" />
+                        Passwords
+                      </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {csvResult.results.filter((r: any) => r.status === "failed" || r.status === "skipped" || r.status === "partial").map((r: any, i: number) => (
+                        <div key={i} className={`py-0.5 ${r.status === "failed" ? "text-red-600" : r.status === "partial" ? "text-amber-600" : "text-muted-foreground"}`}>
+                          [{r.type}] {r.name}: {r.error || r.status}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>

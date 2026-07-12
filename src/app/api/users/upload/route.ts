@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const validRoles = ["super_admin", "teacher", "lab_assistant", "student", "principal"]
     const validGrades = [7, 8, 9, 10, 11, 12]
 
-    const results: { row: number; email: string; status: string; error?: string }[] = []
+    const results: { row: number; email: string; full_name?: string; status: string; error?: string; temp_password?: string }[] = []
     let rowNum = 1
     const admin = createAdminClient()
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           if (profileError) {
             results.push({ row: rowNum, email, status: "partial", error: `Profile: ${profileError.message}` })
           } else {
-            results.push({ row: rowNum, email, status: "created", error: undefined })
+            results.push({ row: rowNum, email, full_name, status: "created", temp_password: tempPassword })
           }
         }
       } catch (err) {

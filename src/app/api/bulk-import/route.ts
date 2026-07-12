@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     headers.forEach((h, i) => { hMap[h.toLowerCase().replace(/[^a-z_]/g, "")] = i })
 
     const admin = createAdminClient()
-    const results: { type: string; name: string; status: string; error?: string }[] = []
+    const results: { type: string; name: string; email?: string; status: string; error?: string; temp_password?: string }[] = []
     const validRoles = ["super_admin", "teacher", "lab_assistant", "student", "principal"]
 
     for (let r = 1; r < lines.length; r++) {
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
             class_name: cls || null,
             is_active: true,
           })
-          results.push({ type: "user", name: fullName, status: profileError ? "partial" : "ok", error: profileError?.message })
+          results.push({ type: "user", name: fullName, email: userEmail, status: profileError ? "partial" : "ok", error: profileError?.message, temp_password: tempPw })
         }
       } catch (e: any) { results.push({ type: "user", name: fullName, status: "failed", error: e.message }) }
     }
