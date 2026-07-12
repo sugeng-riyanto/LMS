@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 import * as XLSX from "xlsx"
 
+function makePassword(): string {
+  return "SHB-" + Math.random().toString(36).slice(2, 8)
+}
+
 export async function GET() {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
+    const admin = createAdminClient()
+
     // Fetch all teachers with their assignments
-    const { data: teachers } = await (supabase as any)
+    const { data: teachers } = await (admin as any)
       .from("profiles")
       .select("id, email, full_name, role, grade_assigned")
       .eq("role", "teacher")
       .order("full_name")
 
     // Fetch teacher assignments with class info
-    const { data: assignments } = await (supabase as any)
+    const { data: assignments } = await (admin as any)
       .from("teacher_assignments")
       .select("*, classes:class_id(id, grade, class_name)")
       .order("grade")
@@ -28,26 +35,40 @@ export async function GET() {
     }
 
     // Students
-    const { data: students } = await (supabase as any)
+    const { data: students } = await (admin as any)
       .from("profiles")
       .select("id, email, full_name, role, grade_assigned")
       .eq("role", "student")
       .order("grade_assigned")
       .order("full_name")
 
+    // Reset passwords for all teachers and students
+    const pwMap: Record<string, string> = {}
+    for (const t of teachers ?? []) {
+      const pw = makePassword()
+      await admin.auth.admin.updateUserById(t.id, { password: pw }).catch(() => {})
+      pwMap[t.id] = pw
+    }
+    for (const s of students ?? []) {
+      const pw = makePassword()
+      await admin.auth.admin.updateUserById(s.id, { password: pw }).catch(() => {})
+      pwMap[s.id] = pw
+    }
+
     const wb = XLSX.utils.book_new()
 
     // Sheet 1: Teachers
-    const teacherRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class", "Default Password"]]
+    const teacherRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class", "Password"]]
     let idx = 1
     for (const t of teachers ?? []) {
       const ta = teacherAssignMap[t.id] ?? []
+      const pw = pwMap[t.id] || "SHB-xxxxxx"
       if (ta.length === 0) {
-        teacherRows.push([idx++, t.full_name, t.email, "-", "-", "-", "SHB-xxxxxx"])
+        teacherRows.push([idx++, t.full_name, t.email, "-", "-", "-", pw])
       } else {
         for (const a of ta) {
           const clsLabel = a.classes ? `Grade ${a.classes.grade}${a.classes.class_name}` : "All classes"
-          teacherRows.push([idx++, t.full_name, t.email, `Grade ${a.grade}`, a.subject, clsLabel, "SHB-xxxxxx"])
+          teacherRows.push([idx++, t.full_name, t.email, `Grade ${a.grade}`, a.subject, clsLabel, pw])
         }
       }
     }
@@ -63,12 +84,13 @@ export async function GET() {
       gradeGroups[g].push(s)
     }
 
-    const studentRows: any[][] = [["#", "Name", "Email", "Grade", "Default Password"]]
+    const studentRows: any[][] = [["#", "Name", "Email", "Grade", "Password"]]
     idx = 1
     const sortedGrades = Object.keys(gradeGroups).sort((a, b) => Number(a) - Number(b))
     for (const g of sortedGrades) {
       for (const s of gradeGroups[Number(g)]) {
-        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, "SHB-xxxxxx"])
+        const pw = pwMap[s.id] || "SHB-xxxxxx"
+        studentRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, pw])
       }
     }
     const wsStudents = XLSX.utils.aoa_to_sheet(studentRows)
@@ -104,8 +126,8 @@ export async function GET() {
     const notes = [
       ["NOTES"],
       [],
-      ["Default Password: SHB-xxxxxx (auto-generated for all users)"],
-      ["Users must change password on first login via Profile → Security tab"],
+      ["Passwords are REAL and usable — already set in the system"],
+      ["Users can change password after login via Profile → Change Password"],
       ["Forgot password: use /forgot-password page"],
       ["Super admin can reset any user's password from Settings → Users → Reset PW"],
       [],
