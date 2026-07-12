@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User, CheckCircle, Database } from "lucide-react"
+import { Settings, Plus, UserPlus, Shield, Mail, Key, Eye, EyeOff, Power, PowerOff, Trash2, Play, Info, Upload, Download, Building2, Save, BookOpen, GraduationCap, User, CheckCircle, Database, FileDown } from "lucide-react"
 import { GRADES, ROLES, ROLE_LABELS } from "@/lib/utils/constants"
 import { PROVIDER_DEFAULTS, PROVIDER_LABELS, PROVIDER_LOGOS, PROVIDER_INSTRUCTIONS } from "@/types/ai-provider"
 import type { UserProfile } from "@/types/user"
@@ -63,6 +63,7 @@ export default function SettingsPage() {
   const [createForm, setCreateForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, password: "", class_name: "" })
   const [editForm, setEditForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, class_name: "", is_active: true })
   const [resettingPw, setResettingPw] = useState<string | null>(null)
+  const [resettingAll, setResettingAll] = useState(false)
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [csvResult, setCsvResult] = useState<{ summary: any; results: any[] } | null>(null)
 
@@ -486,6 +487,38 @@ export default function SettingsPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={resettingAll || users.length === 0}
+                  onClick={async () => {
+                    if (!confirm(`Reset passwords for ALL ${users.length} users and download CSV?`)) return
+                    setResettingAll(true)
+                    try {
+                      const res = await fetch("/api/admin/reset-passwords-bulk", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ user_ids: users.map((u) => u.id) }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) { toast.error(data.error ?? "Failed"); return }
+                      const csv = ["email;password;full_name;role", ...data.results
+                        .filter((r: any) => r.temp_password)
+                        .map((r: any) => `${r.email || ""};${r.temp_password};${r.full_name || ""};${users.find((u: any) => u.id === r.id)?.role || ""}`)
+                      ].join("\n")
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement("a")
+                      a.href = url; a.download = "all-passwords.csv"; a.click()
+                      URL.revokeObjectURL(url)
+                      toast.success(`Downloaded ${data.results.filter((r: any) => r.temp_password).length} passwords`)
+                    } catch { toast.error("Failed to reset passwords") }
+                    finally { setResettingAll(false) }
+                  }}
+                >
+                  <FileDown className="mr-1 h-4 w-4" />
+                  {resettingAll ? "Resetting..." : "All Passwords"}
+                </Button>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
