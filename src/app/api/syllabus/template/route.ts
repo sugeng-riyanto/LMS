@@ -101,10 +101,11 @@ export async function GET(request: NextRequest) {
     instructionsSheet.addRow(["6. Score Category: must be one of: classwork, unit_test, project, homework, mid_semester, final_semester"])
     instructionsSheet.addRow(["7. Max Score: default 100, set the maximum score for this week's assessment."])
     instructionsSheet.addRow(["8. Media Links: comma-separated YouTube URLs or resource links."])
-    instructionsSheet.addRow(["9. Objectives: specific learning outcomes for this week."])
+    instructionsSheet.addRow(["9. Objectives: specific learning outcomes for this week. Will auto-save to syllabus_topics + learning objectives."])
     instructionsSheet.addRow(["10. Milestone: key checkpoints or deliverables for students."])
     instructionsSheet.addRow(["11. Reflection: post-lesson notes — what worked well or needs improvement."])
     instructionsSheet.addRow(["12. Save as XLSX and upload to Syllabus Manager > Upload > Excel/CSV tab."])
+    instructionsSheet.addRow(["13. Note: Evaluation (criteria/method/notes) can be set per-week in Syllabus Planner UI."])
     instructionsSheet.addRow([])
     instructionsSheet.addRow(["Required fields: Week, Topic, Score Category, Max Score"])
     instructionsSheet.getRow(1).font = { bold: true, size: 12 }
