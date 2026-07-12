@@ -1580,63 +1580,120 @@ function RbacTab() {
         </CardContent>
       </Card>
 
-      <SupervisionMappingCard assignments={assignments} teacherAssignments={teacherAssignments} />
+      <SupervisionMappingCard
+        assignments={assignments}
+        teacherAssignments={teacherAssignments}
+        principalMappings={principalMappings}
+        allTeachers={allTeachers}
+        onRefresh={fetchData}
+      />
     </div>
   )
 }
 
-function SupervisionMappingCard({ assignments, teacherAssignments }: {
-  assignments: any[]; teacherAssignments: any[]
+function SupervisionMappingCard({ assignments, teacherAssignments, principalMappings, allTeachers, onRefresh }: {
+  assignments: any[]; teacherAssignments: any[]; principalMappings: any[]; allTeachers: any[]; onRefresh: () => void
 }) {
-  const jhsTeachers = new Map<string, any[]>()
-  const shsTeachers = new Map<string, any[]>()
-  for (const ta of teacherAssignments) {
-    const tMap = ta.grade >= 7 && ta.grade <= 9 ? jhsTeachers : shsTeachers
-    if (!tMap.has(ta.teacher_id)) tMap.set(ta.teacher_id, [])
-    tMap.get(ta.teacher_id)!.push(ta)
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ principal_id: "", teacher_id: "" })
+  const [busy, setBusy] = useState(false)
+
+  async function handleAdd() {
+    if (!form.principal_id || !form.teacher_id) return
+    setBusy(true)
+    try {
+      const r = await fetch("/api/principal/mappings", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
+      })
+      if (r.ok) { toast.success("Teacher mapped!"); setForm({ principal_id: "", teacher_id: "" }); onRefresh() }
+      else { const e = await r.json(); toast.error(e.error) }
+    } catch { toast.error("Failed") } finally { setBusy(false) }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Remove this mapping?")) return
+    try {
+      const r = await fetch(`/api/principal/mappings/${id}`, { method: "DELETE" })
+      if (r.ok) { toast.success("Removed!"); onRefresh() } else toast.error("Failed")
+    } catch { toast.error("Failed") }
+  }
+
+  // Group teachers by principal for display
+  const mappingsByPrincipal = new Map<string, any[]>()
+  for (const pm of principalMappings) {
+    const key = pm.principal_id
+    if (!mappingsByPrincipal.has(key)) mappingsByPrincipal.set(key, [])
+    mappingsByPrincipal.get(key)!.push(pm)
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Supervision & TPA Mapping <span className="text-xs font-normal text-muted-foreground">— teachers by grade level (read-only)</span></CardTitle>
+        <CardTitle>Supervision & TPA Mapping <span className="text-xs font-normal text-muted-foreground">— assign teachers to principals for supervision</span></CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {assignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Assign principals to JHS/SHS first.</p>
-          ) : (
-            assignments.map((a: any) => {
-              const levelTeachers = a.level === "JHS" ? jhsTeachers : shsTeachers
-              const gradeRange = a.level === "JHS" ? "Grades 7-9" : "Grades 10-12"
-              return (
-                <div key={a.id} className="rounded-lg border p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="font-semibold text-sm">{a.principal?.full_name}</span>
-                    <Badge variant={a.level === "JHS" ? "default" : "secondary"}>{a.level}</Badge>
-                    <span className="text-xs text-muted-foreground">{gradeRange}</span>
-                  </div>
-                  {levelTeachers.size === 0 ? (
-                    <p className="text-xs text-muted-foreground py-2">No teachers assigned to {gradeRange}.</p>
-                  ) : (
-                    <div className="grid gap-1.5">
-                      {Array.from(levelTeachers.entries()).map(([teacherId, tas]) => {
-                        const teacher = tas[0]?.profiles
-                        return (
-                          <div key={teacherId} className="flex items-center gap-2 rounded bg-muted/50 px-3 py-1.5 text-xs">
-                            <span className="font-medium min-w-[160px]">{teacher?.full_name || "Unknown"}</span>
-                            <span className="text-muted-foreground">{[...new Set(tas.map((t: any) => `G${t.grade}`))].join(", ")}</span>
-                            <span className="text-muted-foreground">{[...new Set(tas.map((t: any) => t.subject))].join(", ")}</span>
-                          </div>
-                        )
-                      })}
+      <CardContent className="space-y-4">
+        {adding ? (
+          <div className="flex flex-wrap items-end gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="space-y-1">
+              <Label className="text-xs">Principal</Label>
+              <select value={form.principal_id} onChange={e => setForm(p => ({ ...p, principal_id: e.target.value }))}
+                className="h-8 rounded border border-input bg-background px-2 text-sm min-w-[180px]">
+                <option value="">Select...</option>
+                {assignments.map((a: any) => <option key={a.principal_id} value={a.principal_id}>{a.principal?.full_name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Teacher</Label>
+              <select value={form.teacher_id} onChange={e => setForm(p => ({ ...p, teacher_id: e.target.value }))}
+                className="h-8 rounded border border-input bg-background px-2 text-sm min-w-[180px]">
+                <option value="">Select...</option>
+                {allTeachers.filter((t: any) => !principalMappings.some((m: any) => m.teacher_id === t.id)).map((t: any) => (
+                  <option key={t.id} value={t.id}>{t.full_name}{t._grade ? ` (G${t._grade} ${t._subject})` : ""}</option>
+                ))}
+              </select>
+            </div>
+            <Button size="sm" onClick={handleAdd} disabled={busy || !form.principal_id || !form.teacher_id}>
+              {busy ? "..." : "Add"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="gap-1">
+            <Plus className="h-3 w-3" /> Add Mapping
+          </Button>
+        )}
+
+        {principalMappings.length === 0 && assignments.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">Assign principals to JHS/SHS first, then map teachers.</p>
+        )}
+
+        {assignments.map((a: any) => {
+          const mapped = mappingsByPrincipal.get(a.principal_id) || []
+          return (
+            <div key={a.id} className="rounded-lg border p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="font-semibold text-sm">{a.principal?.full_name}</span>
+                <Badge variant={a.level === "JHS" ? "default" : "secondary"}>{a.level}</Badge>
+                <span className="text-xs text-muted-foreground">{a.level === "JHS" ? "Grades 7-9" : "Grades 10-12"}</span>
+                <Badge variant="outline" className="text-[10px]">{mapped.length} teachers</Badge>
+              </div>
+              {mapped.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">No teachers assigned yet.</p>
+              ) : (
+                <div className="grid gap-1.5">
+                  {mapped.map((pm: any) => (
+                    <div key={pm.id} className="flex items-center justify-between rounded bg-muted/50 px-3 py-1.5 text-xs">
+                      <span className="font-medium">{pm.teacher?.full_name || "Unknown"}</span>
+                      <button onClick={() => handleDelete(pm.id)} className="text-destructive hover:underline ml-2">Remove</button>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )
-            })
-          )}
-        </div>
+              )}
+            </div>
+          )
+        })}
+
+        <p className="text-xs text-muted-foreground">TPA (Teacher Performance Assessment) weights can be configured in <strong>School</strong> tab.</p>
       </CardContent>
     </Card>
   )
