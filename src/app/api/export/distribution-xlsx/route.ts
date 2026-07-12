@@ -38,7 +38,7 @@ export async function GET() {
       try {
         const r = await fetch(`${creds.url}/auth/v1/admin/users/${u.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json", "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+          headers: { "Content-Type": "application/json", "apikey": creds.anonKey, "Authorization": `Bearer ${creds.serviceKey}` },
           body: JSON.stringify({ password: pw }),
         })
         const body = r.ok ? "" : await r.text().catch(() => "unknown")
