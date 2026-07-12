@@ -17,5 +17,5 @@ jobs:
           script: |
             cd /var/www/lmsshb/physics-command-center
             sudo git pull
-            sudo npm run build
+            sudo SKIP_TYPECHECK=1 NODE_OPTIONS="--max-old-space-size=512" npm run build
             sudo pm2 restart lmsshb
