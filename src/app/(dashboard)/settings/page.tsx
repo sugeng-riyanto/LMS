@@ -67,6 +67,7 @@ export default function SettingsPage() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [csvResult, setCsvResult] = useState<{ summary: any; results: any[] } | null>(null)
   const [allClasses, setAllClasses] = useState<any[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -191,6 +192,38 @@ export default function SettingsPage() {
     } finally {
       setResettingPw(null)
     }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedUsers.size === 0) { toast.error("No users selected"); return }
+    const adminCount = users.filter(u => selectedUsers.has(u.id) && u.role === "super_admin").length
+    if (adminCount > 0 && !confirm(`${adminCount} admin(s) selected. Delete anyway?`)) return
+    if (!confirm(`Delete ${selectedUsers.size} user(s)?`)) return
+    try {
+      const res = await fetch("/api/admin/bulk-delete-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_ids: Array.from(selectedUsers) }),
+      })
+      const data = await res.json()
+      if (res.ok) { toast.success(data.message || "Deleted!"); setSelectedUsers(new Set()); fetchUsers(roleFilter) }
+      else toast.error(data.error || "Failed")
+    } catch { toast.error("Failed") }
+  }
+
+  async function handleDeleteAllNonAdmin() {
+    const nonAdmin = users.filter(u => u.role !== "super_admin")
+    if (!confirm(`Delete ALL ${nonAdmin.length} non-admin users? This cannot be undone.`)) return
+    try {
+      const res = await fetch("/api/admin/bulk-delete-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_ids: nonAdmin.map(u => u.id) }),
+      })
+      const data = await res.json()
+      if (res.ok) { toast.success(data.message || "Deleted!"); setSelectedUsers(new Set()); fetchUsers(roleFilter) }
+      else toast.error(data.error || "Failed")
+    } catch { toast.error("Failed") }
   }
 
   async function handleInvite() {
@@ -540,6 +573,17 @@ export default function SettingsPage() {
                   <FileDown className="mr-1 h-4 w-4" />
                   {resettingAll ? "Resetting..." : "All Passwords"}
                 </Button>
+                <Button variant="outline" size="sm" disabled={selectedUsers.size === 0} onClick={async () => {
+                  if (!confirm(`Delete ${selectedUsers.size} selected user(s)?`)) return
+                  await handleBulkDelete()
+                }}>
+                  <Trash2 className="mr-1 h-3 w-3 text-destructive" />
+                  Delete Selected ({selectedUsers.size})
+                </Button>
+                <Button variant="outline" size="sm" disabled={users.filter(u => u.role !== "super_admin").length === 0} onClick={handleDeleteAllNonAdmin}>
+                  <Trash2 className="mr-1 h-3 w-3 text-destructive" />
+                  Delete All Non-Admin
+                </Button>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -654,17 +698,36 @@ export default function SettingsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0}
+                            onChange={() => {
+                              if (selectedUsers.size === users.length) setSelectedUsers(new Set())
+                              else setSelectedUsers(new Set(users.map(u => u.id)))
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+                        </TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Grade</TableHead>
+                        <TableHead>Class</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.map((user) => (
-                        <TableRow key={user.id}>
+                        <TableRow key={user.id} className={selectedUsers.has(user.id) ? "bg-primary/5" : ""}>
+                          <TableCell>
+                            <input type="checkbox" checked={selectedUsers.has(user.id)}
+                              onChange={() => {
+                                const next = new Set(selectedUsers)
+                                if (next.has(user.id)) next.delete(user.id)
+                                else next.add(user.id)
+                                setSelectedUsers(next)
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
@@ -679,9 +742,6 @@ export default function SettingsPage() {
                               </Avatar>
                               <div>
                                 <span className="font-medium">{user.full_name}</span>
-                                {(user as any).class_name && (
-                                  <span className="ml-1 text-xs text-muted-foreground">(Class {(user as any).class_name})</span>
-                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -690,6 +750,9 @@ export default function SettingsPage() {
                             <Badge className={roleColors[user.role] ?? ""}>{ROLE_LABELS[user.role]}</Badge>
                           </TableCell>
                           <TableCell>{user.grade_assigned ? `Grade ${user.grade_assigned}` : "-"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {(user as any).class_id ? allClasses.find((c: any) => c.id === (user as any).class_id) ? `Grade ${allClasses.find((c: any) => c.id === (user as any).class_id)!.grade}${allClasses.find((c: any) => c.id === (user as any).class_id)!.class_name}` : "-" : "-"}
+                          </TableCell>
                           <TableCell>
                             {(user as any).is_active === false ? (
                               <Badge variant="destructive" className="text-xs">Inactive</Badge>

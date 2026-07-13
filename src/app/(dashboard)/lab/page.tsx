@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useSubjects } from "@/hooks/use-subjects"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +17,7 @@ interface LabItem {
   id: string
   item_name: string
   category: string | null
+  subject_code: string | null
   total_quantity: number
   available_quantity: number
   broken_quantity: number
@@ -23,10 +25,11 @@ interface LabItem {
   notes: string | null
 }
 
-const emptyForm = { item_name: "", category: "", total_quantity: 1, available_quantity: 1, broken_quantity: 0, location: "", notes: "" }
+const emptyForm = { item_name: "", category: "", subject_code: "", total_quantity: 1, available_quantity: 1, broken_quantity: 0, location: "", notes: "" }
 
 export default function LabPage() {
   const { isSuperAdmin, isLabAssistant } = useRBAC()
+  const { subjects: allSubjects } = useSubjects()
   const canManage = isSuperAdmin || isLabAssistant
   const [items, setItems] = useState<LabItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +63,7 @@ export default function LabPage() {
 
   function openEdit(item: LabItem) {
     setEditingId(item.id)
-    setForm({ item_name: item.item_name, category: item.category ?? "", total_quantity: item.total_quantity, available_quantity: item.available_quantity, broken_quantity: item.broken_quantity, location: item.location ?? "", notes: item.notes ?? "" })
+    setForm({ item_name: item.item_name, category: item.category ?? "", subject_code: item.subject_code ?? "", total_quantity: item.total_quantity, available_quantity: item.available_quantity, broken_quantity: item.broken_quantity, location: item.location ?? "", notes: item.notes ?? "" })
     setDialogOpen(true)
   }
 
@@ -71,6 +74,7 @@ export default function LabPage() {
       const body = {
         item_name: form.item_name,
         category: form.category || null,
+        subject_code: form.subject_code || null,
         total_quantity: form.total_quantity,
         available_quantity: form.available_quantity,
         broken_quantity: form.broken_quantity,
@@ -101,7 +105,7 @@ export default function LabPage() {
     } catch { toast.error("Failed to delete.") }
   }
 
-  const filtered = categoryFilter === "all" ? items : items.filter((i) => i.category === categoryFilter)
+  const filtered = categoryFilter === "all" ? items : items.filter((i) => i.subject_code === categoryFilter || i.category === categoryFilter)
 
   if (!canManage) {
     return <div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">You do not have access to this page.</p></div>
@@ -147,8 +151,9 @@ export default function LabPage() {
           <div className="flex items-center justify-between">
             <CardTitle>Equipment</CardTitle>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-sm">
-              <option value="all">All Categories</option>
-              {categories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+              <option value="all">All Items</option>
+              {allSubjects.map((s) => (<option key={s.code} value={s.code}>{s.icon} {s.name}</option>))}
+              {categories.filter(c => !allSubjects.some(s => s.code === c)).map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
             </select>
           </div>
         </CardHeader>
@@ -162,6 +167,7 @@ export default function LabPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Item</TableHead>
+                  <TableHead>Subject</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead className="text-center">Total</TableHead>
@@ -174,6 +180,7 @@ export default function LabPage() {
                 {filtered.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.item_name}</TableCell>
+                    <TableCell>{item.subject_code && allSubjects.find(s => s.code === item.subject_code) ? <Badge variant="outline">{allSubjects.find(s => s.code === item.subject_code)!.icon} {item.subject_code}</Badge> : <span className="text-xs text-muted-foreground">-</span>}</TableCell>
                     <TableCell>{item.category && <Badge variant="secondary">{item.category}</Badge>}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{item.location ?? "-"}</TableCell>
                     <TableCell className="text-center">{item.total_quantity}</TableCell>
@@ -205,9 +212,18 @@ export default function LabPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
+                <Label>Subject</Label>
+                <select value={form.subject_code} onChange={(e) => setForm((p) => ({ ...p, subject_code: e.target.value }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                  <option value="">No subject</option>
+                  {allSubjects.map((s) => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
                 <Label>Category</Label>
                 <Input value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} placeholder="e.g. Mechanics" />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Location</Label>
                 <Input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} placeholder="e.g. Cabinet A3" />
