@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
-import { SUBJECTS } from "@/lib/utils/constants"
 
 export function useTeacherSubjects() {
   const { profile } = useAuth()
@@ -11,7 +10,7 @@ export function useTeacherSubjects() {
   useEffect(() => {
     if (!profile?.id) return
     if (isSuperAdmin) {
-      setSubjects(SUBJECTS.map(s => s.code))
+      setSubjects([])
       return
     }
     if (!isTeacher) return
