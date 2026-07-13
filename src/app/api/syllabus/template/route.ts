@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { getGradeSequence } from "@/lib/utils/week-calculator"
 import { SUBJECT_GRADE_SEQUENCES } from "@/lib/syllabus/subject-templates"
-import { SUBJECTS, GRADES } from "@/lib/utils/constants"
+import { GRADES } from "@/lib/utils/constants"
 import ExcelJS from "exceljs"
 
 export async function GET(request: NextRequest) {
@@ -11,23 +12,28 @@ export async function GET(request: NextRequest) {
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
-    const subject = searchParams.get("subject") || "PHY"
+    const subjectCode = searchParams.get("subject") || "PHY"
     const grade = parseInt(searchParams.get("grade") || "10")
 
     if (!GRADES.includes(grade as any)) {
       return NextResponse.json({ error: "Invalid grade" }, { status: 400 })
     }
-    if (!SUBJECTS.find(s => s.code === subject)) {
-      return NextResponse.json({ error: "Invalid subject" }, { status: 400 })
+
+    // Validate subject against database
+    const admin = createAdminClient()
+    const { data: validSubjects } = await (admin.from("subjects") as any).select("code, name").eq("is_active", true)
+    const validCodes = (validSubjects || []).map((s: any) => s.code)
+    if (!validCodes.includes(subjectCode)) {
+      return NextResponse.json({ error: `Invalid subject "${subjectCode}". Valid: ${validCodes.join(", ")}` }, { status: 400 })
     }
 
-    const subjectName = SUBJECTS.find(s => s.code === subject)!.name
+    const subjectName = validSubjects?.find((s: any) => s.code === subjectCode)?.name || subjectCode
 
     const wb = new ExcelJS.Workbook()
     wb.creator = "SHB Learning Hub"
     wb.created = new Date()
 
-    const ws = wb.addWorksheet(`${subject} Grade ${grade}`)
+    const ws = wb.addWorksheet(`${subjectCode} Grade ${grade}`)
 
     ws.columns = [
       { header: "Week", key: "week", width: 8 },
@@ -57,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     for (let week = 1; week <= 22; week++) {
       let topic = ""
-      const seq = SUBJECT_GRADE_SEQUENCES[subject as keyof typeof SUBJECT_GRADE_SEQUENCES]
+      const seq = SUBJECT_GRADE_SEQUENCES[subjectCode as keyof typeof SUBJECT_GRADE_SEQUENCES]
       if (seq && seq[grade] && seq[grade][week]) {
         topic = seq[grade][week]
       } else {
@@ -115,7 +121,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(buf, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${subject}-Grade${grade}-Syllabus-Template.xlsx"`,
+        "Content-Disposition": `attachment; filename="${subjectCode}-Grade${grade}-Syllabus-Template.xlsx"`,
       },
     })
   } catch (error) {

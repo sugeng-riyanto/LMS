@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireRole } from "@/lib/supabase/require-role"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { SUBJECTS, GRADES } from "@/lib/utils/constants"
+import { GRADES } from "@/lib/utils/constants"
 import ExcelJS from "exceljs"
 
 export async function POST(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get("file") as File | null
-    const subject = (formData.get("subject") as string) || "PHY"
+    const subjectCode = (formData.get("subject") as string) || "PHY"
     const grade = parseInt((formData.get("grade") as string) || "10")
 
     if (!file) {
@@ -20,8 +20,13 @@ export async function POST(request: NextRequest) {
     if (!GRADES.includes(grade as any)) {
       return NextResponse.json({ error: "Invalid grade" }, { status: 400 })
     }
-    if (!SUBJECTS.find(s => s.code === subject)) {
-      return NextResponse.json({ error: "Invalid subject" }, { status: 400 })
+
+    // Validate subject against database
+    const admin = createAdminClient()
+    const { data: validSubjects } = await (admin.from("subjects") as any).select("code").eq("is_active", true)
+    const validCodes = (validSubjects || []).map((s: any) => s.code)
+    if (!validCodes.includes(subjectCode)) {
+      return NextResponse.json({ error: `Invalid subject "${subjectCode}". Valid: ${validCodes.join(", ")}` }, { status: 400 })
     }
 
     const arrayBuf = await file.arrayBuffer()
@@ -167,7 +172,7 @@ export async function POST(request: NextRequest) {
         academic_year: "2026-2027",
         grade,
         week_number: weekNum,
-        subject,
+        subject: subjectCode,
         topic: row.topic,
         subtopics: row.subtopics ? row.subtopics.split(",").map(s => s.trim()).filter(Boolean) : [],
         opening_ideas: row.opening_ideas || null,
@@ -225,7 +230,7 @@ export async function POST(request: NextRequest) {
 
       const { error: topicErr } = await (supabase.from("syllabus_topics") as any).upsert({
         grade,
-        subject,
+        subject: subjectCode,
         unit_id: unitId,
         topic: entry.topic,
         subtopics: entry.subtopics,
