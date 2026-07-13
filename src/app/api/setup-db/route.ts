@@ -37,18 +37,15 @@ export async function POST() {
     const { error: authError } = await requireRole(["super_admin"])
     if (authError) return authError
 
-    const connectionString = process.env.SUPABASE_DB_CONNECTION
-    if (!connectionString) {
-      return NextResponse.json({
-        error: "SUPABASE_DB_CONNECTION not set",
-        hint: "Add SUPABASE_DB_CONNECTION to Vercel env vars. Value: postgresql://postgres:...@db.yvnomvcmqsfbkqqjwzhi.supabase.co:5432/postgres",
-      }, { status: 400 })
+    const conn = process.env.SUPABASE_DB_CONNECTION
+    if (!conn) {
+      return NextResponse.json({ error: "SUPABASE_DB_CONNECTION not set" }, { status: 400 })
     }
 
-    // Dynamic import pg (ESM compatible)
+    // Force IPv4 to avoid ENETUNREACH on VPS
+    const connectionString = conn.includes("?") ? conn + "&family=4" : conn + "?family=4"
     const { Pool } = await import("pg")
     const pool = new Pool({ connectionString, max: 1 })
-    
     try {
       await pool.query(SETUP_SQL)
       return NextResponse.json({ message: "Database setup complete! Tables created: role_permissions, principal_teacher_mappings" })
