@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
+    const { supabase, user, error: authError } = await requireRole(["super_admin", "teacher", "principal", "student", "lab_assistant"])
+    if (authError) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     const { data, error } = await (supabase.from("subjects") as any)
       .select("*")
       .eq("is_active", true)
