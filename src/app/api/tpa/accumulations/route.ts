@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     // Get weight settings (default 70% principal, 30% teacher)
     let principalWeight = 70
     let teacherWeight = 30
+    let scale = "0-4"
     try {
       const connectionString = process.env.SUPABASE_DB_CONNECTION
       if (connectionString) {
@@ -21,9 +22,10 @@ export async function GET(request: NextRequest) {
           await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
           await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
           await pool.query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
-          const { rows } = await pool.query(`SELECT tpa_principal_weight, tpa_teacher_weight FROM public.school_settings WHERE id = 1`)
+          const { rows } = await pool.query(`SELECT tpa_principal_weight, tpa_teacher_weight, assessment_scale FROM public.school_settings WHERE id = 1`)
           if (rows[0]?.tpa_principal_weight != null) principalWeight = rows[0].tpa_principal_weight
           if (rows[0]?.tpa_teacher_weight != null) teacherWeight = rows[0].tpa_teacher_weight
+          if (rows[0]?.assessment_scale) scale = rows[0].assessment_scale
         } finally { await pool.end() }
       }
     } catch {}
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       teachers: result,
-      weights: { principal: principalWeight, teacher: teacherWeight },
+      weights: { principal: principalWeight, teacher: teacherWeight, scale },
       total: result.length,
     })
   } catch (error) {

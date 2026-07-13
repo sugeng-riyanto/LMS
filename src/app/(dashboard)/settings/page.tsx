@@ -1782,6 +1782,7 @@ function SchoolSettings() {
     logo_url: "",
     tpa_principal_weight: 70,
     tpa_teacher_weight: 30,
+    assessment_scale: "0-4",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1798,8 +1799,9 @@ function SchoolSettings() {
         vp_name: d.vp_name ?? "", principal_name: d.principal_name ?? "",
         shs_vp_name: d.shs_vp_name ?? "", shs_principal_name: d.shs_principal_name ?? "",
         unit: d.unit ?? "", logo_url: d.logo_url ?? "",
-        tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
-        tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
+    tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
+    tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
+    assessment_scale: d.assessment_scale ?? tpa.scale ?? "0-4",
       })
       setLogoPreview(d.logo_url ?? "")
       setLoading(false)
@@ -1947,6 +1949,24 @@ function SchoolSettings() {
               className="w-full"
             />
           </div>
+        </div>
+
+        <Separator />
+        <h3 className="text-sm font-semibold">Assessment Scale</h3>
+        <p className="text-xs text-muted-foreground">Choose the scoring scale for Supervisions and TPA assessments.</p>
+        <div className="space-y-2">
+          <select value={form.assessment_scale} onChange={e => setForm(p => ({ ...p, assessment_scale: e.target.value }))}
+            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+            <option value="0-4">Scale 0 - 4 (standard)</option>
+            <option value="1-5">Scale 1 - 5</option>
+            <option value="0-10">Scale 0 - 10</option>
+            <option value="1-10">Scale 1 - 10</option>
+            <option value="custom">Custom...</option>
+          </select>
+          {form.assessment_scale === "custom" && (
+            <Input value={(form as any).assessment_scale_custom || ""} onChange={e => setForm(p => ({ ...p, assessment_scale_custom: e.target.value }))}
+              placeholder="e.g. 0-3 or A-F" className="text-sm" />
+          )}
         </div>
 
         <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />Save School Settings</Button>
