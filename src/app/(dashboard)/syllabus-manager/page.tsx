@@ -211,7 +211,7 @@ export default function SyllabusManagerPage() {
         <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
           <option value="">All Subjects</option>
-          {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+          {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
         </select>
         <select value={filterGrade} onChange={e => setFilterGrade(e.target.value ? Number(e.target.value) : "")}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm w-28">
@@ -299,7 +299,7 @@ export default function SyllabusManagerPage() {
             <Label>Subject</Label>
             <select value={subject} onChange={e => setSubject(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
-              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>
           <div className="space-y-1">
@@ -354,7 +354,7 @@ export default function SyllabusManagerPage() {
             <Label>Subject</Label>
             <select value={subject} onChange={e => setSubject(e.target.value)}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
-              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.code}</option>)}
+              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
             </select>
           </div>
           <div className="space-y-1">
