@@ -61,11 +61,12 @@ export default function SettingsPage() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
   const [inviteForm, setInviteForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7 })
   const [createForm, setCreateForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, password: "", class_name: "" })
-  const [editForm, setEditForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, class_name: "", is_active: true })
+  const [editForm, setEditForm] = useState({ email: "", full_name: "", role: "student" as UserProfile["role"], grade: 7, class_id: "", is_active: true })
   const [resettingPw, setResettingPw] = useState<string | null>(null)
   const [resettingAll, setResettingAll] = useState(false)
   const [deletingUser, setDeletingUser] = useState<string | null>(null)
   const [csvResult, setCsvResult] = useState<{ summary: any; results: any[] } | null>(null)
+  const [allClasses, setAllClasses] = useState<any[]>([])
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -94,6 +95,8 @@ export default function SettingsPage() {
     if (isSuperAdmin || role === "teacher" || role === "principal") {
       if (tab === "ai-providers") fetchProviders()
     }
+    // Fetch classes for user editing
+    fetch("/api/classes").then(r => r.ok ? r.json() : []).then(setAllClasses).catch(() => {})
   }, [isSuperAdmin, role, tab, roleFilter])
 
   // === USERS ===
@@ -112,7 +115,7 @@ export default function SettingsPage() {
 
   function openEditDialog(user: UserProfile) {
     setEditingUser(user)
-    setEditForm({ email: user.email ?? "", full_name: user.full_name, role: user.role, grade: user.grade_assigned ?? 7, class_name: (user as any).class_name ?? "", is_active: (user as any).is_active ?? true })
+    setEditForm({ email: user.email ?? "", full_name: user.full_name, role: user.role, grade: user.grade_assigned ?? 7, class_id: (user as any).class_id ?? "", is_active: (user as any).is_active ?? true })
     setEditOpen(true)
   }
 
@@ -147,7 +150,7 @@ export default function SettingsPage() {
         full_name: editForm.full_name,
         is_active: editForm.is_active,
       }
-      if ((editForm as any).class_name !== undefined) body.class_name = (editForm as any).class_name
+      if ((editForm as any).class_id) body.class_id = (editForm as any).class_id
       if (editForm.email !== editingUser.email) body.email = editForm.email
       const res = await fetch(`/api/profiles/${editingUser.id}`, {
         method: "PUT",
@@ -746,8 +749,13 @@ export default function SettingsPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Class Name (optional)</Label>
-                    <Input value={(editForm as any).class_name} onChange={(e) => setEditForm((p) => ({ ...p, class_name: e.target.value }))} placeholder="A" />
+                    <Label>Class (Parallel)</Label>
+                    <select value={(editForm as any).class_id} onChange={(e) => setEditForm((p) => ({ ...p, class_id: e.target.value }))} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                      <option value="">No class</option>
+                      {allClasses.filter((c: any) => c.grade === editForm.grade).map((c: any) => (
+                        <option key={c.id} value={c.id}>Grade {c.grade}{c.class_name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="checkbox" id="is_active" checked={editForm.is_active} onChange={(e) => setEditForm((p) => ({ ...p, is_active: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />

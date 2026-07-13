@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRBAC } from "@/hooks/use-rbac"
+import { useSubjectsForTeacher } from "@/hooks/use-subjects"
+import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +58,8 @@ export default function LessonPlanPage() {
   const [loadingPlans, setLoadingPlans] = useState(false)
 
   const [schoolCfg, setSchoolCfg] = useState<{ vp_name: string; principal_name: string; shs_vp_name: string; shs_principal_name: string; unit: string } | null>(null)
+  const teacherSubjects = useTeacherSubjects()
+  const { subjects: availableSubjects } = useSubjectsForTeacher(teacherSubjects)
 
   useEffect(() => {
     if (!configLoaded) {
@@ -352,7 +356,10 @@ export default function LessonPlanPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label>Subject</Label>
-                    <Input value={form.subject} onChange={(e) => update("subject", e.target.value)} />
+                    <select value={form.subject} onChange={(e) => update("subject", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
+                      {availableSubjects.map(s => <option key={s.code} value={s.name}>{s.icon} {s.name}</option>)}
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <Label>Teacher Name *</Label>
