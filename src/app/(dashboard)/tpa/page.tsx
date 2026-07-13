@@ -31,12 +31,13 @@ interface TPARecord {
   created_at: string
 }
 
-const SUBJECTS = [{ code: "PHY", name: "Physics" }, { code: "MAT", name: "Mathematics" }, { code: "CHE", name: "Chemistry" }, { code: "BIO", name: "Biology" }, { code: "ECO", name: "Economics" }]
+import { useSubjects } from "@/hooks/use-subjects"
 const PERIOD_TYPES = [{ value: "monthly", label: "Monthly" }, { value: "quarterly", label: "Quarterly" }, { value: "semester", label: "Semester" }]
 
 export default function TPAPage() {
   const { profile } = useAuth()
   const { isPrincipal, isTeacher, isSuperAdmin } = useRBAC()
+  const { subjects: allSubjects } = useSubjects()
   const [items, setItems] = useState<TPARecord[]>([])
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -407,7 +408,7 @@ export default function TPAPage() {
               <div className="space-y-1"><Label>Grade</Label>
                 <select value={form.grade} onChange={e => setForm(p => ({ ...p, grade: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{availableGrades.map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
               <div className="space-y-1"><Label>Subject</Label>
-                <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
+                <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">{allSubjects.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
               <div className="space-y-1"><Label>Class</Label>
                 <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" /></div>
             </div>

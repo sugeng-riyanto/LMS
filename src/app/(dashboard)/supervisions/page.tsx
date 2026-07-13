@@ -21,11 +21,13 @@ interface Supervision {
   teacher: { id: string; full_name: string }
 }
 
-const SUBJECTS = [{ code: "PHY", name: "Physics" }, { code: "MAT", name: "Mathematics" }, { code: "CHE", name: "Chemistry" }, { code: "BIO", name: "Biology" }, { code: "ECO", name: "Economics" }]
+import { useSubjects } from "@/hooks/use-subjects"
+import { GRADES } from "@/lib/utils/constants"
 
 export default function SupervisionsPage() {
   const { profile } = useAuth()
   const { isPrincipal, isTeacher, isSuperAdmin } = useRBAC()
+  const { subjects: allSubjects } = useSubjects()
   const [items, setItems] = useState<Supervision[]>([])
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -267,7 +269,7 @@ export default function SupervisionsPage() {
                 {availableGrades.map(g => <option key={g} value={g}>G{g}</option>)}</select></div>
             <div className="space-y-1"><Label className="text-size-sm">Subject</Label>
               <select value={form.subject} onChange={e => setForm(p => ({ ...p, subject: e.target.value }))} className="w-full h-8 text-xs rounded-md border border-input bg-background px-2">
-                {SUBJECTS.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
+                {allSubjects.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></div>
             <div className="space-y-1"><Label className="text-size-sm">Class</Label>
               <input value={form.class_name} onChange={e => setForm(p => ({ ...p, class_name: e.target.value }))} placeholder="A" className="w-full h-8 text-xs rounded-md border border-input bg-background px-2" /></div>
           </div>
