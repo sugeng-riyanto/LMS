@@ -55,6 +55,7 @@ export default function TPAPage() {
   const [teacherTpaSig, setTeacherTpaSig] = useState<string | null>(null)
   const [weightDialog, setWeightDialog] = useState(false)
   const [weightVal, setWeightVal] = useState(70)
+  const [scaleVal, setScaleVal] = useState("0-4")
 
   useEffect(() => {
     if (isPrincipal) {
@@ -548,7 +549,7 @@ export default function TPAPage() {
                   P:<strong className="text-blue-600">{accumulations.weights.principal}%</strong>
                   T:<strong className="text-green-600">{accumulations.weights.teacher}%</strong>
                 </span>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setWeightVal(accumulations.weights.principal); setWeightDialog(true) }}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setWeightVal(accumulations.weights.principal); setScaleVal(accumulations.weights.scale || "0-4"); setWeightDialog(true) }}>
                   ⚙️ Weights
                 </Button>
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAccumulations(null)}>✕ Close</Button>
@@ -630,6 +631,17 @@ export default function TPAPage() {
             <div className="rounded-lg bg-muted p-3 text-xs">
               <p><strong>Formula:</strong> Combined = Principal × <strong>{weightVal}%</strong> + Teacher × <strong>{100 - weightVal}%</strong></p>
             </div>
+
+            {/* Assessment Scale */}
+            <div className="space-y-1">
+              <Label className="text-xs">Assessment Scale</Label>
+              <select value={scaleVal} onChange={e => setScaleVal(e.target.value)} className="w-full h-8 rounded border border-input bg-background px-2 text-sm">
+                <option value="0-4">Scale 0 - 4 (standard)</option>
+                <option value="1-5">Scale 1 - 5</option>
+                <option value="0-10">Scale 0 - 10</option>
+                <option value="1-10">Scale 1 - 10</option>
+              </select>
+            </div>
           </div>
           <DialogFooter className="flex justify-between sm:justify-between">
             <div className="flex gap-2">
@@ -660,7 +672,7 @@ export default function TPAPage() {
                   const r = await fetch("/api/settings/tpa-weights", {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal }),
+                    body: JSON.stringify({ principal: weightVal, teacher: 100 - weightVal, scale: scaleVal }),
                   })
                   if (r.ok) {
                     toast.success("Weights saved!")
