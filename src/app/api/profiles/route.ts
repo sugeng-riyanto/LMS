@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("profiles")
-      .select("id, email, full_name, role, grade_assigned, is_active, last_login_at, created_at")
+      .select("id, email, full_name, role, grade_assigned, class_id, is_active, last_login_at, created_at")
       .order("full_name")
 
     if (roleFilter) query = query.eq("role", roleFilter)
