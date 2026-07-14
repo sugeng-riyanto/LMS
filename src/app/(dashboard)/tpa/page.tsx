@@ -445,12 +445,12 @@ export default function TPAPage() {
                         <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-border/50 last:border-0">
                           <span className="text-sm sm:text-base text-foreground leading-snug flex-1 min-w-0 font-medium">{item.id}. {item.text}</span>
                           <div className="flex items-center gap-3 shrink-0">
-                            <input type="range" min={scale.min} max={scale.max} step={1}
-                              value={catScores[item.id] ?? 3}
+                            <input type="range" min={parseScale(scaleVal).min} max={parseScale(scaleVal).max} step={1}
+                              value={catScores[item.id] ?? Math.ceil(parseScale(scaleVal).max / 2)}
                               onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
                               className="w-28 sm:w-36 h-3 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
-                            <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg text-base sm:text-lg font-bold shadow-sm ${(catScores[item.id] ?? 3) >= 3 ? 'bg-green-100 text-green-700 border border-green-300' : (catScores[item.id] ?? 3) >= 2 ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
-                              {catScores[item.id] ?? 3}
+                            <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg text-base sm:text-lg font-bold shadow-sm ${(catScores[item.id] ?? Math.ceil(parseScale(scaleVal).max / 2)) >= Math.ceil(parseScale(scaleVal).max * 0.75) ? 'bg-green-100 text-green-700 border border-green-300' : (catScores[item.id] ?? Math.ceil(parseScale(scaleVal).max / 2)) >= Math.ceil(parseScale(scaleVal).max * 0.5) ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
+                              {catScores[item.id] ?? Math.ceil(parseScale(scaleVal).max / 2)}
                             </span>
                             <div className="flex gap-1 flex-wrap">
                               {parseScale(scaleVal).values.map(v => (
