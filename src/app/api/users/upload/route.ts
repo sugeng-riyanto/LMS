@@ -96,6 +96,20 @@ export async function POST(request: NextRequest) {
           if (profileError) {
             results.push({ row: rowNum, email, status: "partial", error: `Profile: ${profileError.message}` })
           } else {
+            // Auto-create teacher_assignments if role is teacher and subjects specified
+            if (role === "teacher" && grade && row.subjects) {
+              const subjectCodes = row.subjects.split(",").map((s: string) => s.trim().toUpperCase()).filter(Boolean)
+              for (const subjectCode of subjectCodes) {
+                try {
+                  await (admin.from("teacher_assignments") as any).upsert({
+                    teacher_id: authUser.user.id,
+                    grade,
+                    subject: subjectCode,
+                    class_id: classId || null,
+                  }, { onConflict: "teacher_id, grade, subject" })
+                } catch {}
+              }
+            }
             results.push({ row: rowNum, email, full_name, status: "created", temp_password: tempPassword })
           }
         }
