@@ -41,6 +41,7 @@ export default function SupervisionsPage() {
   const [teacherAssignments, setTeacherAssignments] = useState<any[]>([])
   const [principalSigData, setPrincipalSigData] = useState<string | null>(null)
   const [teacherSigData, setTeacherSigData] = useState<string | null>(null)
+  const [scaleLabel, setScaleLabel] = useState("0-4")
 
   useEffect(() => {
     if (isPrincipal) {
@@ -49,6 +50,10 @@ export default function SupervisionsPage() {
         else if (d.level === "SHS") setAvailableGrades([10, 11, 12])
       }).catch(() => {})
     }
+    // Fetch assessment scale
+    fetch("/api/settings/school").then(r => r.json()).then(d => {
+      if (d.assessment_scale) setScaleLabel(d.assessment_scale)
+    }).catch(() => {})
   }, [isPrincipal])
 
   // AI feedback generator
@@ -279,7 +284,7 @@ export default function SupervisionsPage() {
           </div>
 
           <Separator />
-          <p className="text-size-sm text-muted-foreground">Rate 0-4. Slider or click number. Default: <strong>4</strong> (All of the time).</p>
+          <p className="text-size-sm text-muted-foreground">Rate on selected scale. Slider or click number. Default: <strong>4</strong> (All of the time). Scale: <strong>{scaleLabel}</strong></p>
 
           {TPA_CATEGORIES.map(cat => {
             const catScores = scores[cat.key] || {}
