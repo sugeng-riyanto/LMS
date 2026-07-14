@@ -5,21 +5,25 @@ import { createAdminClient } from "@/lib/supabase/admin"
 async function ensureColumns() {
   try {
     const supabase = createAdminClient()
-    // Try to do a simple operation first
-    await (supabase.from("school_settings") as any).select("id").eq("id", 1).maybeSingle()
+    // Check if both columns exist by trying to select them
+    const { data } = await (supabase.from("school_settings") as any)
+      .select("tpa_principal_weight, tpa_teacher_weight")
+      .eq("id", 1)
+      .maybeSingle()
+    // If we got here without error, columns exist and we have data
+    if (data || data === null) return // null means row doesn't exist but columns do
   } catch {
-    // Table or columns missing - create them
-    const connectionString = process.env.SUPABASE_DB_CONNECTION
-    if (connectionString) {
-      try {
-        const { Pool } = await import("pg")
-        const pool = new Pool({ connectionString, max: 1 })
-        await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
-        await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
-        await pool.query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
-        await pool.end()
-      } catch {}
-    }
+    // Columns missing — create them
+    try {
+      const conn = process.env.SUPABASE_DB_CONNECTION
+      if (!conn) return
+      const { Pool } = await import("pg")
+      const pool = new Pool({ connectionString: conn.includes("?") ? conn + "&family=4" : conn + "?family=4", max: 1 })
+      await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_principal_weight INT DEFAULT 70`)
+      await pool.query(`ALTER TABLE public.school_settings ADD COLUMN IF NOT EXISTS tpa_teacher_weight INT DEFAULT 30`)
+      await pool.query(`INSERT INTO public.school_settings (id, school_name) VALUES (1, 'SHB') ON CONFLICT (id) DO NOTHING`)
+      await pool.end()
+    } catch {}
   }
 }
 
