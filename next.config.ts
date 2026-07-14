@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "date-fns", "@radix-ui/react-checkbox"],
     staleTimes: {
       dynamic: 0,
-      static: 0,
+      static: 30,
     },
   },
 }
