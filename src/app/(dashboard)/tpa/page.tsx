@@ -32,6 +32,7 @@ interface TPARecord {
 }
 
 import { useSubjects } from "@/hooks/use-subjects"
+import { parseScale } from "@/lib/utils/scale"
 const PERIOD_TYPES = [{ value: "monthly", label: "Monthly" }, { value: "quarterly", label: "Quarterly" }, { value: "semester", label: "Semester" }]
 
 export default function TPAPage() {
@@ -307,7 +308,7 @@ export default function TPAPage() {
             setLoading(true)
             try {
               const r = await fetch("/api/tpa/accumulations")
-              if (r.ok) setAccumulations(await r.json())
+              if (r.ok) { const data = await r.json(); setAccumulations(data); if (data.weights?.scale) setScaleVal(data.weights.scale) }
               else toast.error("Failed to load")
             } catch { toast.error("Failed") }
             finally { setLoading(false) }
@@ -444,17 +445,17 @@ export default function TPAPage() {
                         <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-border/50 last:border-0">
                           <span className="text-sm sm:text-base text-foreground leading-snug flex-1 min-w-0 font-medium">{item.id}. {item.text}</span>
                           <div className="flex items-center gap-3 shrink-0">
-                            <input type="range" min={0} max={4} step={1}
+                            <input type="range" min={scale.min} max={scale.max} step={1}
                               value={catScores[item.id] ?? 3}
                               onChange={e => setScore(cat.key, item.id, parseInt(e.target.value))}
                               className="w-28 sm:w-36 h-3 rounded-full appearance-none bg-muted accent-primary cursor-pointer touch-pan-y" />
                             <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg text-base sm:text-lg font-bold shadow-sm ${(catScores[item.id] ?? 3) >= 3 ? 'bg-green-100 text-green-700 border border-green-300' : (catScores[item.id] ?? 3) >= 2 ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
                               {catScores[item.id] ?? 3}
                             </span>
-                            <div className="flex gap-1">
-                              {[0,1,2,3,4].map(v => (
+                            <div className="flex gap-1 flex-wrap">
+                              {parseScale(scaleVal).values.map(v => (
                                 <button key={v} type="button" onClick={() => setScore(cat.key, item.id, v)}
-                                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg text-sm sm:text-base font-bold transition-all active:scale-90 touch-manipulation shadow-sm ${(catScores[item.id] ?? 3) === v ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' : 'bg-card text-foreground hover:bg-accent border border-border'}`}>{v}</button>
+                                  className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg text-xs sm:text-sm font-bold transition-all active:scale-90 touch-manipulation shadow-sm ${(catScores[item.id] ?? Math.ceil(parseScale(scaleVal).max / 2)) === v ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30' : 'bg-card text-foreground hover:bg-accent border border-border'}`}>{v}</button>
                               ))}
                             </div>
                           </div>
