@@ -73,6 +73,8 @@ export default function SyllabusManagerPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ topic: "", unit_id: "", syllabus_ref: "", curriculum: "" })
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const [templateSubject, setTemplateSubject] = useState("PHY")
   const [templateGrade, setTemplateGrade] = useState(10)
@@ -196,6 +198,34 @@ export default function SyllabusManagerPage() {
     finally { setDeleting(null) }
   }
 
+  async function handleBulkDelete() {
+    if (selectedTopicIds.size === 0) { toast.error("No topics selected"); return }
+    if (!confirm(`Delete ${selectedTopicIds.size} topic(s)?`)) return
+    setBulkDeleting(true)
+    try {
+      const ids = Array.from(selectedTopicIds).join(",")
+      const res = await fetch(`/api/syllabus/topics?ids=${ids}`, { method: "DELETE" })
+      const data = await res.json()
+      if (res.ok) { toast.success(data.message); setSelectedTopicIds(new Set()); fetchRows() }
+      else toast.error(data.error || "Failed")
+    } catch { toast.error("Failed") }
+    finally { setBulkDeleting(false) }
+  }
+
+  async function handleDeleteAll() {
+    if (rows.length === 0) { toast.error("No topics to delete"); return }
+    if (!confirm(`Delete ALL ${rows.length} topics? This cannot be undone.`)) return
+    setBulkDeleting(true)
+    try {
+      const ids = rows.map(r => r.id).join(",")
+      const res = await fetch(`/api/syllabus/topics?ids=${ids}`, { method: "DELETE" })
+      const data = await res.json()
+      if (res.ok) { toast.success(data.message); setSelectedTopicIds(new Set()); fetchRows() }
+      else toast.error(data.error || "Failed")
+    } catch { toast.error("Failed") }
+    finally { setBulkDeleting(false) }
+  }
+
   function resetForm() {
     setPasteText(""); setFileName(""); setResult(null); setSaved(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
@@ -219,12 +249,38 @@ export default function SyllabusManagerPage() {
           {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
         </select>
         <Badge variant="secondary" className="text-xs">{rows.length} topics</Badge>
+        <div className="ml-auto flex gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-[10px]" disabled={selectedTopicIds.size === 0 || bulkDeleting}
+            onClick={handleBulkDelete}>
+            {bulkDeleting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
+            Delete ({selectedTopicIds.size})
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[10px] text-destructive" disabled={rows.length === 0 || bulkDeleting}
+            onClick={handleDeleteAll}>
+            Delete All
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-[10px]" disabled={rows.length === 0}
+            onClick={() => {
+              if (selectedTopicIds.size === rows.length) setSelectedTopicIds(new Set())
+              else setSelectedTopicIds(new Set(rows.map(r => r.id)))
+            }}>
+            {selectedTopicIds.size === rows.length ? "Deselect" : "Select All"}
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border max-h-[500px] overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="text-xs w-8">
+                <input type="checkbox" checked={selectedTopicIds.size === rows.length && rows.length > 0}
+                  onChange={() => {
+                    if (selectedTopicIds.size === rows.length) setSelectedTopicIds(new Set())
+                    else setSelectedTopicIds(new Set(rows.map(r => r.id)))
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+              </TableHead>
               <TableHead className="text-xs w-12">Grade</TableHead>
               <TableHead className="text-xs">Subject</TableHead>
               <TableHead className="text-xs">Topic</TableHead>
@@ -235,11 +291,21 @@ export default function SyllabusManagerPage() {
           </TableHeader>
           <TableBody>
             {loadingRows ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">No topics. Upload a syllabus above.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">No topics. Upload a syllabus above.</TableCell></TableRow>
             ) : rows.map(r => (
-              <TableRow key={r.id}>
+              <TableRow key={r.id} className={selectedTopicIds.has(r.id) ? "bg-primary/5" : ""}>
+                <TableCell className="text-xs">
+                  <input type="checkbox" checked={selectedTopicIds.has(r.id)}
+                    onChange={() => {
+                      const next = new Set(selectedTopicIds)
+                      if (next.has(r.id)) next.delete(r.id)
+                      else next.add(r.id)
+                      setSelectedTopicIds(next)
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+                </TableCell>
                 <TableCell className="text-xs">{r.grade}</TableCell>
                 <TableCell className="text-xs">{r.subject}</TableCell>
                 <TableCell className="text-xs max-w-[200px] truncate">

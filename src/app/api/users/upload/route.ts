@@ -20,10 +20,19 @@ export async function POST(request: NextRequest) {
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" })
     const validRoles = ["super_admin", "teacher", "lab_assistant", "student", "principal"]
     const validGrades = [7, 8, 9, 10, 11, 12]
+    const admin = createAdminClient()
+
+    // Pre-fetch classes for mapping
+    const { data: classList } = await (admin.from("classes") as any).select("*")
+    const classesByGradeAndName = new Map<string, string>()
+    if (classList) {
+      for (const c of classList) {
+        classesByGradeAndName.set(`${c.grade}-${c.class_name}`, c.id)
+      }
+    }
 
     const results: { row: number; email: string; full_name?: string; status: string; error?: string; temp_password?: string }[] = []
     let rowNum = 1
-    const admin = createAdminClient()
 
     for (const row of rows) {
       rowNum++
@@ -32,6 +41,8 @@ export async function POST(request: NextRequest) {
       const role = (row.role ?? "").trim().toLowerCase()
       const gradeRaw = (row.grade_assigned ?? "").toString().trim()
       const grade = gradeRaw ? parseInt(gradeRaw) : null
+      const className = (row.class_name ?? "").toString().trim()
+      const classId = grade && className ? classesByGradeAndName.get(`${grade}-${className}`) : null
 
       if (!full_name) {
         results.push({ row: rowNum, email, status: "skipped", error: "full_name is empty" })
@@ -78,6 +89,7 @@ export async function POST(request: NextRequest) {
             full_name,
             role,
             grade_assigned: grade,
+            class_id: classId,
             is_active: true,
           })
 

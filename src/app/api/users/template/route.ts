@@ -10,13 +10,13 @@ export async function GET() {
     const wb = XLSX.utils.book_new()
 
     const data = [
-      ["email", "full_name", "role", "grade_assigned"],
-      ["budi", "Budi Santoso", "teacher", 10],
-      ["ani.putri", "Ani Putri", "student", 7],
-      ["siti.rahma", "Siti Rahma", "lab_assistant", ""],
+      ["email", "full_name", "role", "grade_assigned", "class_name"],
+      ["budi", "Budi Santoso", "teacher", 10, ""],
+      ["ani.putri", "Ani Putri", "student", 7, "A"],
+      ["siti.rahma", "Siti Rahma", "lab_assistant", "", ""],
     ]
     const wsData = XLSX.utils.aoa_to_sheet(data)
-    wsData["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 15 }]
+    wsData["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 15 }, { wch: 12 }]
     XLSX.utils.book_append_sheet(wb, wsData, "Data")
 
     const instructions = [
@@ -24,13 +24,15 @@ export async function GET() {
       ["email", "YES", "Username (auto-appended @shb.sch.id) or full email", "budi"],
       ["full_name", "YES", "Full name", "Budi Santoso"],
       ["role", "YES", "super_admin | teacher | lab_assistant | student", "teacher"],
-      ["grade_assigned", "NO", "Grade 7-12 (required for student & teacher)", "10"],
+      ["col_assigned", "NO", "Grade 7-12 (required for student & teacher)", "10"],
+      ["class_name", "NO", "Parallel class name: A, B, C, etc. Must exist in Classes tab", "A"],
       [],
       ["NOTES:"],
       ["- email: just type username (e.g. 'budi') → auto becomes budi@shb.sch.id. Or use full email."],
       ["- Password auto-generated: SHB-xxxxxx (users must change on first login)"],
       ["- Role values: super_admin, teacher, lab_assistant, student (lowercase)"],
       ["- grade_assigned: 7-12 for students/teachers, leave blank for super_admin/lab_assistant"],
+      ["- class_name: parallel class (A, B, C) - must be created in Settings → Classes first"],
       ["- Duplicate emails are skipped automatically"],
     ]
     const wsInstr = XLSX.utils.aoa_to_sheet(instructions)

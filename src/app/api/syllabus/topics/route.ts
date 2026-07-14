@@ -78,7 +78,17 @@ export async function DELETE(request: NextRequest) {
     if (authError) return authError
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
-    if (!id) return NextResponse.json({ error: "id query parameter is required" }, { status: 400 })
+    const ids = searchParams.get("ids")
+
+    if (ids) {
+      const idArr = ids.split(",").filter(Boolean)
+      if (idArr.length === 0) return NextResponse.json({ error: "No IDs provided" }, { status: 400 })
+      const { error } = await (supabase.from("syllabus_topics") as any).delete().in("id", idArr)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ message: `Deleted ${idArr.length} topics` })
+    }
+
+    if (!id) return NextResponse.json({ error: "id or ids query parameter required" }, { status: 400 })
     const { error } = await (supabase.from("syllabus_topics") as any).delete().eq("id", id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ message: "Deleted" })
