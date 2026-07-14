@@ -129,7 +129,7 @@ export async function PUT(
       }
 
       // Update basic fields
-      const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count", "period_type", "period_label"]
+      const allowed = ["grade", "subject", "pre_appraisal_held", "post_conference_held", "visit_count", "period_type", "period_label", "ai_feedback"]
       const updates: Record<string, unknown> = {}
       for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f]
       const { data, error } = await (ADMIN().from("teacher_performance_assessments") as any)

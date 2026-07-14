@@ -499,8 +499,21 @@ export default function TPAPage() {
                     </Button>
                   </div>
                   {aiFeedback && (
-                    <textarea readOnly value={aiFeedback} rows={3}
+                    <textarea value={aiFeedback} onChange={e => setAiFeedback(e.target.value)} rows={3}
                       className="w-full text-size-sm text-foreground bg-background rounded border border-border p-2 resize-none" />
+                  )}
+                  {aiFeedback && editingScores && editingScores.status === "draft" && (
+                    <Button size="sm" variant="outline" className="h-6 text-size-xs px-2" onClick={async () => {
+                      try {
+                        const r = await fetch(`/api/tpa/${editingScores.id}`, {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ai_feedback: aiFeedback }),
+                        })
+                        if (r.ok) toast.success("Feedback saved!")
+                        else toast.error("Failed to save feedback")
+                      } catch { toast.error("Failed") }
+                    }}>Save Feedback</Button>
                   )}
                 </div>
               )}
