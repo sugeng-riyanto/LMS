@@ -58,7 +58,7 @@ export async function PUT(
     }
 
     const allowedFields = role === "super_admin"
-      ? ["full_name", "email", "role", "grade_assigned", "class_name", "avatar_url", "phone_number", "is_active"]
+      ? ["full_name", "email", "role", "grade_assigned", "class_id", "avatar_url", "phone_number", "is_active"]
       : ["full_name", "avatar_url", "phone_number"]
 
     const updates: Record<string, unknown> = {}
