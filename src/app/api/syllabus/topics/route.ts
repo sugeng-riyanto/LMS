@@ -74,22 +74,33 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { supabase, error: authError } = await requireRole(["super_admin"])
+    const { supabase, user, profile, error: authError } = await requireRole(["super_admin", "teacher"])
     if (authError) return authError
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
     const ids = searchParams.get("ids")
 
+    // Teachers can only delete topics for their assigned subjects
+    let subjectFilter: string[] | null = null
+    if (profile?.role === "teacher") {
+      const { getTeacherSubjects } = await import("@/lib/supabase/require-role")
+      subjectFilter = await getTeacherSubjects(supabase, user.id)
+      if (subjectFilter.length === 0) return NextResponse.json({ error: "No subjects assigned" }, { status: 403 })
+    }
+
+    let query = (supabase.from("syllabus_topics") as any).delete()
+    if (subjectFilter) query = query.in("subject", subjectFilter)
+
     if (ids) {
       const idArr = ids.split(",").filter(Boolean)
       if (idArr.length === 0) return NextResponse.json({ error: "No IDs provided" }, { status: 400 })
-      const { error } = await (supabase.from("syllabus_topics") as any).delete().in("id", idArr)
+      const { error } = await query.in("id", idArr)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ message: `Deleted ${idArr.length} topics` })
     }
 
     if (!id) return NextResponse.json({ error: "id or ids query parameter required" }, { status: 400 })
-    const { error } = await (supabase.from("syllabus_topics") as any).delete().eq("id", id)
+    const { error } = await query.eq("id", id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ message: "Deleted" })
   } catch (error) {
