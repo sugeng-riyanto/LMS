@@ -660,7 +660,7 @@ export default function TPAPage() {
                       const accR = await fetch("/api/tpa/accumulations")
                       if (accR.ok) setAccumulations(await accR.json())
                     } catch {}
-                  } else toast.error("Failed")
+                  } else { const err = await r.json(); toast.error(err._detail + ": " + err.error) }
                 } catch { toast.error("Failed") }
               }}>Reset</Button>
             </div>
@@ -682,7 +682,7 @@ export default function TPAPage() {
                       const accR = await fetch("/api/tpa/accumulations")
                       if (accR.ok) setAccumulations(await accR.json())
                     } catch {}
-                  } else toast.error("Failed")
+                  } else { const err = await r.json(); toast.error(err._detail + ": " + err.error) }
                 } catch { toast.error("Failed") }
               }}>Save</Button>
             </div>
