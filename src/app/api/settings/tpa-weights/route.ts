@@ -34,18 +34,22 @@ export async function GET() {
     await ensureColumns()
 
     const supabase = createAdminClient()
-    const { data } = await (supabase.from("school_settings") as any)
+    const { data, error } = await (supabase.from("school_settings") as any)
       .select("tpa_principal_weight, tpa_teacher_weight, assessment_scale")
       .eq("id", 1)
       .maybeSingle()
+
+    if (error) {
+      return NextResponse.json({ principal: 70, teacher: 30, scale: "0-4", _debug: error.message })
+    }
 
     return NextResponse.json({
       principal: data?.tpa_principal_weight ?? 70,
       teacher: data?.tpa_teacher_weight ?? 30,
       scale: data?.assessment_scale ?? "0-4",
     })
-  } catch {
-    return NextResponse.json({ principal: 70, teacher: 30, scale: "0-4" })
+  } catch (err: any) {
+    return NextResponse.json({ principal: 70, teacher: 30, scale: "0-4", _debug: err?.message })
   }
 }
 
@@ -66,10 +70,10 @@ export async function PUT(request: NextRequest) {
     const payload: any = { id: 1, school_name: "SHB", tpa_principal_weight: principal, tpa_teacher_weight: teacher }
     if (scale) payload.assessment_scale = scale
 
-    const { error } = await (supabase.from("school_settings") as any).upsert(payload)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ principal, teacher, scale })
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Internal error" }, { status: 500 })
+    const { error, data } = await (supabase.from("school_settings") as any).upsert(payload).select().single()
+    if (error) return NextResponse.json({ error: error.message, _detail: "upsert failed" }, { status: 500 })
+    return NextResponse.json({ principal: data?.tpa_principal_weight ?? principal, teacher: data?.tpa_teacher_weight ?? teacher, scale: data?.assessment_scale ?? scale })
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message || "Internal error", _detail: "put catch" }, { status: 500 })
   }
 }
