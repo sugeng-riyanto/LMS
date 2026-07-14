@@ -899,19 +899,28 @@ export default function SettingsPage() {
                         const fd = new FormData()
                         fd.append("file", file)
                         setCsvResult(null)
-                        try {
-                          const res = await fetch("/api/users/upload", { method: "POST", body: fd })
-                          const result = await res.json()
-                          if (res.ok) {
-                            setCsvResult({ summary: result.summary, results: result.results })
-                            toast.success(result.message)
-                            fetchUsers(roleFilter)
-                          } else {
-                            toast.error(result.error ?? "Upload gagal")
+                          try {
+                            const res = await fetch("/api/export/master-upload", { method: "POST", body: fd })
+                            const result = await res.json()
+                            if (res.ok) {
+                              setCsvResult(null)
+                              toast.success(result.message)
+                              fetchUsers(roleFilter)
+                            } else {
+                              // Fallback: try simple user upload
+                              const res2 = await fetch("/api/users/upload", { method: "POST", body: fd })
+                              const result2 = await res2.json()
+                              if (res2.ok) {
+                                setCsvResult({ summary: result2.summary, results: result2.results })
+                                toast.success(result2.message)
+                                fetchUsers(roleFilter)
+                              } else {
+                                toast.error(result2.error || result.error || "Upload gagal")
+                              }
+                            }
+                          } catch {
+                            toast.error("Upload gagal")
                           }
-                        } catch {
-                          toast.error("Upload gagal")
-                        }
                         e.target.value = ""
                       }}
                     />

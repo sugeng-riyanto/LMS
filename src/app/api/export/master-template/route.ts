@@ -11,14 +11,15 @@ export async function GET() {
 
     // ── Sheet 1: Users ──
     const users = [
-      ["email", "full_name", "role", "grade_assigned"],
-      ["budi", "Budi Santoso", "teacher", 10],
-      ["ani.putri", "Ani Putri", "student", 7],
-      ["siti.rahma", "Siti Rahma", "lab_assistant", ""],
+      ["email", "full_name", "role", "grade_assigned", "class_name", "subjects"],
+      ["budi", "Budi Santoso", "teacher", 10, "", "PHY, MAT"],
+      ["ani.putri", "Ani Putri", "student", 7, "A", ""],
+      ["siti.rahma", "Siti Rahma", "lab_assistant", "", "", ""],
+      ["eko.pras", "Eko Prasetyo", "principal", "", "", ""],
     ]
     const wsUsers = XLSX.utils.aoa_to_sheet(users)
-    wsUsers["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 12 }]
-    wsUsers["!rows"] = [{ hpt: 20 }, {}, {}, {}]
+    wsUsers["!cols"] = [{ wch: 25 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 20 }]
+    wsUsers["!rows"] = [{ hpt: 20 }, {}, {}, {}, {}]
     XLSX.utils.book_append_sheet(wb, wsUsers, "Users")
 
     // ── Sheet 2: Subjects ──
@@ -59,29 +60,39 @@ export async function GET() {
 
     // ── Sheet 5: Instructions ──
     const instructions = [
-      ["SHEET", "COLUMN", "REQUIRED", "NOTES"],
-      ["Users", "email", "YES", "Username → auto-appended @shb.sch.id, or full email"],
-      ["Users", "full_name", "YES", "Full name"],
-      ["Users", "role", "YES", "super_admin | teacher | lab_assistant | student"],
-      ["Users", "grade_assigned", "NO", "Grade 7-12 (required for student & teacher)"],
+      ["SHEET", "COLUMN", "WAJIB", "NOTES"],
+      ["Users", "email", "YA", "Username → auto @shb.sch.id, atau email lengkap"],
+      ["Users", "full_name", "YA", "Nama lengkap"],
+      ["Users", "role", "YA", "super_admin | teacher | lab_assistant | student | principal"],
+      ["Users", "grade_assigned", "TIDAK", "Grade 7-12 (wajib untuk student & teacher)"],
+      ["Users", "class_name", "TIDAK", "Kelas paralel (A, B, C). Untuk student"],
+      ["Users", "subjects", "TIDAK", "Kode subject pisah koma. Untuk teacher auto assignment"],
       [],
-      ["Subjects", "code", "YES", "Short code, e.g. PHY, MAT, CHE, BIO, ECO"],
-      ["Subjects", "name", "YES", "Full name, e.g. Physics, Mathematics"],
-      ["Subjects", "icon", "NO", "Emoji icon, e.g. ⚛️ 📐 🧪"],
-      ["Subjects", "sort_order", "NO", "Display order number"],
+      ["Subjects", "code", "YA", "Kode pendek, e.g. PHY, MAT, CHE, BIO, ECO"],
+      ["Subjects", "name", "YA", "Nama lengkap, e.g. Physics, Mathematics"],
+      ["Subjects", "icon", "TIDAK", "Emoji icon, e.g. ⚛️ 📐 🧪"],
+      ["Subjects", "sort_order", "TIDAK", "Nomor urut tampilan"],
       [],
-      ["Classes", "grade", "YES", "Grade 7-12"],
-      ["Classes", "class_name", "YES", "Section letter, e.g. A, B, C"],
+      ["Classes", "grade", "YA", "Grade 7-12"],
+      ["Classes", "class_name", "YA", "Huruf kelas, e.g. A, B, C"],
       [],
-      ["Teacher Assignments", "teacher_email", "YES", "Teacher email or username (auto @shb.sch.id)"],
-      ["Teacher Assignments", "grade", "YES", "Grade 7-12"],
-      ["Teacher Assignments", "subject_code", "YES", "Subject code from Subjects sheet"],
-      ["Teacher Assignments", "class_name", "NO", "Leave blank for all classes, or specify A/B/C"],
+      ["Teacher Assignments", "teacher_email", "YA", "Email guru (username atau lengkap)"],
+      ["Teacher Assignments", "grade", "YA", "Grade 7-12"],
+      ["Teacher Assignments", "subject_code", "YA", "Kode subject dari Subjects sheet"],
+      ["Teacher Assignments", "class_name", "TIDAK", "Kosongkan untuk semua kelas, atau isi A/B/C"],
       [],
-      ["NOTES:"],
-      ["- Password auto-generated: SHB-xxxxxx for all users"],
-      ["- Duplicate entries are skipped automatically"],
-      ["- First row of each sheet is the header — do not remove"],
+      ["ALUR UPLOAD:"],
+      ["1. Isi semua sheet sesuai data"],
+      ["2. Upload file → semua sheet diproses otomatis"],
+      ["3. Users → dibuat akun + profile + teacher_assignments jika ada subjects"],
+      ["4. Subjects → ditambahkan ke database"],
+      ["5. Classes → ditambahkan ke database"],
+      ["6. Teacher Assignments → mapping guru ke grade + subject + kelas"],
+      [],
+      ["NOTE:"],
+      ["- Password auto-generated: SHB-xxxxxx untuk semua user"],
+      ["- Duplikat otomatis di-skip"],
+      ["- Baris pertama setiap sheet adalah header — jangan dihapus"],
     ]
     const wsInstr = XLSX.utils.aoa_to_sheet(instructions)
     wsInstr["!cols"] = [{ wch: 22 }, { wch: 22 }, { wch: 10 }, { wch: 55 }]
