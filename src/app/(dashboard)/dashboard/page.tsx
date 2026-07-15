@@ -20,8 +20,11 @@ import {
   ExternalLink,
   Download,
   BarChart3,
+  ClipboardList,
+  CheckCircle,
+  Beaker,
 } from "lucide-react"
-import { cn } from "@/lib/utils/cn"
+import { useSchoolSettings } from "@/hooks/use-school-settings"
 import { Badge } from "@/components/ui/badge"
 import SubjectTabs from "@/components/ui/subject-tabs"
 import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS, SUBJECTS } from "@/lib/utils/constants"
@@ -140,6 +143,29 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">Your personalised overview. Access weekly packages, published worksheets, syllabus assignments, and quick links to My Week, Mistake Journal, and Pre-Class preparation.</p>
         </div>
+
+        {/* Teacher Feature Cards — established features only */}
+        {(isSuperAdmin || isTeacher) && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { href: "/syllabus", label: "Syllabus Planner", icon: ClipboardList, desc: "Rencana mingguan" },
+              { href: "/syllabus-manager", label: "Syllabus Manager", icon: BookOpen, desc: "Upload & kelola data" },
+              { href: "/worksheets", label: "Worksheets", icon: FileText, desc: "Buat LKS & publish" },
+              { href: "/grading", label: "Grading", icon: CheckCircle, desc: "Koreksi & nilai" },
+              { href: "/analytics", label: "Analytics", icon: BarChart3, desc: "Analisis nilai" },
+              { href: "/calendar", label: "Calendar", icon: Calendar, desc: "Kalender akademik" },
+            ].map((item, i) => (
+              <Link key={i} href={item.href}
+                className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent">
+                <item.icon className="h-6 w-6 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{item.label}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         <SubjectTabs value={subjectFilter} onChange={setSubjectFilter} />
 
