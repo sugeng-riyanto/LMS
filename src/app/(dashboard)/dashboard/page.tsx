@@ -25,6 +25,7 @@ import {
   Beaker,
 } from "lucide-react"
 import { useSchoolSettings } from "@/hooks/use-school-settings"
+import { cn } from "@/lib/utils/cn"
 import { Badge } from "@/components/ui/badge"
 import SubjectTabs from "@/components/ui/subject-tabs"
 import { GRADES, GRADE_LABELS, ROUTES, PACKAGE_STATUS_LABELS, SUBJECTS } from "@/lib/utils/constants"
