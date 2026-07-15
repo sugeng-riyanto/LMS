@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter, Send, RotateCcw, Eye, Download, FileText } from "lucide-react"
+import { CheckSquare, Square, Sparkles, Save, BookOpen, Palette, Search, Filter, Send, RotateCcw, Eye, Download, FileText, Trash2 } from "lucide-react"
 import { GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 import { useSubjects } from "@/hooks/use-subjects"
@@ -416,6 +416,18 @@ export default function GradingPage() {
                           <Button size="sm" variant="outline" className="h-5 text-[8px] px-1 text-amber-600"
                             onClick={async () => { await bulkPublish("unpublish", g); fetchData() }} disabled={publishing}>
                             <RotateCcw className="h-2.5 w-2.5 mr-0.5" />Unpub
+                          </Button>
+                        )}
+                        {isSuperAdmin && (
+                          <Button size="sm" variant="outline" className="h-5 text-[8px] px-1 text-destructive"
+                            onClick={async () => {
+                              if (!confirm(`Hapus submission ${g.student_name}?`)) return
+                              for (const id of g.studentWorkIds || []) {
+                                try { await fetch(`/api/student-work/${id}`, { method: "DELETE" }) } catch {}
+                              }
+                              toast.success("Dihapus"); fetchData()
+                            }}>
+                            <Trash2 className="h-2.5 w-2.5 mr-0.5" />Hapus
                           </Button>
                         )}
                       </div>

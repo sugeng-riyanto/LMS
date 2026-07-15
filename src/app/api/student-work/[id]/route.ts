@@ -60,7 +60,11 @@ export async function DELETE(
       .single()
 
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-    if (existing.student_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (existing.student_id !== user.id) {
+      const { requireRole } = await import("@/lib/supabase/require-role")
+      const { error: authError } = await requireRole(["super_admin"])
+      if (authError) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     const { error } = await (supabase.from("student_work") as any)
       .delete()
