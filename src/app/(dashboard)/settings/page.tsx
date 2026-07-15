@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRBAC } from "@/hooks/use-rbac"
+import { SortableTable } from "@/components/ui/sortable-table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -2217,31 +2218,21 @@ function SubjectsTab() {
           ) : subjects.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No subjects configured.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Icon</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {subjects.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-mono text-xs font-bold">{s.code}</TableCell>
-                    <TableCell>{s.name}</TableCell>
-                    <TableCell>{s.icon}</TableCell>
-                    <TableCell>{s.sort_order}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(s)}><Settings className="mr-1 h-3 w-3" />Edit</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}><Trash2 className="mr-1 h-3 w-3 text-destructive" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <SortableTable
+              data={subjects}
+              searchFields={["code", "name"]}
+              searchPlaceholder="Search subjects..."
+              columns={[
+                { key: "code", label: "Code" },
+                { key: "name", label: "Name" },
+                { key: "icon", label: "Icon" },
+                { key: "sort_order", label: "Order" },
+              ]}
+              actions={(s) => <>
+                <Button variant="ghost" size="sm" onClick={() => openEdit(s)} className="h-7 text-xs"><Settings className="mr-1 h-3 w-3" />Edit</Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)} className="h-7 text-xs"><Trash2 className="mr-1 h-3 w-3 text-destructive" />Del</Button>
+              </>}
+            />
           )}
         </CardContent>
       </Card>
