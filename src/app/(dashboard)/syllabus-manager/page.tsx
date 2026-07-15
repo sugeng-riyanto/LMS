@@ -351,57 +351,6 @@ export default function SyllabusManagerPage() {
     </div>
   )
 
-  const uploadContent = (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Upload className="h-4 w-4" />
-          Upload Syllabus (Markdown / PDF)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="space-y-1">
-            <Label>Subject</Label>
-            <select value={subject} onChange={e => setSubject(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-32">
-              {availableSubjects.map(s => <option key={s.code} value={s.code}>{s.icon} {s.name}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label>Grade</Label>
-            <select value={grade} onChange={e => setGrade(Number(e.target.value))}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-24">
-              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
-            </select>
-          </div>
-        </div>
-        <Separator />
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Upload file (.md / .pdf) or paste below</Label>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-              <FileText className="h-4 w-4" /> Choose File
-            </Button>
-            <span className="text-sm text-muted-foreground">{fileName || "No file"}</span>
-          </div>
-          <input ref={fileInputRef} type="file" accept=".md,.pdf,.txt,text/markdown,application/pdf" className="hidden" onChange={e => setFileName(e.target.files?.[0]?.name || "")} />
-          <p className="text-xs text-muted-foreground"><strong>.md</strong> preferred. <strong>.pdf</strong> auto-converted.</p>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Or paste markdown text</Label>
-          <Textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
-            placeholder="Paste Cambridge syllabus markdown..."
-            rows={8} className="font-mono text-xs" />
-        </div>
-        <Button onClick={handleParse} disabled={parsing} className="gap-2">
-          {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-          {parsing ? "Parsing..." : "Parse Syllabus"}
-        </Button>
-      </CardContent>
-    </Card>
-  )
-
   const excelContent = (
     <Card>
       <CardHeader>
@@ -512,9 +461,6 @@ export default function SyllabusManagerPage() {
           <Button variant={activeTab === "list" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("list")}>
             <ListOrdered className="mr-1 h-3 w-3" /> Data ({rows.length})
           </Button>
-          <Button variant={activeTab === "upload" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("upload")}>
-            <Upload className="mr-1 h-3 w-3" /> Upload MD
-          </Button>
           <Button variant={activeTab === "excel" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("excel")}>
             <Table2 className="mr-1 h-3 w-3" /> Excel/CSV
           </Button>
@@ -525,7 +471,7 @@ export default function SyllabusManagerPage() {
 
       <Separator />
 
-      {activeTab === "list" ? listContent : activeTab === "upload" ? uploadContent : excelContent}
+      {activeTab === "list" ? listContent : excelContent}
 
       {result && (
         <div className="space-y-4">
