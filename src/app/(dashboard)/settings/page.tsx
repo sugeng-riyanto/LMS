@@ -68,6 +68,9 @@ export default function SettingsPage() {
   const [csvResult, setCsvResult] = useState<{ summary: any; results: any[] } | null>(null)
   const [allClasses, setAllClasses] = useState<any[]>([])
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+  const [userSearch, setUserSearch] = useState("")
+  const [userSortField, setUserSortField] = useState("full_name")
+  const [userSortAsc, setUserSortAsc] = useState(true)
 
   // AI Providers
   const [providers, setProviders] = useState<AIProvider[]>([])
@@ -695,28 +698,54 @@ export default function SettingsPage() {
                 ) : users.length === 0 ? (
                   <div className="py-12 text-center text-sm text-muted-foreground">No users found.</div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">
-                          <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0}
-                            onChange={() => {
-                              if (selectedUsers.size === users.length) setSelectedUsers(new Set())
-                              else setSelectedUsers(new Set(users.map(u => u.id)))
-                            }}
-                            className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
-                        </TableHead>
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Grade</TableHead>
-                        <TableHead>Class</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <input type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)}
+                        placeholder="Search by name, email, role..." className="h-8 rounded border border-input bg-background px-2 text-sm w-64" />
+                      <span className="text-xs text-muted-foreground">{users.length} users</span>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10">
+                            <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0}
+                              onChange={() => {
+                                if (selectedUsers.size === users.length) setSelectedUsers(new Set())
+                                else setSelectedUsers(new Set(users.map(u => u.id)))
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+                          </TableHead>
+                          {[
+                            { key: "full_name", label: "User" },
+                            { key: "email", label: "Email" },
+                            { key: "role", label: "Role" },
+                            { key: "grade_assigned", label: "Grade" },
+                            { key: "class_id", label: "Class" },
+                            { key: "is_active", label: "Status" },
+                          ].map(col => (
+                            <TableHead key={col.key} className="cursor-pointer select-none" onClick={() => {
+                              if (userSortField === col.key) setUserSortAsc(!userSortAsc)
+                              else { setUserSortField(col.key); setUserSortAsc(true) }
+                            }}>
+                              <span className="flex items-center gap-1">
+                                {col.label}
+                                {userSortField === col.key ? (userSortAsc ? " ▲" : " ▼") : ""}
+                              </span>
+                            </TableHead>
+                          ))}
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody>
-                      {users.map((user) => (
+                      {users.filter(u =>
+                        !userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                        u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                        u.role?.toLowerCase().includes(userSearch.toLowerCase())
+                      ).sort((a, b) => {
+                        const aVal = (a as any)[userSortField]?.toString() || ""
+                        const bVal = (b as any)[userSortField]?.toString() || ""
+                        return userSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+                      }).map((user) => (
                         <TableRow key={user.id} className={selectedUsers.has(user.id) ? "bg-primary/5" : ""}>
                           <TableCell>
                             <input type="checkbox" checked={selectedUsers.has(user.id)}
