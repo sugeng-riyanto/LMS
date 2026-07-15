@@ -807,6 +807,7 @@ export default function SettingsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </>
                 )}
               </CardContent>
             </Card>
