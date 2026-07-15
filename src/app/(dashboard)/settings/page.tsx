@@ -1823,6 +1823,7 @@ function SchoolSettings() {
     tpa_principal_weight: 70,
     tpa_teacher_weight: 30,
     assessment_scale: "0-4",
+    feature_visibility: { lesson_plan_alternative: true, grades_alternative: true, generate_dev: true, memory_dev: true },
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1842,6 +1843,7 @@ function SchoolSettings() {
     tpa_principal_weight: tpa.principal ?? d.tpa_principal_weight ?? 70,
     tpa_teacher_weight: tpa.teacher ?? d.tpa_teacher_weight ?? 30,
     assessment_scale: d.assessment_scale ?? tpa.scale ?? "0-4",
+    feature_visibility: d.feature_visibility ?? { lesson_plan_alternative: true, grades_alternative: true, generate_dev: true, memory_dev: true },
       })
       setLogoPreview(d.logo_url ?? "")
       setLoading(false)
@@ -2007,6 +2009,25 @@ function SchoolSettings() {
             <Input value={(form as any).assessment_scale_custom || ""} onChange={e => setForm(p => ({ ...p, assessment_scale_custom: e.target.value }))}
               placeholder="e.g. 0-3 or A-F" className="text-sm" />
           )}
+        </div>
+
+        <Separator />
+        <h3 className="text-sm font-semibold">Feature Visibility</h3>
+        <p className="text-xs text-muted-foreground">Toggle badges on sidebar items. Nonaktifkan untuk menyembunyikan badge.</p>
+        <div className="space-y-2">
+          {[
+            { key: "lesson_plan_alternative", label: "Lesson Plan", badge: "Alternatif" },
+            { key: "grades_alternative", label: "Grades", badge: "Alternatif" },
+            { key: "generate_dev", label: "Generate", badge: "Pengembangan" },
+            { key: "memory_dev", label: "Memory", badge: "Pengembangan" },
+          ].map(f => (
+            <label key={f.key} className="flex items-center justify-between rounded border p-2 cursor-pointer">
+              <span className="text-sm">{f.label} <span className="text-xs text-muted-foreground">({f.badge})</span></span>
+              <input type="checkbox" checked={(form.feature_visibility as any)?.[f.key] !== false}
+                onChange={e => setForm(p => ({ ...p, feature_visibility: { ...(p.feature_visibility as any || {}), [f.key]: e.target.checked } }))}
+                className="h-4 w-4 rounded border-gray-300 cursor-pointer" />
+            </label>
+          ))}
         </div>
 
         <Button onClick={handleSave} disabled={saving}><Save className="mr-1 h-4 w-4" />Save School Settings</Button>

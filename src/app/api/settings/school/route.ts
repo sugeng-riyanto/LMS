@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
       "shs_vp_name", "shs_principal_name",
       "unit", "address", "phone", "email", "logo_url",
       "tpa_principal_weight", "tpa_teacher_weight",
-      "assessment_scale",
+      "assessment_scale", "feature_visibility",
       "supabase_url", "supabase_anon_key", "supabase_service_role_key", "supabase_db_connection",
     ]
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString(), updated_by: user.id }

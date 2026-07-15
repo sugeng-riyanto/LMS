@@ -13,6 +13,7 @@ interface SchoolSettings {
   address: string | null
   phone: string | null
   email: string | null
+  feature_visibility?: Record<string, boolean>
 }
 
 export function useSchoolSettings() {
