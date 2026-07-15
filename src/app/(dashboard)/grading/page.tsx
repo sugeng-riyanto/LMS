@@ -422,8 +422,8 @@ export default function GradingPage() {
                           <Button size="sm" variant="outline" className="h-5 text-[8px] px-1 text-destructive"
                             onClick={async () => {
                               if (!confirm(`Hapus submission ${g.student_name}?`)) return
-                              for (const id of g.studentWorkIds || []) {
-                                try { await fetch(`/api/student-work/${id}`, { method: "DELETE" }) } catch {}
+                              for (const item of g.items) {
+                                try { await fetch(`/api/student-work/${item.id}`, { method: "DELETE" }) } catch {}
                               }
                               toast.success("Dihapus"); fetchData()
                             }}>
