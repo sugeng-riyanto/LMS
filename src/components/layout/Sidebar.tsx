@@ -83,18 +83,16 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const visibility = school?.feature_visibility || {}
 
   const navItems = role
-    ? allNavItems.filter((item) => item.roles.includes(role))
+    ? allNavItems.filter((item) => {
+        if (!item.roles.includes(role)) return false
+        // Hide based on visibility settings
+        if (item.label === "Lesson Plan" && visibility.lesson_plan_alternative === false) return false
+        if (item.label === "Grades" && visibility.grades_alternative === false) return false
+        if (item.label === "Generate" && visibility.generate_dev === false) return false
+        if (item.label === "Memory" && visibility.memory_dev === false) return false
+        return true
+      })
     : allNavItems
-
-  function getBadge(item: NavItem): string | undefined {
-    if (!item.badge) return undefined
-    // Check visibility settings
-    if (item.label === "Lesson Plan" && visibility.lesson_plan_alternative === false) return undefined
-    if (item.label === "Grades" && visibility.grades_alternative === false) return undefined
-    if (item.label === "Generate" && visibility.generate_dev === false) return undefined
-    if (item.label === "Memory" && visibility.memory_dev === false) return undefined
-    return item.badge
-  }
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -128,14 +126,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             >
               <Icon className="h-4 w-4" />
               {item.label}
-              {(() => {
-                const b = getBadge(item)
-                return b ? (
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ml-auto ${
-                    b === "Pengembangan" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                  }`}>{b}</span>
-                ) : null
-              })()}
+              {item.badge && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ml-auto ${
+                  item.badge === "Pengembangan" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                }`}>{item.badge}</span>
+              )}
             </Link>
           )
         })}
