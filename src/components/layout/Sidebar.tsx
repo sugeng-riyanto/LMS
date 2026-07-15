@@ -29,6 +29,7 @@ interface NavItem {
   label: string
   icon: typeof LayoutDashboard
   roles: ("super_admin" | "teacher" | "lab_assistant" | "student" | "principal")[]
+  badge?: string
 }
 
 interface SidebarProps {
@@ -40,27 +41,26 @@ const allNavItems: NavItem[] = [
   // ── Teacher & Admin flow (plan → create → assess → review) ──
   { href: ROUTES.DASHBOARD, label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "teacher", "lab_assistant", "student"] },
   { href: ROUTES.SYLLABUS, label: "Syllabus", icon: ClipboardList, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.LESSON_PLAN, label: "Lesson Plan", icon: FileText, roles: ["super_admin", "teacher"], badge: "Alternatif" },
   { href: "/worksheets", label: "Worksheets", icon: FileText, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.GENERATE, label: "Generate", icon: BrainCircuit, roles: ["super_admin", "teacher"], badge: "Pengembangan" },
   { href: ROUTES.GRADING, label: "Grading", icon: CheckCircle, roles: ["super_admin", "teacher"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["super_admin", "teacher"] },
   { href: "/syllabus-manager", label: "Syllabus Files", icon: ClipboardList, roles: ["super_admin", "teacher"] },
-  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["super_admin", "teacher"], badge: "Alternatif" },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["super_admin", "teacher", "lab_assistant"] },
-  { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"] },
+  { href: ROUTES.MEMORY, label: "Memory", icon: BookOpen, roles: ["super_admin", "teacher"], badge: "Pengembangan" },
   { href: ROUTES.LAB, label: "Lab", icon: Beaker, roles: ["super_admin", "lab_assistant"] },
 
-  // ── Principal flow (oversight → analytics) ──
+  // ── Principal flow ──
   { href: "/principal", label: "Dashboard", icon: LayoutDashboard, roles: ["principal"] },
-  // { href: ROUTES.GRADES, label: "Grades", icon: GraduationCap, roles: ["principal"] },
   { href: ROUTES.ANALYTICS, label: "Analytics", icon: BarChart3, roles: ["principal"] },
   { href: ROUTES.CALENDAR, label: "Calendar", icon: Calendar, roles: ["principal"] },
   { href: "/supervisions", label: "Supervisions", icon: ClipboardList, roles: ["principal"] },
   { href: "/tpa", label: "TPA", icon: FileText, roles: ["principal"] },
   { href: ROUTES.SETTINGS, label: "Settings", icon: Settings, roles: ["principal"] },
 
-  // ── Student flow (view → do → review) ──
+  // ── Student flow ──
   { href: "/my-week", label: "My Week", icon: BookOpen, roles: ["student"] },
   { href: "/my-work", label: "My Work", icon: PenTool, roles: ["student"] },
   { href: "/pre-class", label: "Pre-Class", icon: GraduationCap, roles: ["student"] },
@@ -116,7 +116,14 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                  item.badge === "Pengembangan" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                }`}>
+                  {item.badge}
+                </span>
+              )}
             </Link>
           )
         })}
