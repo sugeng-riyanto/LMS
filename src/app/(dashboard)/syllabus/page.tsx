@@ -1326,11 +1326,11 @@ document.addEventListener("DOMContentLoaded", function() {
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
-                <div className="h-32 flex items-center justify-center">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <div className="h-16 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Memuat data...</p>
                 </div>
               ) : topics.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No topics found for this grade.</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">Belum ada syllabus. Guru dapat mengupload melalui Syllabus Manager.</p>
               ) : (
                 topics.map((t) => (
                   <div key={t.id} className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors">
