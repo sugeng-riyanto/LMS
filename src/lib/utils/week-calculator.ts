@@ -28,11 +28,20 @@ export function getEffectiveDays(week: number): number {
   const blackoutWeeks = new Set([35, 36, 37, 38, 39, 40, 41, 42])
   const examWeeks = new Set([6, 7, 8, 20, 21, 22])
   const shortWeeks = new Set([1, 12, 13, 14])
-
   if (blackoutWeeks.has(week)) return 0
   if (examWeeks.has(week)) return 3
   if (shortWeeks.has(week)) return 4
   return 5
+}
+
+import { SUBJECT_GRADE_SEQUENCES } from "@/lib/syllabus/subject-templates"
+
+export function getSequenceForSubject(subject: string, grade: number, week: number): string {
+  const seq = SUBJECT_GRADE_SEQUENCES[subject as keyof typeof SUBJECT_GRADE_SEQUENCES]
+  if (seq && seq[grade] && seq[grade][week]) {
+    return seq[grade][week]
+  }
+  return getGradeSequence(grade, week)
 }
 
 export function getGradeSequence(grade: number, week: number): string {
@@ -182,11 +191,9 @@ export function getGradeSequence(grade: number, week: number): string {
       22: "A Level Review and Mock Examination"
     }
   }
-
   const gradeSeq = sequences[grade]
   if (!gradeSeq) {
     return `Grade ${grade} — Week ${week}: Physics`
   }
-
   return gradeSeq[week] || `Grade ${grade} — Week ${week}: Physics`
 }

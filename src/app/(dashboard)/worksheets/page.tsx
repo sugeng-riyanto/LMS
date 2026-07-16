@@ -10,7 +10,7 @@ import { useRBAC } from "@/hooks/use-rbac"
 import { useTeacherSubjects } from "@/hooks/use-teacher-subjects"
 import { Plus, Trash2, Share2, ExternalLink, Loader2, Play, BookOpen, FileText, Pencil, Upload, Check, CalendarDays, Lightbulb } from "lucide-react"
 import toast from "react-hot-toast"
-import { getGradeSequence } from "@/lib/utils/week-calculator"
+import { getGradeSequence, getSequenceForSubject } from "@/lib/utils/week-calculator"
 import { getObjectivesForGrade } from "@/lib/syllabus/objectives-data"
 import { getCategoryOptions } from "@/lib/syllabus/assessment-weights"
 import { useSubjectsForTeacher } from "@/hooks/use-subjects"
@@ -114,7 +114,7 @@ export default function WorksheetsPage() {
     if (!g) return []
     return Array.from({ length: 22 }, (_, i) => i + 1).map(w => ({
       value: w,
-      label: `Week ${w}: ${getGradeSequence(g, w)}`
+      label: `Week ${w}: ${getSequenceForSubject(form.subject, g, w)}`
     }))
   }, [form.grade])
 
@@ -136,7 +136,7 @@ export default function WorksheetsPage() {
     const g = Number(grade)
     const w = Number(week)
     if (g && w) {
-      const seq = getGradeSequence(g, w)
+      const seq = getSequenceForSubject(form.subject, g, w)
       updateForm({
         grade,
         week_number: week,
@@ -388,8 +388,8 @@ export default function WorksheetsPage() {
                 {form.week_number && (
                   <p className="text-xs text-muted-foreground">
                     Suggested: <button type="button" className="text-primary underline"
-                      onClick={() => updateForm({ title: `${getGradeSequence(Number(form.grade), Number(form.week_number))} Worksheet` })}>
-                      {getGradeSequence(Number(form.grade), Number(form.week_number))} Worksheet
+                      onClick={() => updateForm({ title: `${getSequenceForSubject(form.subject, Number(form.grade), Number(form.week_number))} Worksheet` })}>
+                      {getSequenceForSubject(form.subject, Number(form.grade), Number(form.week_number))} Worksheet
                     </button>
                   </p>
                 )}
