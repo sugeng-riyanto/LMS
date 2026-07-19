@@ -237,13 +237,14 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(inviteForm),
       })
+      const data = await res.json()
       if (res.ok) {
-        toast.success("Invitation sent!")
+        toast.success(`User created! Temp password: ${data.temp_password}`, { duration: 10000 })
         setInviteOpen(false)
         setInviteForm({ email: "", full_name: "", role: "student", grade: 7 })
         fetchUsers(roleFilter)
       } else {
-        toast.error("Failed to invite user.")
+        toast.error(data.error ?? "Failed to invite user.")
       }
     } catch {
       toast.error("Failed to invite user.")

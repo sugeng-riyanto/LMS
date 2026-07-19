@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       const ws = wb.Sheets["Users"]
       const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" })
       let created = 0
+      let updated = 0
       for (const row of rows) {
         if (!row.full_name) continue
         let email = (row.email || "").trim().toLowerCase()
@@ -32,39 +33,72 @@ export async function POST(request: NextRequest) {
         if (!email) email = full_name.toLowerCase().replace(/\s+/g, ".").replace(/[^a-z.0-9]/g, "") + "@shb.sch.id"
         else if (!email.includes("@")) email += "@shb.sch.id"
 
-        const password = "SHB-" + Math.random().toString(36).slice(2, 8)
-        try {
-          const { data: authUser } = await admin.auth.admin.createUser({
-            email, password, email_confirm: true,
-            user_metadata: { full_name, role },
-            app_metadata: { role, full_name },
-          })
-          if (authUser?.user) {
-            // Resolve class_id
-            let classId: string | null = null
-            if (grade && className) {
-              const { data: cls } = await (admin.from("classes") as any).select("id").eq("grade", grade).eq("class_name", className).maybeSingle()
-              if (cls) classId = cls.id
+        // Use password from file if provided, otherwise auto-generate
+        const password = (row.password || "").trim() || ("SHB-" + Math.random().toString(36).slice(2, 8))
+
+        // Resolve class_id(s) — handle comma-separated classes
+        const classNames = className.split(",").map((s: string) => s.trim()).filter(Boolean)
+        let classId: string | null = null
+        if (grade && classNames.length === 1) {
+          const { data: cls } = await (admin.from("classes") as any).select("id").eq("grade", grade).eq("class_name", classNames[0]).maybeSingle()
+          if (cls) classId = cls.id
+        }
+
+        // Helper: create teacher_assignments (unique on teacher_id, grade, subject)
+        async function createTeacherAssignments(teacherId: string, grd: number, subjectsCol: string, clsNames: string[]) {
+          const codes = (subjectsCol || "").split(",").map((s: string) => s.trim().toUpperCase()).filter(Boolean)
+          for (const code of codes) {
+            let cid: string | null = classId
+            // If single class name but wasn't resolved, try again
+            if (!cid && clsNames.length === 1) {
+              const { data: cls } = await (admin.from("classes") as any).select("id").eq("grade", grd).eq("class_name", clsNames[0]).maybeSingle()
+              if (cls) cid = cls.id
             }
-            await (admin.from("profiles") as any).upsert({
-              id: authUser.user.id, email, full_name, role,
-              grade_assigned: grade, class_id: classId, is_active: true,
-            })
-            // Teacher assignments
-            if (role === "teacher" && grade && row.subjects) {
-              const codes = row.subjects.split(",").map((s: string) => s.trim().toUpperCase()).filter(Boolean)
-              for (const code of codes) {
-                await (admin.from("teacher_assignments") as any).upsert(
-                  { teacher_id: authUser.user.id, grade, subject: code, class_id: classId },
-                  { onConflict: "teacher_id, grade, subject" }
-                )
-              }
-            }
-            created++
+            await (admin.from("teacher_assignments") as any).upsert(
+              { teacher_id: teacherId, grade: grd, subject: code, class_id: cid },
+              { onConflict: "teacher_id, grade, subject" }
+            )
           }
-        } catch {}
+        }
+
+        // Check if user already exists by email
+        const { data: existingProfile } = await (admin.from("profiles") as any)
+          .select("id").eq("email", email).maybeSingle()
+
+        if (existingProfile) {
+          // Update existing user: password + profile
+          try {
+            await admin.auth.admin.updateUserById(existingProfile.id, { password })
+            await (admin.from("profiles") as any).update({
+              full_name, role, grade_assigned: grade, class_id: classId, is_active: true,
+            }).eq("id", existingProfile.id)
+            if (role === "teacher" && grade) {
+              await createTeacherAssignments(existingProfile.id, grade, row.subjects, classNames)
+            }
+            updated++
+          } catch {}
+        } else {
+          // Create new user
+          try {
+            const { data: authUser } = await admin.auth.admin.createUser({
+              email, password, email_confirm: true,
+              user_metadata: { full_name, role },
+              app_metadata: { role, full_name },
+            })
+            if (authUser?.user) {
+              await (admin.from("profiles") as any).upsert({
+                id: authUser.user.id, email, full_name, role,
+                grade_assigned: grade, class_id: classId, is_active: true,
+              })
+              if (role === "teacher" && grade) {
+                await createTeacherAssignments(authUser.user.id, grade, row.subjects, classNames)
+              }
+              created++
+            }
+          } catch {}
+        }
       }
-      results.push(`Users: ${created} created`)
+      results.push(`Users: ${created} created, ${updated} updated`)
     }
 
     // ── Sheet 2: Subjects ──

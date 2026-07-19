@@ -14,30 +14,49 @@ export async function GET() {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Fetch all teachers + students via REST API
-    async function getProfiles(role: string) {
-      const r = await fetch(`${creds.url}/rest/v1/profiles?select=id,email,full_name,role,grade_assigned&role=eq.${role}&order=full_name.asc`, {
-        headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
-      })
-      return r.ok ? r.json() : []
-    }
-
-    const [teachers, students] = await Promise.all([getProfiles("teacher"), getProfiles("student")])
+    // Fetch ALL profiles
+    const r = await fetch(`${creds.url}/rest/v1/profiles?select=id,email,full_name,role,grade_assigned,class_id&order=full_name.asc`, {
+      headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+    })
+    const allProfiles = r.ok ? await r.json() : []
 
     // Fetch teacher assignments
-    const aRes = await fetch(`${creds.url}/rest/v1/teacher_assignments?select=*,classes:class_id(id,grade,class_name)&order=grade.asc`, {
+    const aRes = await fetch(`${creds.url}/rest/v1/teacher_assignments?select=teacher_id,grade,subject,class_id&order=grade.asc`, {
       headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
     })
     const assignments = aRes.ok ? await aRes.json() : []
 
-    const teacherAssignMap: Record<string, any[]> = {}
-    for (const a of assignments ?? [])
-      (teacherAssignMap[a.teacher_id] ??= []).push(a)
+    // Fetch classes for class_name resolution
+    const cRes = await fetch(`${creds.url}/rest/v1/classes?select=id,grade,class_name`, {
+      headers: { "apikey": creds.serviceKey, "Authorization": `Bearer ${creds.serviceKey}` },
+    })
+    const allClasses = cRes.ok ? await cRes.json() : []
+    const classMap: Record<string, string> = {}
+    for (const cls of allClasses ?? []) classMap[cls.id] = `${cls.class_name}`
 
-    // Generate + SET passwords via SDK (handles new sb_secret_ key format)
+    // Group assignments by (teacher_id, grade, subject) → class names
+    const assignGroups: Record<string, { teacher_id: string; grade: number; subject: string; classes: string[] }[]> = {}
+    for (const a of assignments ?? []) {
+      const key = `${a.teacher_id}|${a.grade}|${(a.subject || "").toUpperCase()}`
+      if (!assignGroups[key]) assignGroups[key] = []
+      const existing = assignGroups[key].find(g => g.teacher_id === a.teacher_id && g.grade === a.grade && g.subject === (a.subject || "").toUpperCase())
+      if (existing) {
+        if (a.class_id && classMap[a.class_id] && !existing.classes.includes(classMap[a.class_id]))
+          existing.classes.push(classMap[a.class_id])
+      } else {
+        assignGroups[key] = [{
+          teacher_id: a.teacher_id,
+          grade: a.grade,
+          subject: (a.subject || "").toUpperCase(),
+          classes: a.class_id && classMap[a.class_id] ? [classMap[a.class_id]] : [],
+        }]
+      }
+    }
+
+    // Generate + SET passwords
     const pwMap: Record<string, string> = {}
     const errs: string[] = []
-    for (const u of [...(teachers ?? []), ...(students ?? [])]) {
+    for (const u of allProfiles ?? []) {
       const pw = "SHB-" + Math.random().toString(36).slice(2, 8)
       try {
         const { error: ue } = await admin.auth.admin.updateUserById(u.id, { password: pw })
@@ -49,39 +68,29 @@ export async function GET() {
 
     const wb = XLSX.utils.book_new()
 
-    // Sheet 1: Teachers
-    const tRows: any[][] = [["#", "Name", "Email", "Grade", "Subject", "Class", "Password"]]
-    let idx = 1
-    for (const t of teachers ?? []) {
-      const ta = teacherAssignMap[t.id] ?? []
-      const pw = pwMap[t.id] ?? ""
-      if (!ta.length) tRows.push([idx++, t.full_name, t.email, "-", "-", "-", pw])
-      else for (const a of ta) tRows.push([idx++, t.full_name, t.email, `Grade ${a.grade}`, a.subject, a.classes ? `Grade ${a.classes.grade}${a.classes.class_name}` : "All classes", pw])
+    // Sheet 1: Users (master-upload compatible format)
+    // One row per teacher assignment group, one row per non-teacher user
+    const uRows: any[][] = [["email", "full_name", "role", "grade_assigned", "class_name", "subjects", "password"]]
+    for (const p of allProfiles ?? []) {
+      const pw = pwMap[p.id] ?? ""
+      if (p.role === "teacher") {
+        const groups = Object.values(assignGroups).filter(g => g[0].teacher_id === p.id)
+        if (groups.length === 0) {
+          uRows.push([p.email, p.full_name, "teacher", "", "", "", pw])
+        } else {
+          for (const g of groups) {
+            const entry = g[0]
+            uRows.push([p.email, p.full_name, "teacher", entry.grade, entry.classes.join(", "), entry.subject, pw])
+          }
+        }
+      } else {
+        const className = p.class_id && classMap[p.class_id] ? classMap[p.class_id] : ""
+        uRows.push([p.email, p.full_name, p.role, p.grade_assigned ?? "", className, "", pw])
+      }
     }
-    const wsT = XLSX.utils.aoa_to_sheet(tRows)
-    wsT["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 18 }]
-    XLSX.utils.book_append_sheet(wb, wsT, "Teachers")
-
-    // Sheet 2: Students
-    const grps: Record<number, any[]> = {}
-    for (const s of students ?? []) (grps[s.grade_assigned ?? 0] ??= []).push(s)
-    const sRows: any[][] = [["#", "Name", "Email", "Grade", "Password"]]
-    idx = 1
-    for (const g of Object.keys(grps).sort((a, b) => Number(a) - Number(b)))
-      for (const s of grps[Number(g)]) sRows.push([idx++, s.full_name, s.email, `Grade ${s.grade_assigned}`, pwMap[s.id] ?? ""])
-    const wsS = XLSX.utils.aoa_to_sheet(sRows)
-    wsS["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 10 }, { wch: 18 }]
-    XLSX.utils.book_append_sheet(wb, wsS, "Students")
-
-    // Sheet 3: Summary
-    const sumRows: any[][] = [
-      ["DISTRIBUTION & PASSWORDS"], [],
-      ["Total Teachers", teachers?.length ?? 0],
-      ["Total Students", students?.length ?? 0],
-      ["Passwords Reset", Object.keys(pwMap).length],
-    ]
-    const wsSum = XLSX.utils.aoa_to_sheet(sumRows)
-    XLSX.utils.book_append_sheet(wb, wsSum, "Summary")
+    const wsU = XLSX.utils.aoa_to_sheet(uRows)
+    wsU["!cols"] = [{ wch: 28 }, { wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 18 }]
+    XLSX.utils.book_append_sheet(wb, wsU, "Users")
 
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" })
     return new NextResponse(buf, {
