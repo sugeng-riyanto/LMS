@@ -96,6 +96,11 @@ export async function POST(request: NextRequest) {
       const userEmail = email || makeEmail(fullName)
       const g = toGrade(gradeAssigned)
       const cls = toClass(gradeAssigned)
+      let resolvedClassId: string | null = null
+      if (g && cls) {
+        const { data: classRow } = await (admin.from("classes") as any).select("id").eq("grade", g).eq("class_name", cls.toUpperCase()).maybeSingle()
+        if (classRow) resolvedClassId = classRow.id
+      }
       const tempPw = "SHB-" + Math.random().toString(36).slice(2, 8)
 
       try {
@@ -119,7 +124,7 @@ export async function POST(request: NextRequest) {
             full_name: fullName,
             role,
             grade_assigned: g,
-            class_name: cls || null,
+            class_id: resolvedClassId,
             is_active: true,
           })
           results.push({ type: "user", name: fullName, email: userEmail, status: profileError ? "partial" : "ok", error: profileError?.message, temp_password: tempPw })

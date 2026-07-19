@@ -130,7 +130,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/users/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: createForm.email, full_name: createForm.full_name, role: createForm.role, grade: createForm.grade, password: createForm.password }),
+        body: JSON.stringify({ email: createForm.email, full_name: createForm.full_name, role: createForm.role, grade: createForm.grade, password: createForm.password, class_name: createForm.class_name }),
       })
       const data = await res.json()
       if (res.ok) {

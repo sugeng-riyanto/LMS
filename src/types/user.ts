@@ -5,6 +5,7 @@ export interface UserProfile {
   role: 'super_admin' | 'teacher' | 'lab_assistant' | 'student' | 'principal';
   avatar_url?: string;
   grade_assigned?: number | null;
+  class_id?: string | null;
   phone_number?: string | null;
   is_active?: boolean;
   last_login_at?: string | null;

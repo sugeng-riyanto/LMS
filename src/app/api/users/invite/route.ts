@@ -39,14 +39,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
     }
 
+    let resolvedClassId: string | null = null
+    if (gradeAssigned && class_name) {
+      const { data: classRow } = await (admin.from("classes") as any).select("id").eq("grade", gradeAssigned).eq("class_name", class_name.toUpperCase()).maybeSingle()
+      if (classRow) resolvedClassId = classRow.id
+    }
+
     const profileData: Record<string, any> = {
       id: authUser.user.id,
       email,
       full_name,
       role: userRole,
       grade_assigned: gradeAssigned,
+      class_id: resolvedClassId,
     }
-    if (class_name) profileData.class_name = class_name.toUpperCase()
     const { error: profileError } = await (admin.from("profiles") as any).upsert(profileData)
     if (profileError) {
       return NextResponse.json({ error: `Auth user created but profile failed: ${profileError.message}` }, { status: 500 })
