@@ -2,6 +2,12 @@
 cd /var/www/lmsshb/physics-command-center
 sudo git pull
 sudo rm -rf .next
+
+# Remove old keys from .env.local (use hardcoded fallbacks instead)
+if [ -f .env.local ]; then
+  sudo sed -i '/SUPABASE_ANON\|supabase_anon\|SUPABASE_SERVICE_KEY\|supabase_service/d' .env.local
+fi
+
 # Free RAM: stop heavy services before build
 sudo pm2 stop lmsshb 2>/dev/null
 sudo systemctl stop redis-server 2>/dev/null
