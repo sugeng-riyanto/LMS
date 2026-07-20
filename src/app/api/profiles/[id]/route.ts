@@ -59,7 +59,7 @@ export async function PUT(
 
     const allowedFields = role === "super_admin"
       ? ["full_name", "email", "role", "grade_assigned", "class_id", "avatar_url", "phone_number", "is_active"]
-      : ["full_name", "avatar_url", "phone_number"]
+      : ["full_name", "email", "grade_assigned", "class_id", "avatar_url", "phone_number"]
 
     const updates: Record<string, unknown> = {}
     for (const field of allowedFields) {
@@ -67,11 +67,11 @@ export async function PUT(
     }
     updates.updated_at = new Date().toISOString()
 
-    // Sync email with Supabase Auth if super_admin changed it
-    if (role === "super_admin" && body.email !== undefined) {
+    // Sync email with Supabase Auth
+    if (body.email !== undefined && body.email !== profile?.email) {
       const admin = createAdminClient()
       const { error: authError } = await admin.auth.admin.updateUserById(id, { email: body.email })
-      if (authError) return NextResponse.json({ error: `Auth update failed: ${authError.message}` }, { status: 500 })
+      if (authError) return NextResponse.json({ error: `Email update failed: ${authError.message}` }, { status: 500 })
     }
 
     const { data, error } = await (supabase

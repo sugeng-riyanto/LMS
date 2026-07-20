@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Save, User, Lock, Eye, EyeOff, Shield } from "lucide-react"
-import { ROLE_LABELS } from "@/lib/utils/constants"
+import { ROLE_LABELS, GRADES } from "@/lib/utils/constants"
 import toast from "react-hot-toast"
 
 export default function ProfilePage() {
@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const { role } = useRBAC()
 
   const [fullName, setFullName] = useState(profile?.full_name ?? "")
+  const [email, setEmail] = useState(profile?.email ?? "")
+  const [grade, setGrade] = useState(profile?.grade_assigned ?? null)
   const [saving, setSaving] = useState(false)
 
   // Password change
@@ -29,6 +31,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name)
+    if (profile?.email) setEmail(profile.email)
+    if (profile?.grade_assigned) setGrade(profile.grade_assigned)
   }, [profile])
 
   async function handleSaveProfile() {
@@ -36,10 +40,13 @@ export default function ProfilePage() {
     if (!fullName.trim()) { toast.error("Name cannot be empty"); return }
     setSaving(true)
     try {
+      const body: Record<string, any> = { full_name: fullName.trim() }
+      if (email.trim() !== profile.email) body.email = email.trim()
+      if (grade !== profile.grade_assigned) body.grade_assigned = grade
       const res = await fetch(`/api/profiles/${profile.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName.trim() }),
+        body: JSON.stringify(body),
       })
       if (res.ok) { toast.success("Profile updated"); refreshProfile?.() }
       else { const err = await res.json().catch(() => ({ error: "Unknown" })); toast.error(err.error || "Update failed") }
@@ -83,7 +90,7 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="space-y-1">
                 <Label>Email</Label>
-                <Input value={profile?.email ?? ""} disabled className="bg-muted" />
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@school.edu" />
               </div>
               <div className="space-y-1">
                 <Label>Full Name</Label>
@@ -92,7 +99,10 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label>Grade</Label>
-                  <Input value={profile?.grade_assigned ? `Grade ${profile.grade_assigned}` : "-"} disabled className="bg-muted" />
+                  <select value={grade ?? ""} onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="">-</option>
+                    {GRADES.map((g) => (<option key={g} value={g}>Grade {g}</option>))}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <Label>Role</Label>
