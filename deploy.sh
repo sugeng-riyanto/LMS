@@ -1,18 +1,32 @@
 #!/bin/bash
-cd /var/www/lmsshb/physics-command-center
-sudo git pull
-sudo rm -rf .next
+set -euo pipefail
 
-# Remove old keys from .env.local (use hardcoded fallbacks instead)
+cd /var/www/lmsshb/physics-command-center
+
+echo "=== 1. Git pull ==="
+sudo git pull
+
+echo "=== 2. Clean .env.local (remove hardcoded keys) ==="
 if [ -f .env.local ]; then
   sudo sed -i '/SUPABASE_ANON\|supabase_anon\|SUPABASE_SERVICE_KEY\|supabase_service/d' .env.local
 fi
 
-# Free RAM: stop heavy services before build
-sudo pm2 stop lmsshb 2>/dev/null
-sudo systemctl stop redis-server 2>/dev/null
+echo "=== 3. Clean build cache ==="
+sudo rm -rf .next
+
+echo "=== 4. Stop services & free RAM ==="
+sudo pm2 stop lmsshb 2>/dev/null || true
+sudo systemctl stop redis-server 2>/dev/null || true
+
+echo "=== 5. Build ==="
 sudo SKIP_TYPECHECK=1 NODE_OPTIONS="--max-old-space-size=384" npm run build
-sudo pm2 delete all 2>/dev/null
+
+echo "=== 6. Start app ==="
+sudo pm2 delete all 2>/dev/null || true
 sudo PORT=3001 pm2 start npm --name lmsshb -- run start
 sudo pm2 save
-sudo systemctl start redis-server 2>/dev/null
+
+echo "=== 7. Start redis ==="
+sudo systemctl start redis-server 2>/dev/null || true
+
+echo "=== DONE: $(date) ==="
