@@ -68,7 +68,7 @@ export async function PUT(
     updates.updated_at = new Date().toISOString()
 
     // Sync email with Supabase Auth
-    if (body.email !== undefined && body.email !== profile?.email) {
+    if (body.email !== undefined) {
       const admin = createAdminClient()
       const { error: authError } = await admin.auth.admin.updateUserById(id, { email: body.email })
       if (authError) return NextResponse.json({ error: `Email update failed: ${authError.message}` }, { status: 500 })
