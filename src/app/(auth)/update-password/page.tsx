@@ -19,15 +19,21 @@ export default function UpdatePasswordPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setChecking(false)
-      }
-    })
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) setChecking(false)
-    })
-    return () => subscription?.unsubscribe()
+    // Exchange code from URL for session (PKCE flow)
+    const code = new URLSearchParams(window.location.search).get("code")
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) console.error("Code exchange failed:", error.message)
+      }).finally(() => setChecking(false))
+    } else {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") setChecking(false)
+      })
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) setChecking(false)
+      })
+      return () => subscription?.unsubscribe()
+    }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
