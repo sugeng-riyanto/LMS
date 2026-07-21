@@ -1,8 +1,5 @@
-import { Inter } from "next/font/google"
 import Link from "next/link"
 import { createAdminClient } from "@/lib/supabase/admin"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export default async function AuthLayout({
   children,
@@ -22,7 +19,7 @@ export default async function AuthLayout({
   } catch {}
 
   return (
-    <div className={`${inter.className} flex min-h-screen items-center justify-center bg-muted p-4`}>
+    <div className="flex min-h-screen items-center justify-center bg-muted p-4">
       <div className="w-full max-w-sm space-y-6">
         <Link href="/" className="flex flex-col items-center gap-2">
           {logoUrl ? (

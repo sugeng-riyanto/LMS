@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 
 export const dynamic = "force-dynamic"
 import "@/styles/globals.css"
@@ -11,12 +10,6 @@ import { FontSizeProvider } from "@/providers/font-size-provider"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { CriticalPagePrefetcher } from "@/components/critical-page-prefetcher"
 import { createAdminClient } from "@/lib/supabase/admin"
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-})
 
 export async function generateMetadata(): Promise<Metadata> {
   let brandName = "SHB Learning Hub"
@@ -48,7 +41,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://yvnomvcmqsfbkqqjwzhi.supabase.co" />
         <style>{`*,*::before,*::after{box-sizing:border-box}.sk-init{display:flex;min-height:100vh;align-items:center;justify-content:center;background:#fff;color:#6b7280}.sk-init.dark{background:#030712;color:#9ca3af}.sk-spinner{width:2.5rem;height:2.5rem;border:4px solid #2563eb;border-top-color:transparent;border-radius:9999px;animation:sk-spin .8s linear infinite;margin:0 auto 1rem}.sk-text{font-family:system-ui,sans-serif;font-size:.875rem}@keyframes sk-spin{to{transform:rotate(360deg)}}`}</style>
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ServiceWorkerRegister />
         <ThemeProvider>
           <AuthProvider>
