@@ -6,10 +6,8 @@ cd /var/www/lmsshb/physics-command-center
 echo "=== 1. Git pull ==="
 sudo git pull
 
-echo "=== 2. Clean .env.local (remove hardcoded keys) ==="
-if [ -f .env.local ]; then
-  sudo sed -i '/SUPABASE_ANON\|supabase_anon\|SUPABASE_SERVICE_KEY\|supabase_service/d' .env.local
-fi
+echo "=== 2. Remove .env.local (all keys are hardcoded, env file causes auth conflicts) ==="
+sudo rm -f .env.local
 
 echo "=== 3. Clean build cache ==="
 sudo rm -rf .next
