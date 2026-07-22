@@ -50,10 +50,18 @@ interface Worksheet {
   score_category: string | null
   max_score: number | null
   subject: string | null
+  class_id: string | null
+  due_date: string | null
   created_at: string
   evaluation: Record<string, any>
   milestone: string | null
   reflection: string | null
+}
+
+interface ClassItem {
+  id: string
+  grade: number
+  class_name: string
 }
 
 export default function WorksheetsPage() {
@@ -85,6 +93,8 @@ export default function WorksheetsPage() {
     score_category: "classwork",
     max_score: "100",
     subject: "PHY",
+    class_id: "",
+    due_date: "",
     evaluation_criteria: "",
     evaluation_method: "formative",
     evaluation_notes: "",
@@ -92,7 +102,12 @@ export default function WorksheetsPage() {
     reflection: "",
   })
 
+  const [classes, setClasses] = useState<ClassItem[]>([])
   const [catOptions, setCatOptions] = useState(() => getCategoryOptions({ classwork: 0.4, unit_test: 0.2, project: 0.1, homework: 0.1, mid_semester: 0.1, final_semester: 0.1 }))
+
+  useEffect(() => {
+    fetch("/api/classes").then(r => r.ok ? r.json() : []).then(d => setClasses(d)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const g = Number(form.grade)
@@ -206,6 +221,8 @@ export default function WorksheetsPage() {
         score_category: form.score_category || null,
         max_score: form.max_score ? Number(form.max_score) : 100,
         subject: form.subject || "PHY",
+        class_id: form.class_id || null,
+        due_date: form.due_date || null,
         evaluation: {
           criteria: form.evaluation_criteria || "",
           method: form.evaluation_method || "formative",
@@ -258,6 +275,8 @@ export default function WorksheetsPage() {
       score_category: ws.score_category || "classwork",
       max_score: String(ws.max_score ?? 100),
       subject: ws.subject || "PHY",
+      class_id: ws.class_id || "",
+      due_date: ws.due_date || "",
       evaluation_criteria: ev.criteria || "",
       evaluation_method: ev.method || "formative",
       evaluation_notes: ev.notes || "",
@@ -275,7 +294,7 @@ export default function WorksheetsPage() {
   function handleCancel() {
     setShowForm(false)
     setEditingId(null)
-    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100", subject: "PHY", evaluation_criteria: "", evaluation_method: "formative", evaluation_notes: "", milestone: "", reflection: "" })
+    setForm({ title: "", grade: "10", week_number: "", topic: "", pdf_url: "", pdf_pages: "1", objectives: "", reference_pdf_url: "", theory_video_url: "", theory_video_title: "", additional_links: "", score_category: "classwork", max_score: "100", subject: "PHY", class_id: "", due_date: "", evaluation_criteria: "", evaluation_method: "formative", evaluation_notes: "", milestone: "", reflection: "" })
     setSelectedObjectives(new Set())
     setUploadedFileName("")
   }
@@ -507,6 +526,26 @@ export default function WorksheetsPage() {
               </select>
             </div>
 
+            {/* Parallel Class */}
+            <div className="space-y-2">
+              <Label>Parallel Class <span className="text-xs text-muted-foreground font-normal">(leave empty for all classes in this grade)</span></Label>
+              <select value={form.class_id} onChange={e => updateForm({ class_id: e.target.value })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">All classes</option>
+                {classes.filter(c => c.grade === Number(form.grade)).map(c => (
+                  <option key={c.id} value={c.id}>Grade {c.grade} – {c.class_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Due Date */}
+            <div className="space-y-2">
+              <Label>Due Date <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+              <Input type="datetime-local" value={form.due_date ? form.due_date.slice(0, 16) : ""}
+                onChange={e => updateForm({ due_date: e.target.value ? e.target.value + ":00.000Z" : "" })}
+                className="w-full" />
+            </div>
+
             {/* Assessment Category */}
             <div className="space-y-2">
               <Label>Assessment Category</Label>
@@ -626,6 +665,8 @@ export default function WorksheetsPage() {
                 <CardContent>
                   {ws.topic && <Badge variant="secondary" className="mb-2">{ws.topic}</Badge>}
                   {ws.score_category && <Badge variant="outline" className="mb-2 text-[10px] border-primary/30 text-primary">{ws.score_category.replace(/_/g, " ")}</Badge>}
+                  {ws.class_id && <Badge variant="outline" className="mb-2 text-[10px] border-amber-400 text-amber-700">{classes.find(c => c.id === ws.class_id)?.class_name || ""}</Badge>}
+                  {ws.due_date && <Badge variant="outline" className="mb-2 text-[10px] border-red-300 text-red-600">Due: {new Date(ws.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Badge>}
                   <div className="flex flex-wrap gap-1 mb-2">
                     {ws.reference_pdf_url && <Badge variant="outline" className="text-[10px]">📄 Ref PDF</Badge>}
                     {ws.theory_video_url && <Badge variant="outline" className="text-[10px]">🎬 Theory Video</Badge>}

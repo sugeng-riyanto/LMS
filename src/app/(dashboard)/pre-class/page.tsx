@@ -48,7 +48,8 @@ export default function PreClassPage() {
 
   useEffect(() => {
     if (!grade) return
-    fetch(`/api/published-items?grade=${grade}`)
+    const classParam = profile?.class_id ? `&class_id=${profile.class_id}` : ""
+    fetch(`/api/published-items?grade=${grade}${classParam}`)
       .then(r => r.json())
       .then(d => {
         const syllabi = d.syllabi || []

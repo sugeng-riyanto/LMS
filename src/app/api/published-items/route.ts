@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const grade = searchParams.get("grade")
     const subject = searchParams.get("subject")
+    const classId = searchParams.get("class_id")
     if (!grade) {
       return NextResponse.json({ error: "grade parameter is required" }, { status: 400 })
     }
@@ -13,10 +14,11 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     let wsQuery = (supabase.from("shared_worksheets") as any)
-      .select("id,title,grade,week_number,topic,pdf_url,published,created_at,score_category,subject")
+      .select("id,title,grade,week_number,topic,pdf_url,published,created_at,score_category,subject,class_id,due_date")
       .eq("grade", parseInt(grade))
       .eq("published", true)
     if (subject) wsQuery = wsQuery.eq("subject", subject)
+    if (classId) wsQuery = wsQuery.or(`class_id.is.null,class_id.eq.${classId}`)
 
     let sylDocQuery = (supabase.from("syllabus_documents") as any)
       .select("id,grade,file_name,file_type,published,created_at,score_category,subject")

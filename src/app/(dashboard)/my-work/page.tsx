@@ -119,6 +119,8 @@ interface PublishedItem {
   file_name?: string
   score_category?: string
   subject?: string
+  class_id?: string | null
+  due_date?: string | null
   created_at: string
 }
 
@@ -164,7 +166,8 @@ export default function MyWorkPage() {
   useEffect(() => {
     if (!grade) return
     const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
-    fetch(`/api/published-items?grade=${grade}${subjectParam}`)
+    const classParam = profile?.class_id ? `&class_id=${profile.class_id}` : ""
+    fetch(`/api/published-items?grade=${grade}${subjectParam}${classParam}`)
       .then(r => r.json())
       .then(d => {
         const wss = d.worksheets || []
@@ -438,6 +441,7 @@ export default function MyWorkPage() {
                       const s = SUBJECTS.find(x => x.code === ws.subject)
                       return <span className="text-[10px] text-muted-foreground">{s ? `${s.icon} ${s.name}` : ws.subject}</span>
                     })()}
+                    {ws.due_date && <p className="text-[10px] text-red-500 mt-0.5">Due: {new Date(ws.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

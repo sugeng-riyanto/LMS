@@ -11,11 +11,12 @@ export async function GET(request: NextRequest) {
     const grade = searchParams.get("grade")
     const ids = searchParams.get("ids")
     const subject = searchParams.get("subject")
+    const classId = searchParams.get("class_id")
 
-    let query = (supabase.from("shared_worksheets") as any).select("id,title,grade,week_number,topic,pdf_url,pdf_pages,media_links,objectives,reference_pdf_url,theory_video_url,theory_video_title,page_images,published,score_category,max_score,subject,evaluation,milestone,reflection,created_at").order("created_at", { ascending: false })
+    let query = (supabase.from("shared_worksheets") as any).select("id,title,grade,week_number,topic,pdf_url,pdf_pages,media_links,objectives,reference_pdf_url,theory_video_url,theory_video_title,page_images,published,score_category,max_score,subject,evaluation,milestone,reflection,class_id,due_date,created_at").order("created_at", { ascending: false })
     if (grade) query = query.eq("grade", Number(grade))
     if (subject) query = query.eq("subject", subject)
-    if (grade) query = query.eq("grade", Number(grade))
+    if (classId) query = query.eq("class_id", classId)
     if (ids) {
       const idArr = ids.split(",").filter(Boolean)
       if (idArr.length > 0) query = query.in("id", idArr)

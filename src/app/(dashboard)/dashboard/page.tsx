@@ -99,7 +99,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isStudent && profile?.grade_assigned) {
       const subjectParam = subjectFilter !== "all" ? `&subject=${subjectFilter}` : ""
-      fetch(`/api/published-items?grade=${profile.grade_assigned}${subjectParam}`)
+      const classParam = profile?.class_id ? `&class_id=${profile.class_id}` : ""
+      fetch(`/api/published-items?grade=${profile.grade_assigned}${subjectParam}${classParam}`)
         .then(r => r.json()).then(d => {
           setPublished(d)
           // Fetch submission status for each worksheet
