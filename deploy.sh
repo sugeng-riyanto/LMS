@@ -3,8 +3,9 @@ set -euo pipefail
 
 cd /var/www/lmsshb/physics-command-center
 
-echo "=== 1. Git pull ==="
-sudo git pull
+echo "=== 1. Git pull (as aqeela123) ==="
+git config --global --add safe.directory /var/www/lmsshb/physics-command-center 2>/dev/null || true
+git pull
 
 echo "=== 2. Remove .env.local (all keys are hardcoded, env file causes auth conflicts) ==="
 sudo rm -f .env.local
