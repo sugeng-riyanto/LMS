@@ -44,6 +44,12 @@ export async function GET(
       ? `https://${request.headers.get("x-forwarded-host")}`
       : `https://lms-chi-orpin.vercel.app`
 
+    let className = ""
+    if (ws.class_id) {
+      const { data: cls } = await (supabase.from("classes") as any).select("class_name").eq("id", ws.class_id).single()
+      if (cls) className = `Grade ${grade} – ${cls.class_name}`
+    }
+
     const esc = (s: string) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
     // Check if logged-in student is viewing
@@ -328,7 +334,7 @@ canvas{max-width:100%;height:auto}
   <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
     <div>
       <h1 class="text-2xl md:text-3xl font-bold">${esc(ws.title)}</h1>
-      <p class="text-gray-500 mt-1">Grade ${grade}${ws.week_number ? ` · Week ${ws.week_number}` : ""}${ws.topic ? ` · ${esc(ws.topic)}` : ""}${ws.due_date ? ` · Due: ${new Date(ws.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ""} · ${dateStr}</p>
+      <p class="text-gray-500 mt-1">${className || `Grade ${grade}`}${ws.week_number ? ` · Week ${ws.week_number}` : ""}${ws.topic ? ` · ${esc(ws.topic)}` : ""}${ws.due_date ? ` · Due: ${new Date(ws.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ""} · ${dateStr}</p>
     </div>
     <div class="shrink-0 text-center">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${origin}/worksheet/public/${id}`)}" alt="QR" class="w-20 h-20 mx-auto rounded border" />
