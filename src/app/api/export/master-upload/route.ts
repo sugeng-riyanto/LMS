@@ -66,17 +66,37 @@ export async function POST(request: NextRequest) {
           .select("id").eq("email", email).maybeSingle()
 
         if (existingProfile) {
-          // Update existing user: password + profile
           try {
-            await admin.auth.admin.updateUserById(existingProfile.id, { password })
-            await (admin.from("profiles") as any).update({
-              full_name, role, grade_assigned: grade, class_id: classId, is_active: true,
-            }).eq("id", existingProfile.id)
-            if (role === "teacher" && grade) {
-              await createTeacherAssignments(existingProfile.id, grade, row.subjects, classNames)
+            const { error: authUpdateError } = await admin.auth.admin.updateUserById(existingProfile.id, { password })
+            if (authUpdateError?.message?.includes("not found")) {
+              // Profile exists but auth user missing — delete old profile, create both fresh
+              await (admin.from("profiles") as any).delete().eq("id", existingProfile.id)
+              const { data: newAuth } = await admin.auth.admin.createUser({
+                email, password, email_confirm: true,
+                user_metadata: { full_name, role },
+                app_metadata: { role, full_name },
+              })
+              if (newAuth?.user) {
+                await (admin.from("profiles") as any).upsert({
+                  id: newAuth.user.id, email, full_name, role,
+                  grade_assigned: grade, class_id: classId, is_active: true,
+                })
+                if (role === "teacher" && grade) {
+                  await createTeacherAssignments(newAuth.user.id, grade, row.subjects, classNames)
+                }
+              }
+            } else {
+              await (admin.from("profiles") as any).update({
+                full_name, role, grade_assigned: grade, class_id: classId, is_active: true,
+              }).eq("id", existingProfile.id)
+              if (role === "teacher" && grade) {
+                await createTeacherAssignments(existingProfile.id, grade, row.subjects, classNames)
+              }
             }
             updated++
-          } catch {}
+          } catch (e: any) {
+            results.push(`Failed to update ${email}: ${e.message}`)
+          }
         } else {
           // Create new user
           try {
