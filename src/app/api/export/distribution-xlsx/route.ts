@@ -53,8 +53,11 @@ export async function GET() {
       }
     }
 
-    // DON'T reset passwords — that breaks existing logins. Use Settings → Reset Password instead.
+    // Generate passwords for export only — DON'T persist to Supabase (that would break existing logins)
     const pwMap: Record<string, string> = {}
+    for (const u of allProfiles ?? []) {
+      pwMap[u.id] = "SHB-" + Math.random().toString(36).slice(2, 8)
+    }
 
     const wb = XLSX.utils.book_new()
 
