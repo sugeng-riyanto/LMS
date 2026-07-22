@@ -53,18 +53,8 @@ export async function GET() {
       }
     }
 
-    // Generate + SET passwords
+    // DON'T reset passwords — that breaks existing logins. Use Settings → Reset Password instead.
     const pwMap: Record<string, string> = {}
-    const errs: string[] = []
-    for (const u of allProfiles ?? []) {
-      const pw = "SHB-" + Math.random().toString(36).slice(2, 8)
-      try {
-        const { error: ue } = await admin.auth.admin.updateUserById(u.id, { password: pw })
-        if (ue) errs.push(`${u.email}: ${ue.message}`)
-        else pwMap[u.id] = pw
-      } catch (e: any) { errs.push(`${u.email}: ${e.message}`) }
-    }
-    if (errs.length) return NextResponse.json({ error: "Password reset errors: " + errs.join(" | ") }, { status: 500 })
 
     const wb = XLSX.utils.book_new()
 
