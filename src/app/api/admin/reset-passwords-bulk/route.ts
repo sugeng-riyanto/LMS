@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireRole } from "@/lib/supabase/require-role"
 
+function deterministicPassword(id: string): string {
+  const hash = id.replace(/-/g, "").slice(0, 6)
+  return "SHB-" + hash
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { error: authError } = await requireRole(["super_admin"])
@@ -18,12 +23,11 @@ export async function POST(request: NextRequest) {
 
     for (const id of user_ids) {
       try {
-        const tempPassword = "SHB-" + Math.random().toString(36).slice(2, 8)
+        const tempPassword = deterministicPassword(id)
         const { error: updateError } = await admin.auth.admin.updateUserById(id, { password: tempPassword })
         if (updateError) {
           results.push({ id, error: updateError.message, temp_password: "" })
         } else {
-          // Also fetch profile info
           const { data } = await (admin.from("profiles") as any)
             .select("email, full_name")
             .eq("id", id)

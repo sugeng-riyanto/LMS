@@ -53,10 +53,20 @@ export async function GET() {
       }
     }
 
-    // Generate passwords for export only — DON'T persist to Supabase (that would break existing logins)
+    // Generate deterministic passwords and persist them to Supabase
+    // (same formula as reset-passwords-bulk — always consistent)
     const pwMap: Record<string, string> = {}
     for (const u of allProfiles ?? []) {
-      pwMap[u.id] = "SHB-" + Math.random().toString(36).slice(2, 8)
+      const hash = u.id.replace(/-/g, "").slice(0, 6)
+      pwMap[u.id] = "SHB-" + hash
+      // Skip persistence for super_admin (keep manual password)
+      if (u.role !== "super_admin") {
+        try {
+          await admin.auth.admin.updateUserById(u.id, { password: pwMap[u.id] })
+        } catch {
+          // user may not exist in auth — ignore
+        }
+      }
     }
 
     const wb = XLSX.utils.book_new()
